@@ -101,8 +101,8 @@ def build_about():
 	about_dlg.set_default_response(gtk.RESPONSE_CLOSE)
 	about_dlg.connect('delete-event', hide_cb)
 	about_dlg.connect('response', hide_cb)
-
-	about_dlg.set_program_name("Hijra")
+	try: about_dlg.set_program_name("Hijra")
+	except: pass
 	about_dlg.set_name("Hijra")
 	#about_dlg.set_version(version)
 	about_dlg.set_copyright("Copyright (c) 2006-2008 Muayyad Saleh Alsadi <alsadi@gmail.com>")
