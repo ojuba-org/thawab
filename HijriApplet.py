@@ -35,7 +35,8 @@ import time
 import gtk
 import gobject
 import egg.trayicon
-import pynotify
+try: import pynotify
+except: pass
 
 from HijriCal import HijriCal
 cal=HijriCal()
@@ -57,8 +58,8 @@ days_l=[None]*7
 def main():
 	global cal
 	global notify, tips,tr,box,l
-	pynotify.init('HijriApplet')
-	notify=pynotify.Notification("التقويم الهجري")
+	try: pynotify.init('HijriApplet'); notify=pynotify.Notification("التقويم الهجري")
+	except: pass
 	Y,M,D,W=cal.today
 	yy,mm,dd=cal.g_today
 	tr = egg.trayicon.TrayIcon("HijriApplet")
@@ -73,11 +74,12 @@ def main():
 	set_tip(box, "%s, %d من %s لعام %d" % (week_days[W], D, months[M-1], Y))
 	#notify.attach_to_widget(w) # whats wrong with it
 	#notify.set_property('attach-widget',box)
-	notify.set_property('icon-name','gtk-info')
-	notify.set_property('summary', "التقويم الهجري" )
-	notify.set_property('body', "%s, %d من %s لعام %d\nالموافق %d من %s لعام %s" % (week_days[W], D, months[M-1], Y,dd,gmonths[mm-1],yy) )
-	notify.show()
-
+	try:
+		notify.set_property('icon-name','gtk-info')
+		notify.set_property('summary', "التقويم الهجري" )
+		notify.set_property('body', "%s, %d من %s لعام %d\nالموافق %d من %s لعام %s" % (week_days[W], D, months[M-1], Y,dd,gmonths[mm-1],yy) )
+		notify.show()
+	except: pass
 	setup_popup_menu()
 
 	#update()
