@@ -17,10 +17,25 @@ currently it's set to 191/360 which mean that there is 191 months
 having 30 days in a span of 360 years, other months are 29 days.
 and a is just a shift.
 
+
+    Released under terms on Waqf Public License.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the latest version Waqf Public License as
+    published by Ojuba.org.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+    The Latest version of the license can be found on
+    "http://www.ojuba.org/wiki/doku.php/رخصة وقف العامة"
+
+
 Portions of this algorithm is based on that found on GNU EMACS
 the difference is that this algorithm does not set
 all months to a fixed number of days (in the original algorithm
 first month always have 30 days)
+
 
 The original GNU Emacs LISP algorithm
 Copyright (C) 1995, 1997, 2001 Free Software Foundation, Inc.

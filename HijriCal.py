@@ -10,6 +10,19 @@ the algorithm is discussed in a book titled "حتى لا ندخل جحور ال�
 This file can be used to implement apps, gdesklets or karamba ..etc
 
 The algorith itself is not here, it's in another file called hijri.py
+
+    Released under terms on Waqf Public License.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the latest version Waqf Public License as
+    published by Ojuba.org.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+    The Latest version of the license can be found on
+    "http://www.ojuba.org/wiki/doku.php/رخصة وقف العامة"
+
 """
 from time import localtime
 from hijri import *
@@ -37,7 +50,8 @@ class HijriCal:
 
    def goto_hijri_day(self,Y,M,D):
       """Jump to some Hijri day"""
-      self.Y=Y; self.M=M; self.D=D
+      self.Y,self.M,self.D=Y,M,D
+      self.gy,self.gm,self.gd=hijri_to_gregorian(Y,M,D)
       self.validate()
       self.mn=hijri_month_days(self.Y, self.M)
       self.ms=(7 - self.__ws + hijri_day_of_week(self.Y, self.M, 1)  )% 7
@@ -46,8 +60,8 @@ class HijriCal:
 
    def fill_month_days(self):
       """for internal usage"""
-      Y,M,D = self.Y, self.M, 1
-      gy,gm,gd=hijri_to_gregorian(Y,M,1)
+      Y,M,D = self.Y,self.M, 1
+      gy,gm,gd=hijri_to_gregorian(Y,M,D)
       gn=gregorian_month_days(gy,gm)
       for i in xrange(6):
          for j in xrange(7): self.__md[i][j]=""; self.__g_md[i][j]=""
