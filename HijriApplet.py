@@ -313,7 +313,7 @@ def jump_cb(widget, *args):
 	update_gui()
 
 def clicked_cb(widget, event):
-	if event.button == 1: win.show()
+	if event.button == 1: win.set_property("visible", not win.get_property("visible"))
 	if event.button == 3: show_popup_menu()
 
 def show_cb(*args): win.show_all()
