@@ -42,9 +42,9 @@ from HijriCal import HijriCal
 cal=HijriCal()
 win,about_dlg,accel,title,g_e,h_e,current_l=None,None,None,None,None,None,None
 notify,tips,tr,box,l,popup_menu=None,None,None,None,None,None
-week_days=[ "الأحد", "الإثنين", "الثلاثاء", "الاربعاء", "الخميس", "الجمعة", "السبت" ]
+week_days=[ "الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت" ]
 months=[
-  "محرم","صفر","ربيع الاول","ربيع الثاني",
+  "محرم","صفر","ربيع الأول","ربيع الثاني",
   "جمادى الأولى","جمادى الثانية","رجب","شعبان",
   "رمضان","شوال","ذو القعدة","ذو الحجة"
   ]
