@@ -64,7 +64,7 @@ def get_epoch():
 def hijri_month_days(Y,M):
    """Return the number of days in a given hijri month M in a given Y"""
    Mc = ( Y -1) *12 + M
-   if (((Mc+ __a_const) * __p_const) % 360)  < __p_const : return 30
+   if (((Mc+ __a_const) * __p_const) % __q_const)  < __p_const : return 30
    else: return 29
 
 # NOTE: trivial implementation
@@ -80,7 +80,7 @@ def hijri_days_before_month(Y,M):
    McM=Mc * __p_const
    sum=0
    for i in xrange(1,M):
-      if (McM % 360)  < __p_const : sum+=30
+      if (McM % __q_const)  < __p_const : sum+=30
       else: sum+=29
       McM+=__p_const
    return sum
