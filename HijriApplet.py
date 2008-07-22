@@ -35,6 +35,7 @@ import time
 import gtk
 import gobject
 import egg.trayicon
+import sys
 try: import pynotify
 except: pass
 
@@ -82,13 +83,21 @@ def main():
 	except: pass
 	setup_popup_menu()
 
-	#update()
-	#gobject.timeout_add(1000, update)
+	#update_cb()
+	gobject.timeout_add(5000, update_cb)
 
 	tr.show_all()
 	build_gui()
-	print "Done"
+	#print "Done"
 	gtk.main()
+def update_cb(*args):
+	global l;
+	d=cal.today
+	cal.goto_today()
+	if d!=cal.today:
+	  l.set_markup('<span size="small" weight="bold" foreground="red" background="#ffffff">%02d</span>\n<span size="small" weight="bold" foreground="yellow" background="black">%02d</span>' % (cal.D, cal.M))
+	  update_gui()
+	return True
 def wday_index(i):
 	ws=cal.get_week_start()
 	if (cal.get_direction()==1): return (i+ws) % 7
@@ -186,7 +195,7 @@ def build_gui():
 		cell[j][i]=gtk.Label("-")
 		cell[j][i].set_alignment(0.5,0.5)
 		cell[j][i].set_justify(gtk.JUSTIFY_CENTER)
-		if (a[j][i]): cell[j][i].set_markup('<span size="large" weight="bold" foreground="#004000" background="#ffffff">%02d</span>\n<span size="small" weight="bold" foreground="gray">%02d/%02d</span>' % (a[j][i], b[j][i][0],b[j][i][1]))
+		if (a[j][i]): cell[j][i].set_markup('<span size="large" weight="bold" foreground="%s" background="%s">%02d</span>\n<span size="small" weight="bold" foreground="gray">%02d/%02d</span>' % (('#004000','#ffff40')[int(a[j][i]==cal.D)],('#ffffff','#000080')[int(a[j][i]==cal.D)],a[j][i], b[j][i][0],b[j][i][1]))
 		table.attach(cell[j][i],i,i+1,j+1,j+2,gtk.FILL | gtk.EXPAND,gtk.FILL | gtk.EXPAND,0,0)
 	hb = gtk.HBox(False,0)
 	vb.pack_start(hb,False, False, 0)
@@ -241,8 +250,10 @@ def build_gui():
 	hb.pack_start(current_l,True, False, 0)
 
         win.show_all()
+        if '--hidden' in sys.argv: win.hide()
 def update_gui():
 	global cell,days_l,title,g_e,h_e
+	if (cal.Y,cal.M)==cal.today[0:2]: cal.goto_today()
 	title.set_text(months[cal.M-1]+" "+str(cal.Y))
 	g_e.set_text(str(cal.gy))
 	h_e.set_text(str(cal.Y))
@@ -256,7 +267,7 @@ def update_gui():
 		days_l[i].set_text(week_days[wday_index(i)])
 	for n in xrange(42):
 		i=n%7; j=n/7;
-		if (a[j][i]): cell[j][i].set_markup('<span size="large" weight="bold" foreground="#004000" background="#ffffff">%02d</span>\n<span size="small" weight="bold" foreground="gray">%02d/%02d</span>' % (a[j][i], b[j][i][0],b[j][i][1]))
+		if (a[j][i]): cell[j][i].set_markup('<span size="large" weight="bold" foreground="%s" background="%s">%02d</span>\n<span size="small" weight="bold" foreground="gray">%02d/%02d</span>' % (('#004000','#ffff40')[int(a[j][i]==cal.D)],('#ffffff','#000080')[int(a[j][i]==cal.D)],a[j][i], b[j][i][0],b[j][i][1]))
 		else: cell[j][i].set_text('-')
 def prev_year_cb(*args):
 	cal.goto_hijri_day(cal.Y-1, cal.M, 1)
