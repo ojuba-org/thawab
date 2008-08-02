@@ -92,11 +92,12 @@ def main():
 	gtk.main()
 def update_cb(*args):
 	global l;
-	d=cal.today
-	cal.goto_today()
-	if d!=cal.today:
-	  l.set_markup('<span size="small" weight="bold" foreground="red" background="#ffffff">%02d</span>\n<span size="small" weight="bold" foreground="yellow" background="black">%02d</span>' % (cal.D, cal.M))
+	if (cal.refresh_today()):
+	  y,m,d,w=self.today
+	  l.set_markup('<span size="small" weight="bold" foreground="red" background="#ffffff">%02d</span>\n<span size="small" weight="bold" foreground="yellow" background="black">%02d</span>' % (m, y))
+	  set_tip(box, "%s, %d من %s لعام %d" % (week_days[w], d, months[m-1], y))
 	  update_gui()
+	  
 	return True
 def wday_index(i):
 	ws=cal.get_week_start()
@@ -153,6 +154,7 @@ def build_gui():
 	hb=gtk.HBox(False,0)
 	vb.pack_start(hb,False, False, 0)
 	title=gtk.Label(months[cal.M-1]+" "+str(cal.Y))
+	title.set_justify(gtk.JUSTIFY_CENTER)
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_GOTO_FIRST, gtk.ICON_SIZE_SMALL_TOOLBAR)
 	btn=gtk.Button(); btn.add(img)
 	try: btn.set_focus_on_click(False)
@@ -212,6 +214,7 @@ def build_gui():
 	btn=gtk.Button(); btn.add(img)
 	hb.pack_start(btn,False, False, 0)
 	btn.connect("clicked", convert_cb)
+	g_e.connect("activate", convert_cb)
 	try: btn.set_focus_on_click(False)
 	except: pass
 
@@ -220,6 +223,7 @@ def build_gui():
 	btn=gtk.Button(); btn.add(img)
 	hb.pack_start(btn,False, False, 0)
 	btn.connect("clicked", jump_cb)
+	h_e.connect("activate", jump_cb)
 	try: btn.set_focus_on_click(False)
 	except: pass
 

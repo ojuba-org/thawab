@@ -85,6 +85,16 @@ def hijri_days_before_month(Y,M):
       McM+=__p_const
    return sum
 
+#TEST: PASSED
+# test that the faster hijri_days_before_month is ok
+#def test_hijri_days_before_month():
+#  l=[(y,m) for y in xrange(1400,1499) for m in xrange(1,13)]
+#  for y,m in l:
+#    d1=hijri_days_before_month(y,m)
+#    d2=hijri_days_before_month_(y,m)
+#    if d1!=d2: print y,m,d1,d2
+
+
 def hijri_year_days(Y):
    """Return the number of days in a given year Y"""
    return hijri_days_before_month(Y,13)
@@ -93,22 +103,88 @@ def hijri_day_number (Y, M, D):
    """Return the day number within the year of the Islamic date (Y, M, D), 1 for 1/1 in any year"""
    return hijri_days_before_month(Y,M)+D
 
+
+# BAD fast implementation
+#def hijri_to_absolute_ (Y, M, D):
+#   """Return absolute date of Hijri (Y,M,D), eg. ramadan (9),1,1427 -> 732578 """   
+#   Mc=(Y-1)*12
+#   # days before Hijra +  days in the years before + days from the begining of that year
+#   return __hijri_epoch + \
+#      Mc*29 + Mc*__p_const/__q_const + \ # this line should involve __a_const
+#      hijri_day_number (Y, M, D) - 1
+
+# correct implementation # TODO: optimize it more and test that after optimization
 def hijri_to_absolute (Y, M, D):
    """Return absolute date of Hijri (Y,M,D), eg. ramadan (9),1,1427 -> 732578 """   
    Mc=(Y-1)*12
-   # days before Hijra +  days in the year before + days from the begining of that year
-   return __hijri_epoch + \
-      Mc*29 + Mc*__p_const/__q_const + \
-      hijri_day_number (Y, M, D) - 1
+   # day count=days before Hijra plus (...)
+   dc=__hijri_epoch
+   # plus days in the years before till first multiples of q plus (...)
+   Mc-=Mc % __q_const
+   y=Y-Mc/12
+   dc+=Mc*29 + Mc*__p_const/__q_const
+   # plus those after the multiples plus (...)
+   for i in xrange(1,y): dc+=hijri_year_days(i)
+   # plus days from the begining of that year
+   dc+=hijri_day_number (Y, M, D) - 1
+   return dc
 
-# direct way,
-def absolute_to_hijri (date): # TODO: check if it's always compatible with absolute_from_hijri
+def hijri_month_days_(y,m):
+   """Return the number of days in a given hijri month M in a given Y"""
+   return hijri_to_absolute(y+m/12,m%12+1,1)-hijri_to_absolute(y,m,1)
+
+# TEST: PASSED
+#def test_hijri_to_absolute_v_month_days():
+#  #l=[(y,m) for y in xrange(1,31) for m in xrange(1,13)]
+#  l=[(y,m) for y in xrange(1400,1499) for m in xrange(1,13)]
+#  for y,m in l:
+#    d1=hijri_month_days(y,m)
+#    d2=hijri_to_absolute(y+m/12,m%12+1,1)-hijri_to_absolute(y,m,1)
+#    if d1!=d2: print y,m,y+m/12,m%12+1,'d1=',d1,", d2=",d2
+
+# round then move to exact, very slow perfect implementation
+#def absolute_to_hijri_ (date): # TODO: check if it's always compatible with absolute_from_hijri
+#   """Return Hijri date (Y,M,D) corresponding to the given absolute number of days."""
+#   if date < __hijri_epoch: return None; # pre-Islamic date
+#   dd=date-__hijri_epoch
+#   Mc=dd/(29*(__q_const-__p_const)+ 30*__p_const)*__q_const # mounth count till multibles of q
+#   Y=y=Mc/12+1; M=m=(Mc%12)+1
+#   while(date > hijri_to_absolute(Y,M,1)):
+#     y,m=Y,M
+#     M+=1
+#     if M>12: M=1; Y+=1
+#   Y=y; M=m
+#   D=1 + date - hijri_to_absolute(Y,M,1)
+#   if D>hijri_month_days(Y,M): 
+#     M+=1
+#     if M>12: M=1; Y+=1
+#   D=1 + date - hijri_to_absolute(Y,M,1)
+#   return (Y,M,D)
+
+
+# direct way, test PASSED
+def absolute_to_hijri (date):
    """Return Hijri date (Y,M,D) corresponding to the given absolute number of days."""
    if date < __hijri_epoch: return None; # pre-Islamic date
    Mc=(date-__hijri_epoch+1)*__q_const/(29*__q_const+__p_const)
    Y=Mc/12+1; M=(Mc%12)+1
-   D=1 + date - hijri_to_absolute(Y,M,1) # TODO: better way
+   # consistency check
+   d=hijri_to_absolute(Y,M,1) # TODO: this is an expensive call
+   if (date < d): # go one month back if needed
+     M-=1
+     if M==0: Y-=1; M=12
+     d-=hijri_month_days(Y,M) # this call is fast
+   #
+   D=1 + date - d
    return (Y,M,D)
+
+# TEST: PASSED
+#def test_c():
+#  l=[(y,m) for y in xrange(1400,1499) for m in xrange(1,13)]
+#  for y,m in l:
+#    d=hijri_month_days(y,m)
+#    if absolute_to_hijri(hijri_to_absolute(y,m,1))!=(y,m,1): print y,m,1, absolute_to_hijri(hijri_to_absolute(y,m,1))
+#    if absolute_to_hijri(hijri_to_absolute(y,m,d))!=(y,m,d): print y,m,d, absolute_to_hijri(hijri_to_absolute(y,m,d))
 
 def hijri_day_of_week (Y, M, D):
    """Return the day-of-the-week index of hijri (Y,M,D) Date, 0 for Sunday, 1 for Monday, etc."""

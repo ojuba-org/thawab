@@ -42,11 +42,21 @@ class HijriCal:
       Y,M,D=self.goto_gregorian_day(yy, mm, dd)
       wd=hijri_day_of_week (Y, M, D)
       self.today= (Y, M, D, wd)
-
+   def refresh_today(self):
+      """check is today is uptodate, update them if not and return True"""
+      if self.g_today==localtime()[:3] : return False
+      else:
+        yy, mm, dd = localtime()[:3]
+        self.g_today= (yy, mm, dd)
+        Y, M, D=gregorian_to_hijri(yy,mm,dd)
+        wd=hijri_day_of_week (Y, M, D)
+        self.today= (Y, M, D, wd)
+        return True
    def goto_gregorian_day(self,yy, mm, dd):
       """Jump to some Hijri day"""
-      Y, M, D = gregorian_to_hijri(yy,mm,dd)
-      return self.goto_hijri_day(Y, M, D)
+      try: Y, M, D = gregorian_to_hijri(yy,mm,dd); self.goto_hijri_day(Y, M, D)
+      except: self.validate()
+      return (self.Y,self.M,self.D)
 
    def goto_hijri_day(self,Y,M,D):
       """Jump to some Hijri day"""

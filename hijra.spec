@@ -1,7 +1,7 @@
 Name: hijra
 Summary: Hijri Islamic Calendar utils in python
 URL: http://hijra.ojuba.org
-Version: 0.1.9
+Version: 0.1.10
 Release: 1%{?dist}
 Source0: %{name}-%{version}.tar.bz2
 License: Waqf
@@ -21,7 +21,6 @@ Group: System Environment/Base
 Summary: Hijri Islamic Calendar converting functions for python
 BuildArch: noarch
 Requires: python, setuptool
-Requires(post): desktop-file-utils
 %description python
 This is Hijra package from hijra.ojuba.org
 
@@ -44,6 +43,7 @@ BuildArch: noarch
 # TODO: is it better to say gnome-python2-extras ?
 Requires: python, setuptool, pygtk2, gnome-python2-libegg, notify-python
 Requires: hijra-python
+Requires(post): desktop-file-utils
 %description applet
 Hijri Tray Applet for GNOME (also works with KDE)
 That uses Hijra Algorithm by Muayyad Saleh Alsadi<alsadi@gmail.com>
@@ -73,6 +73,11 @@ rm -rf $RPM_BUILD_ROOT
 /usr/bin/*
 /etc/xdg/autostart/*
 %changelog
+
+* Tue Jul 22 2008  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 0.1.10-1
+- Auto update date
+- Fix consistency bug
+
 * Tue Jul 22 2008  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 0.1.9-1
 - Auto update date
 
