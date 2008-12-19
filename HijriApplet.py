@@ -33,6 +33,7 @@ The algorith itself is not here, it's in another file called hijri.py
 
 import time
 import gtk
+import pango
 import gobject
 import egg.trayicon
 import sys
@@ -81,6 +82,7 @@ def main():
 		notify.set_property('body', "%s, %d من %s لعام %d\nالموافق %d من %s لعام %s" % (week_days[W], D, months[M-1], Y,dd,gmonths[mm-1],yy) )
 		notify.show()
 	except: pass
+	
 	setup_popup_menu()
 
 	#update_cb()
@@ -204,6 +206,7 @@ def build_gui():
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_JUSTIFY_LEFT, gtk.ICON_SIZE_MENU)
 	btn=gtk.ToggleButton(); btn.add(img)
 	hb.pack_start(btn,False, False, 0)
+	if not win.get_pango_context().get_base_dir() & ( pango.DIRECTION_RTL | pango.DIRECTION_WEAK_RTL): cal.set_direction(-1)
 	btn.set_active((cal.get_direction()+1)/2)
 	btn.connect("toggled", direction_cb)
 	try: btn.set_focus_on_click(False)

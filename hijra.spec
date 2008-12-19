@@ -74,7 +74,7 @@ rm -rf $RPM_BUILD_ROOT
 /etc/xdg/autostart/*
 %changelog
 
-* Tue Jul 22 2008  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 0.1.10-1
+* Sun Aug 03 2008  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 0.1.10-1
 - Auto update date
 - Fix consistency bug
 

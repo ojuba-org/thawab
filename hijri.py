@@ -105,6 +105,7 @@ def hijri_day_number (Y, M, D):
 
 
 # BAD fast implementation
+# bug 2008-8-2 <-> 1429, 7, 30 or 29
 #def hijri_to_absolute_ (Y, M, D):
 #   """Return absolute date of Hijri (Y,M,D), eg. ramadan (9),1,1427 -> 732578 """   
 #   Mc=(Y-1)*12

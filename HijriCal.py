@@ -32,7 +32,7 @@ class HijriCal:
       """Create HijriCal Object"""
       self.__md=[[""]*7,[""]*7,[""]*7,[""]*7,[""]*7,[""]*7] # 7 days on at most 6 weeks
       self.__g_md=[[""]*7,[""]*7,[""]*7,[""]*7,[""]*7,[""]*7] # 7 days on at most 6 weeks
-      self.__direct=-1; self.__ws=6 # make Sat is first day of week, and fill rows directly
+      self.__direct=1; self.__ws=6 # make Sat is first day of week, and fill rows directly
       self.goto_today()
 
    def goto_today(self):
