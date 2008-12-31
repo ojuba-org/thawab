@@ -105,7 +105,6 @@ def hijri_day_number (Y, M, D):
 
 
 # BAD fast implementation
-# bug 2008-8-2 <-> 1429, 7, 30 or 29
 #def hijri_to_absolute_ (Y, M, D):
 #   """Return absolute date of Hijri (Y,M,D), eg. ramadan (9),1,1427 -> 732578 """   
 #   Mc=(Y-1)*12
@@ -259,7 +258,7 @@ Gregorian date Sunday, December 31, 1 BC."""
    n1 = d3 / 365;
    dd = (d3 % 365) + 1;
    yy = ((400 * n400) + (100 * n100) + (n4 * 4) + n1);
-   if (n100 == 4) or (n1 == 4): return (12, 31, yy);
+   if (n100 == 4) or (n1 == 4): return (yy, 12, 31);
    yy=yy+1;
    mm = 1;
    while(date >= gregorian_to_absolute (yy,mm, 1)): mm+=1;
