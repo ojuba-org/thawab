@@ -80,7 +80,7 @@ class HijriCal:
       else: col=6-self.ms; endcol=-1; icol=6
       for i in xrange(self.mn):
          self.__md[row][col]=i+1;
-	 self.__g_md[row][col]=(gd,gm); gd+=1;
+	 self.__g_md[row][col]=(gd,gm,gy); gd+=1;
 	 if (gd>gn):
             gd=1; gm+=1
 	    if gm>12: gm=1; gy+=1

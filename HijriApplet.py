@@ -38,7 +38,7 @@ import gobject
 import egg.trayicon
 import sys
 try: import pynotify
-except: pass
+except ImportError: pass
 
 from HijriCal import HijriCal
 cal=HijriCal()
@@ -57,6 +57,7 @@ gmonths=[
   ]
 cell=[[None]*7,[None]*7,[None]*7,[None]*7,[None]*7,[None]*7]
 days_l=[None]*7
+
 def main():
 	global cal
 	global notify, tips,tr,box,l
@@ -71,7 +72,7 @@ def main():
 	tr.add(box)
 	box.add(l)
 	try: box.set_tooltip_text("Waiting ...")
-	except: tips=gtk.Tooltips()
+	except AttributeError: tips=gtk.Tooltips()
 
 	set_tip(box, "%s, %d من %s لعام %d" % (week_days[W], D, months[M-1], Y))
 	#notify.attach_to_widget(w) # whats wrong with it
@@ -95,11 +96,11 @@ def main():
 def update_cb(*args):
 	global l;
 	if (cal.refresh_today()):
-	  y,m,d,w=self.today
-	  l.set_markup('<span size="small" weight="bold" foreground="red" background="#ffffff">%02d</span>\n<span size="small" weight="bold" foreground="yellow" background="black">%02d</span>' % (m, y))
+	  y,m,d,w=cal.today
+	  print y,m,d,w
+	  l.set_markup('<span size="small" weight="bold" foreground="red" background="#ffffff">%02d</span>\n<span size="small" weight="bold" foreground="yellow" background="black">%02d</span>' % (d, m))
 	  set_tip(box, "%s, %d من %s لعام %d" % (week_days[w], d, months[m-1], y))
 	  update_gui()
-	  
 	return True
 def wday_index(i):
 	ws=cal.get_week_start()
@@ -114,7 +115,7 @@ def build_about():
 	about_dlg.connect('delete-event', hide_cb)
 	about_dlg.connect('response', hide_cb)
 	try: about_dlg.set_program_name("Hijra")
-	except: pass
+	except AttributeError: pass
 	about_dlg.set_name("Hijra")
 	#about_dlg.set_version(version)
 	about_dlg.set_copyright("Copyright (c) 2006-2008 Muayyad Saleh Alsadi <alsadi@gmail.com>")
@@ -159,15 +160,17 @@ def build_gui():
 	title.set_justify(gtk.JUSTIFY_CENTER)
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_GOTO_FIRST, gtk.ICON_SIZE_SMALL_TOOLBAR)
 	btn=gtk.Button(); btn.add(img)
+	set_tip(btn,"عام سابق")
 	try: btn.set_focus_on_click(False)
-	except: pass
+	except AttributeError: pass
 	btn.connect('clicked', prev_year_cb)
 	hb.pack_start(btn,False, False, 0)
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_GO_BACK, gtk.ICON_SIZE_SMALL_TOOLBAR)
 	btn=gtk.Button(); btn.add(img)
 	btn.connect('clicked', prev_month_cb)
+	set_tip(btn,"شهر سابق")
 	try: btn.set_focus_on_click(False)
-	except: pass	
+	except AttributeError: pass	
 
 	hb.pack_start(btn,False, False, 0)	
 	hb.pack_start(title,True, True, 0)
@@ -175,15 +178,17 @@ def build_gui():
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_GO_FORWARD, gtk.ICON_SIZE_SMALL_TOOLBAR)
 	btn=gtk.Button(); btn.add(img)
 	btn.connect('clicked', next_month_cb)
+	set_tip(btn,"شهر لاحق")
 	try: btn.set_focus_on_click(False)
-	except: pass
+	except AttributeError: pass
 	
 	hb.pack_start(btn,False, False, 0)
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_GOTO_LAST, gtk.ICON_SIZE_SMALL_TOOLBAR)
 	btn=gtk.Button(); btn.add(img)
 	btn.connect('clicked', next_year_cb)
+	set_tip(btn,"عام لاحق")
 	try: btn.set_focus_on_click(False)
-	except: pass	
+	except AttributeError: pass	
 	hb.pack_start(btn,False, False, 0)
 
 
@@ -191,6 +196,10 @@ def build_gui():
 	vb.pack_start(table,True, True, 0)
 	a=cal.get_array()
 	b=cal.get_g_array()
+	
+	if gtk.widget_get_default_direction()==gtk.TEXT_DIR_LTR: cal.set_direction(-1) # LTR
+	else: cal.set_direction(1) # RTL
+	
 	for i in xrange(7):
 		days_l[i]=gtk.Label(week_days[wday_index(i)])
 		table.attach(days_l[i],i,i+1,0,1,gtk.FILL | gtk.EXPAND,gtk.FILL | gtk.EXPAND,0,0)
@@ -199,62 +208,69 @@ def build_gui():
 		cell[j][i]=gtk.Label("-")
 		cell[j][i].set_alignment(0.5,0.5)
 		cell[j][i].set_justify(gtk.JUSTIFY_CENTER)
-		if (a[j][i]): cell[j][i].set_markup('<span size="large" weight="bold" foreground="%s" background="%s">%02d</span>\n<span size="small" weight="bold" foreground="gray">%02d/%02d</span>' % (('#004000','#ffff40')[int(a[j][i]==cal.D)],('#ffffff','#000080')[int(a[j][i]==cal.D)],a[j][i], b[j][i][0],b[j][i][1]))
+		if (a[j][i]):
+		  cell[j][i].set_markup('<span size="large" weight="bold" foreground="%s" background="%s">%02d</span>\n<span size="small" weight="bold" foreground="gray">%02d/%02d</span>' % (('#004000','#ffff40')[int(a[j][i]==cal.D)],('#ffffff','#000080')[int(a[j][i]==cal.D)],a[j][i], b[j][i][0],b[j][i][1]))		
+		  h_str="%d من %s لعام %d هـ" % (a[j][i], months[cal.M-1], cal.Y)
+		  g_str="%d من %s لعام %d م" % (b[j][i][0], gmonths[b[j][i][1]-1], b[j][i][2])
+		  set_tip(cell[j][i],"%s\n%s" % (h_str,g_str))
+
 		table.attach(cell[j][i],i,i+1,j+1,j+2,gtk.FILL | gtk.EXPAND,gtk.FILL | gtk.EXPAND,0,0)
 	hb = gtk.HBox(False,0)
 	vb.pack_start(hb,False, False, 0)
-	img=gtk.Image(); img.set_from_stock(gtk.STOCK_JUSTIFY_LEFT, gtk.ICON_SIZE_MENU)
-	btn=gtk.ToggleButton(); btn.add(img)
-	hb.pack_start(btn,False, False, 0)
-	if not win.get_pango_context().get_base_dir() & ( pango.DIRECTION_RTL | pango.DIRECTION_WEAK_RTL): cal.set_direction(-1)
-	btn.set_active((cal.get_direction()+1)/2)
-	btn.connect("toggled", direction_cb)
-	try: btn.set_focus_on_click(False)
-	except: pass
+	#img=gtk.Image(); img.set_from_stock(gtk.STOCK_JUSTIFY_LEFT, gtk.ICON_SIZE_MENU)
+	#btn=gtk.ToggleButton(); btn.add(img)
+	#hb.pack_start(btn,False, False, 0)
+	
+	#btn.set_active((cal.get_direction()+1)/2)
+	#btn.connect("toggled", direction_cb)
+	#try: btn.set_focus_on_click(False)
+	#except: pass
 
 	g_e=gtk.Entry(); g_e.set_width_chars(6); hb.pack_start(g_e,False, False, 0)
+	set_tip(g_e,"العام الجريجوري")
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_CONVERT, gtk.ICON_SIZE_MENU)
-	btn=gtk.Button(); btn.add(img)
-	hb.pack_start(btn,False, False, 0)
-	btn.connect("clicked", convert_cb)
+	hb.pack_start(img,False, False, 0)
+	#btn.connect("clicked", convert_cb)
 	g_e.connect("activate", convert_cb)
 	try: btn.set_focus_on_click(False)
-	except: pass
+	except AttributeError: pass
 
 	h_e=gtk.Entry(); h_e.set_width_chars(6); hb.pack_start(h_e,False, False, 0)
+	set_tip(h_e,"العام الهجري")
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_JUMP_TO, gtk.ICON_SIZE_MENU)
-	btn=gtk.Button(); btn.add(img)
-	hb.pack_start(btn,False, False, 0)
-	btn.connect("clicked", jump_cb)
+	hb.pack_start(img,False, False, 0)
+	#btn.connect("clicked", jump_cb)
 	h_e.connect("activate", jump_cb)
 	try: btn.set_focus_on_click(False)
-	except: pass
+	except AttributeError: pass
 
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_REFRESH, gtk.ICON_SIZE_MENU)
 	btn=gtk.Button(); btn.add(img)
 	hb.pack_start(btn,False, False, 0)
 	btn.connect("clicked", today_cb)
+	set_tip(btn,"اليوم")
 	try: btn.set_focus_on_click(False)
-	except: pass
+	except AttributeError: pass
 
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_ABOUT, gtk.ICON_SIZE_MENU)
 	btn=gtk.Button(); btn.add(img)
 	hb.pack_start(btn,False, False, 0)
 	btn.connect("clicked", lambda *args: about_dlg.run())
+	set_tip(btn,"حول")
 	try: btn.set_focus_on_click(False)
-	except: pass
+	except AttributeError: pass
 
 	g_e.set_text(str(cal.gy))
 	h_e.set_text(str(cal.Y))
 	hb = gtk.HBox(False,0)
 	vb.pack_start(hb,False, False, 0)
 
-	current_l=gtk.Label()
-	current_l.set_justify(gtk.JUSTIFY_CENTER)
-	h_str="%d من %s لعام %d هـ" % (cal.D, months[cal.M-1], cal.Y)
-        g_str="%d من %s لعام %d م" % (cal.gd, gmonths[cal.gm-1], cal.gy)
-	current_l.set_markup('<span weight="bold" foreground="#ffffff" background="#000000">%s</span> - <span weight="bold" foreground="#000000" background="#ffffff">%s</span>' % (h_str,g_str))
-	hb.pack_start(current_l,True, False, 0)
+	#current_l=gtk.Label()
+	#current_l.set_justify(gtk.JUSTIFY_CENTER)
+	#h_str="%d من %s لعام %d هـ" % (cal.D, months[cal.M-1], cal.Y)
+        #g_str="%d من %s لعام %d م" % (cal.gd, gmonths[cal.gm-1], cal.gy)
+	#current_l.set_markup('<span weight="bold" foreground="#ffffff" background="#000000">%s</span>\n<span weight="bold" foreground="#000000" background="#ffffff">%s</span>' % (h_str,g_str))
+	#hb.pack_start(current_l,True, False, 0)
 
         win.show_all()
         if '--hidden' in sys.argv: win.hide()
@@ -264,9 +280,9 @@ def update_gui():
 	title.set_text(months[cal.M-1]+" "+str(cal.Y))
 	g_e.set_text(str(cal.gy))
 	h_e.set_text(str(cal.Y))
-	h_str="%d من %s لعام %d هـ" % (cal.D, months[cal.M-1], cal.Y)
-        g_str="%d من %s لعام %d م" % (cal.gd, gmonths[cal.gm-1], cal.gy)
-	current_l.set_markup('<span weight="bold" foreground="#ffffff" background="#000000">%s</span> - <span weight="bold" foreground="#000000" background="#ffffff">%s</span>' % (h_str,g_str))
+	#h_str="%d من %s لعام %d هـ" % (cal.D, months[cal.M-1], cal.Y)
+        #g_str="%d من %s لعام %d م" % (cal.gd, gmonths[cal.gm-1], cal.gy)
+	#current_l.set_markup('<span weight="bold" foreground="#ffffff" background="#000000">%s</span>\n<span weight="bold" foreground="#000000" background="#ffffff">%s</span>' % (h_str,g_str))
 
 	a=cal.get_array()
 	b=cal.get_g_array()
@@ -274,7 +290,11 @@ def update_gui():
 		days_l[i].set_text(week_days[wday_index(i)])
 	for n in xrange(42):
 		i=n%7; j=n/7;
-		if (a[j][i]): cell[j][i].set_markup('<span size="large" weight="bold" foreground="%s" background="%s">%02d</span>\n<span size="small" weight="bold" foreground="gray">%02d/%02d</span>' % (('#004000','#ffff40')[int(a[j][i]==cal.D)],('#ffffff','#000080')[int(a[j][i]==cal.D)],a[j][i], b[j][i][0],b[j][i][1]))
+		if (a[j][i]):
+		  cell[j][i].set_markup('<span size="large" weight="bold" foreground="%s" background="%s">%02d</span>\n<span size="small" weight="bold" foreground="gray">%02d/%02d</span>' % (('#004000','#ffff40')[int(a[j][i]==cal.D)],('#ffffff','#000080')[int(a[j][i]==cal.D)],a[j][i], b[j][i][0],b[j][i][1]))
+		  h_str="%d من %s لعام %d هـ" % (a[j][i], months[cal.M-1], cal.Y)
+		  g_str="%d من %s لعام %d م" % (b[j][i][0], gmonths[b[j][i][1]-1], b[j][i][2])
+		  set_tip(cell[j][i],"%s\n%s" % (h_str,g_str))
 		else: cell[j][i].set_text('-')
 def prev_year_cb(*args):
 	cal.goto_hijri_day(cal.Y-1, cal.M, 1)
@@ -311,22 +331,22 @@ def setup_popup_menu():
 	i = gtk.ImageMenuItem(gtk.STOCK_QUIT)
         i.connect('activate', gtk.main_quit)
         popup_menu.add(i)
-def direction_cb(widget, *args):
-	cal.set_direction(widget.get_active()*2-1)
-	update_gui()
+#def direction_cb(widget, *args):
+#	cal.set_direction(widget.get_active()*2-1)
+#	update_gui()
 def today_cb(widget, *args):
 	cal.goto_today()
 	update_gui()
 def convert_cb(widget, *args):
 	try: y=int(g_e.get_text())
-	except: return
+	except ValueError: return
 	cal.goto_gregorian_day(y,1,1)
 	h_e.set_text(str(cal.Y))
 	update_gui()
 
 def jump_cb(widget, *args):
 	try: y=int(h_e.get_text())
-	except: return
+	except ValueError: return
 	cal.goto_hijri_day(y,1,1)
 	update_gui()
 
