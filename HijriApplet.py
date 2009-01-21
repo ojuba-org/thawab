@@ -42,7 +42,7 @@ except ImportError: pass
 
 from HijriCal import HijriCal
 cal=HijriCal()
-win,about_dlg,accel,title,g_e,h_e,current_l=None,None,None,None,None,None,None
+colors,win,about_dlg,accel,title,g_e,h_e,current_l=None,None,None,None,None,None,None,None
 notify,tips,tr,box,l,popup_menu=None,None,None,None,None,None
 week_days=[ "الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت" ]
 months=[
@@ -106,6 +106,10 @@ def wday_index(i):
 	ws=cal.get_week_start()
 	if (cal.get_direction()==1): return (i+ws) % 7
 	else: return ((6-i)+ws) % 7
+def wday_from_index(i):
+	ws=cal.get_week_start()
+	if (cal.get_direction()==1): return (7+i-ws) % 7
+	else: return (6+ws-i)%7
 
 def hide_cb(w, *args): w.hide(); return True
 def build_about():
@@ -143,7 +147,18 @@ def build_about():
 #	about_dlg.set_logo(logo)
 #	about_dlg.set_logo_icon_name(icon_name)
 
-	
+def get_theme_colors():
+	global win
+	global colors
+	#global color_h2_bg,color_h2_bg_s
+	colors=[[[0 for i in 1,2,3,4] for j in 1,2,3] for k in 1,2]
+	# [is_holyday][normal selected inactive]=[fg,bg,fg_s,bg_s]
+	for i,s in enumerate((gtk.STATE_NORMAL,gtk.STATE_SELECTED,gtk.STATE_INSENSITIVE)):
+	  fg,bg=win.style.fg[s],win.style.bg[s]
+	  colors[0][i]=bg,fg,bg.to_string(),fg.to_string()
+	  colors[1][i]=fg,bg,fg.to_string(),bg.to_string()
+	  #print i,bg.to_string(),fg.to_string()
+
 def build_gui():
 	global cell,days_l,win,accel,title,g_e,h_e,current_l
 	accel=gtk.AccelGroup()
@@ -156,7 +171,7 @@ def build_gui():
 	vb=gtk.VBox(False,0); win.add(vb)
 	hb=gtk.HBox(False,0)
 	vb.pack_start(hb,False, False, 0)
-	title=gtk.Label(months[cal.M-1]+" "+str(cal.Y))
+	title=gtk.Label("...")
 	title.set_justify(gtk.JUSTIFY_CENTER)
 	img=gtk.Image(); img.set_from_stock(gtk.STOCK_GOTO_FIRST, gtk.ICON_SIZE_SMALL_TOOLBAR)
 	btn=gtk.Button(); btn.add(img)
@@ -194,27 +209,21 @@ def build_gui():
 
 	table = gtk.Table(7,6,True)
 	vb.pack_start(table,True, True, 0)
-	a=cal.get_array()
-	b=cal.get_g_array()
-	
-	if gtk.widget_get_default_direction()==gtk.TEXT_DIR_LTR: cal.set_direction(-1) # LTR
-	else: cal.set_direction(1) # RTL
-	
 	for i in xrange(7):
-		days_l[i]=gtk.Label(week_days[wday_index(i)])
-		table.attach(days_l[i],i,i+1,0,1,gtk.FILL | gtk.EXPAND,gtk.FILL | gtk.EXPAND,0,0)
+		days_l[i]=gtk.Label('...')
+		e=gtk.EventBox(); e.add(days_l[i])
+		table.attach(e,i,i+1,0,1,gtk.FILL | gtk.EXPAND,gtk.FILL | gtk.EXPAND,0,0)
+
 	for n in xrange(42):
 		i=n%7; j=n/7;
 		cell[j][i]=gtk.Label("-")
 		cell[j][i].set_alignment(0.5,0.5)
 		cell[j][i].set_justify(gtk.JUSTIFY_CENTER)
-		if (a[j][i]):
-		  cell[j][i].set_markup('<span size="large" weight="bold" foreground="%s" background="%s">%02d</span>\n<span size="small" weight="bold" foreground="gray">%02d/%02d</span>' % (('#004000','#ffff40')[int(a[j][i]==cal.D)],('#ffffff','#000080')[int(a[j][i]==cal.D)],a[j][i], b[j][i][0],b[j][i][1]))		
-		  h_str="%d من %s لعام %d هـ" % (a[j][i], months[cal.M-1], cal.Y)
-		  g_str="%d من %s لعام %d م" % (b[j][i][0], gmonths[b[j][i][1]-1], b[j][i][2])
-		  set_tip(cell[j][i],"%s\n%s" % (h_str,g_str))
+		set_tip(cell[j][i],None)
+		e=gtk.EventBox(); e.add(cell[j][i])
+		#e.modify_bg(gtk.STATE_NORMAL,color_h2_bg);
+		table.attach(e, i,i+1,j+1,j+2,gtk.FILL | gtk.EXPAND,gtk.FILL | gtk.EXPAND,0,0)
 
-		table.attach(cell[j][i],i,i+1,j+1,j+2,gtk.FILL | gtk.EXPAND,gtk.FILL | gtk.EXPAND,0,0)
 	hb = gtk.HBox(False,0)
 	vb.pack_start(hb,False, False, 0)
 	#img=gtk.Image(); img.set_from_stock(gtk.STOCK_JUSTIFY_LEFT, gtk.ICON_SIZE_MENU)
@@ -260,8 +269,8 @@ def build_gui():
 	try: btn.set_focus_on_click(False)
 	except AttributeError: pass
 
-	g_e.set_text(str(cal.gy))
-	h_e.set_text(str(cal.Y))
+	#g_e.set_text(str(cal.gy))
+	#h_e.set_text(str(cal.Y))
 	hb = gtk.HBox(False,0)
 	vb.pack_start(hb,False, False, 0)
 
@@ -271,15 +280,25 @@ def build_gui():
         #g_str="%d من %s لعام %d م" % (cal.gd, gmonths[cal.gm-1], cal.gy)
 	#current_l.set_markup('<span weight="bold" foreground="#ffffff" background="#000000">%s</span>\n<span weight="bold" foreground="#000000" background="#ffffff">%s</span>' % (h_str,g_str))
 	#hb.pack_start(current_l,True, False, 0)
-
         win.show_all()
+        update_gui()
         if '--hidden' in sys.argv: win.hide()
 def update_gui():
+	global color_h_bg,color_h_fg
+	global color_h_bg_s,color_h_fg_s
+	#global color_h2_bg,color_h2_bg_s
 	global cell,days_l,title,g_e,h_e
+	if not colors:
+	  get_theme_colors()
+	  # cal.set_week_start(0) # you can set week start (and thus week end)
+	  if gtk.widget_get_default_direction()==gtk.TEXT_DIR_LTR: cal.set_direction(-1) # LTR
+	  else: cal.set_direction(1) # RTL
+
 	if (cal.Y,cal.M)==cal.today[0:2]: cal.goto_today()
 	title.set_text(months[cal.M-1]+" "+str(cal.Y))
 	g_e.set_text(str(cal.gy))
 	h_e.set_text(str(cal.Y))
+
 	#h_str="%d من %s لعام %d هـ" % (cal.D, months[cal.M-1], cal.Y)
         #g_str="%d من %s لعام %d م" % (cal.gd, gmonths[cal.gm-1], cal.gy)
 	#current_l.set_markup('<span weight="bold" foreground="#ffffff" background="#000000">%s</span>\n<span weight="bold" foreground="#000000" background="#ffffff">%s</span>' % (h_str,g_str))
@@ -288,14 +307,30 @@ def update_gui():
 	b=cal.get_g_array()
 	for i in xrange(7):
 		days_l[i].set_text(week_days[wday_index(i)])
+		# [is_holyday][normal selected inactive]=[fg,bg,fg_s,bg_s]
+		days_l[i].modify_fg(gtk.STATE_NORMAL,colors[1][1][0])
+		days_l[i].parent.modify_fg(gtk.STATE_NORMAL,colors[1][1][0])
+		days_l[i].parent.modify_bg(gtk.STATE_NORMAL,colors[1][1][1]);
+	
+	holyday_col=wday_from_index((6+cal.get_week_start())%7)
+	for j in range(6): cell[j][holyday_col].parent.modify_bg(gtk.STATE_NORMAL,colors[1][1][1])
+	
+	
 	for n in xrange(42):
 		i=n%7; j=n/7;
 		if (a[j][i]):
-		  cell[j][i].set_markup('<span size="large" weight="bold" foreground="%s" background="%s">%02d</span>\n<span size="small" weight="bold" foreground="gray">%02d/%02d</span>' % (('#004000','#ffff40')[int(a[j][i]==cal.D)],('#ffffff','#000080')[int(a[j][i]==cal.D)],a[j][i], b[j][i][0],b[j][i][1]))
+		  if a[j][i]==cal.D: is_selected=0
+		  else: is_selected=1
+		  if i==holyday_col: is_holyday=1
+		  else: is_holyday=0
+		  cell[j][i].set_markup('<span size="large" weight="bold" foreground="%s" background="%s">%02d</span>\n<span size="small" weight="bold" foreground="grey">%02d/%02d</span>' % (
+		    colors[is_holyday][is_selected][2],colors[is_holyday][is_selected][3],
+		    a[j][i], b[j][i][0],b[j][i][1]))
 		  h_str="%d من %s لعام %d هـ" % (a[j][i], months[cal.M-1], cal.Y)
 		  g_str="%d من %s لعام %d م" % (b[j][i][0], gmonths[b[j][i][1]-1], b[j][i][2])
 		  set_tip(cell[j][i],"%s\n%s" % (h_str,g_str))
-		else: cell[j][i].set_text('-')
+		else: cell[j][i].set_text('-'); set_tip(cell[j][i],None)
+
 def prev_year_cb(*args):
 	cal.goto_hijri_day(cal.Y-1, cal.M, 1)
 	update_gui()
@@ -335,6 +370,8 @@ def setup_popup_menu():
 #	cal.set_direction(widget.get_active()*2-1)
 #	update_gui()
 def today_cb(widget, *args):
+	global colors
+	colors=None
 	cal.goto_today()
 	update_gui()
 def convert_cb(widget, *args):
