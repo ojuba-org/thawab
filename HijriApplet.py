@@ -280,9 +280,8 @@ def build_gui():
         #g_str="%d من %s لعام %d م" % (cal.gd, gmonths[cal.gm-1], cal.gy)
 	#current_l.set_markup('<span weight="bold" foreground="#ffffff" background="#000000">%s</span>\n<span weight="bold" foreground="#000000" background="#ffffff">%s</span>' % (h_str,g_str))
 	#hb.pack_start(current_l,True, False, 0)
-        win.show_all()
-        update_gui()
-        if '--hidden' in sys.argv: win.hide()
+        if not '--hidden' in sys.argv: win.show_all(); update_gui()
+
 def update_gui():
 	global color_h_bg,color_h_fg
 	global color_h_bg_s,color_h_fg_s
@@ -388,10 +387,16 @@ def jump_cb(widget, *args):
 	update_gui()
 
 def clicked_cb(widget, event):
-	if event.button == 1: win.set_property("visible", not win.get_property("visible"))
+	
+	if event.button == 1:
+	  if not g_e.get_property('visible'): win.show_all(); update_gui(); return # this case happens once to init the GUI
+	  win.set_property("visible", not win.get_property("visible"))
 	if event.button == 3: show_popup_menu()
 
-def show_cb(*args): win.show_all()
+def show_cb(*args):
+  if not g_e.get_property('visible'): win.show_all(); update_gui()
+  else: win.show_all();
+
 def about_cb(*args):
 	global about_dlg
 	about_dlg.run()
