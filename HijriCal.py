@@ -21,7 +21,7 @@ The algorith itself is not here, it's in another file called hijri.py
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
     The Latest version of the license can be found on
-    "http://www.ojuba.org/wiki/doku.php/رخصة وقف العامة"
+    "http://www.ojuba.org/wiki/doku.php/waqf/license"
 
 """
 from time import localtime

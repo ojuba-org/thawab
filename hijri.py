@@ -28,7 +28,7 @@ and a is just a shift.
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
     The Latest version of the license can be found on
-    "http://www.ojuba.org/wiki/doku.php/رخصة وقف العامة"
+    "http://www.ojuba.org/wiki/doku.php/waqf/license"
 
 
 Portions of this algorithm is based on that found on GNU EMACS

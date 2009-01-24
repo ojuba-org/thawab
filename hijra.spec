@@ -1,7 +1,7 @@
 Name: hijra
 Summary: Hijri Islamic Calendar utils in python
 URL: http://hijra.ojuba.org
-Version: 0.1.15
+Version: 0.1.16
 Release: 1%{?dist}
 Source0: %{name}-%{version}.tar.bz2
 License: Waqf
@@ -69,11 +69,16 @@ rm -rf $RPM_BUILD_ROOT
 
 %files python
 /usr/share/doc/hijra-python/*
+%doc LICENSE-ar.txt LICENSE-en
 %{python_sitelib}/*
 %files applet
+%doc readme-ar.html LICENSE-ar.txt LICENSE-en
 /usr/bin/*
 /etc/xdg/autostart/*
 %changelog
+* Sat Jan 24 2009  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 0.1.16-1
+- include an initial English translaion of the license
+
 * Thu Jan 22 2009  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 0.1.15-1
 - don't show then hide if --hidden is passed
 
