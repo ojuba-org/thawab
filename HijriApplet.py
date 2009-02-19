@@ -25,14 +25,25 @@ The algorith itself is not here, it's in another file called hijri.py
 
 """
 
-# TODO: Implement about dialog
 # TODO: Implement ocations reminder
-# DONE: Implement goto today button
-# DONE: Implement a way to jump to an arbitrary date
 # TODO: Implement configuration, ie. allow direction change, and setting first way of week
 
-import time
 import gtk
+bus=None
+colors,win,about_dlg,accel,title,g_e,h_e,current_l=None,None,None,None,None,None,None,None
+notify,tips,tr,box,l,popup_menu=None,None,None,None,None,None
+try:
+  import dbus
+  import dbus.service
+  #import gobject # for gobject.MainLoop() if no gtk is to be used
+  from dbus.mainloop.glib import DBusGMainLoop
+
+  dbus_loop = DBusGMainLoop(set_as_default=True)
+  bus = dbus.SessionBus()
+except ImportError: pass
+
+
+import time
 import pango
 import gobject
 import egg.trayicon
@@ -40,10 +51,45 @@ import sys
 try: import pynotify
 except ImportError: pass
 
+
+# use dbus so that, only one Applet is shown
+def init_dbus():
+  global bus_name, bus_object,win
+  if not bus: return
+  class Manager(dbus.service.Object):
+    def __init__(self, bus, path):
+          dbus.service.Object.__init__(self,bus,path)
+
+    @dbus.service.method("org.freedesktop.HijriApplet", in_signature='', out_signature='')
+    def Show(self):
+      win.show_all(); update_gui()
+
+    @dbus.service.method("org.freedesktop.HijriApplet", in_signature='', out_signature='s')
+    def Version(self):
+      return "0.1"
+  # values from /usr/include/dbus-1.0/dbus/dbus-shared.h
+  r=bus.request_name('org.freedesktop.HijriApplet', flags=0x4)
+  if r!=1:
+    print "Another process own HijriApplet Service, ask it to show up: "
+    trials=0; appletbus=False
+    while(appletbus==False and trials<20):
+      print ".",
+      try:
+        appletbus=bus.get_object("org.freedesktop.HijriApplet","/Manager"); break
+      except:
+        appletbus=False
+      time.sleep(1); trials+=1
+    print "*"
+    if appletbus: appletbus.Show(dbus_interface='org.freedesktop.HijriApplet')
+    else: print "unable to connect"
+    exit(0)
+  bus_name = dbus.service.BusName("org.freedesktop.HijriApplet", bus)
+  bus_object = Manager(bus, '/Manager')
+
+init_dbus()
+
 from HijriCal import HijriCal
 cal=HijriCal()
-colors,win,about_dlg,accel,title,g_e,h_e,current_l=None,None,None,None,None,None,None,None
-notify,tips,tr,box,l,popup_menu=None,None,None,None,None,None
 week_days=[ "الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت" ]
 months=[
   "محرم","صفر","ربيع الأول","ربيع الثاني",
