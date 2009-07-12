@@ -3,7 +3,7 @@
 
 Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 
-    Released under terms on Waqf Public License.
+    Released under terms of Waqf Public License.
     This program is free software; you can redistribute it and/or modify
     it under the terms of the latest version Waqf Public License as
     published by Ojuba.org.
