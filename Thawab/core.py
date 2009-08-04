@@ -34,6 +34,69 @@ th_ext='.ki3001'
 th_ext_glob='*.ki3001'
 
 
+class MCache(object):
+  """a class holding metadata cache"""
+  def __init__(self, mcache_db, uri_list):
+    if not os.path.exists(mcache_db): create_new=True
+    else: create_new=False
+    self.__cn=sqlite3.connect(mcache_db, isolation_level=None)
+    self.__cn.row_factory=sqlite3.Row
+    self.__c=self.__cn.cursor()
+    if create_new:
+      self.__c.executescript(SQL_DATA_MODEL)
+    self.__reload()
+    if self.__create_cache(uri_list)>0: self.__reload()
+
+  def __reload(self):
+    self.__meta=map(lambda i: dict(i), cn.execute(SQL_MCACHE_GET_BY_KITAB))
+    self.__meta_by_uri=(dict(map(lambda i,d: (d['uri'],i),enumerate(self.__meta))))
+    self.__meta_uri_list=self.__meta_by_uri.keys()
+    self.__meta_by_kitab={}
+    for k,G in groupby(enumerate(self.__meta),lambda a: a[1]['kitab']):
+      g=list(G)
+      self.__meta_by_kitab[k]=map(lambda i: i[0],g)
+
+  def __create_cache(uri_list, smart=-1):
+    """return the number of newly created meta caches"""
+    r=0
+    for uri in uri_list:
+      if smart==0:
+        # force recreation of cache, drop all, then create all
+        r+=self.__cache(uri, uri in self.__meta_uri_list)
+        continue
+      meta=None
+      drop_old_needed=False
+      cache_needed=False
+      if uri not in self.__meta_uri_list:
+        cache_needed=True
+      else:
+        drop_old_needed=True
+        cache_needed=True
+        if smart==-1: continue # don't replace existing cache
+        elif smart==1:
+          if compare_mtime_of_two_files(): continue
+        elif smart==2:
+          old_meta=self.get_by_uri(uri)
+          meta=self.__load_from_uri(uri)
+          if compare_two_hashes(): continue
+          #hash (version and release and mtime and maybe random)
+      if cache_needed:
+        r+=self.__cache(uri, drop_old_needed, meta)
+    return r
+
+  def get_by_uri(self, uri):
+    """return meta object for uri"""
+    i=self.__meta_by_uri.get(uri,None)
+    if not i: return None
+    return self.__meta[i]
+
+  def get_by_kitab(self, kitab):
+    """return a list of meta objects for a kitab"""
+    a=self.__meta_by_kitab.get(uri,None)
+    if not a: return None
+    return map(lambda i: self.__meta[i], a)
+    
+
 class ThawabMan (object):
   def __init__(self,user_prefix,system_prefix=""):
     """Create a new Thawab instance given a user writable directory and an optional system-wide read-only directory
@@ -93,7 +156,10 @@ the first thing you should do is to call loadMCache()
   ##############################
   # managed metadata cache related
   ##############################
+  def createMCache(self, smart=2):
+     """create metadata cache entry in cache file"""
   # FIXME: this is a temporal working implementation of metadata cache, that only hold the kitabName and uri
+  
   def loadMCache(self):
     """load managed metadata cache"""
     self.managed=dict(map(lambda i: (os.path.basename(i).replace(th_ext ,''),{'uri':i}),self.getManagedUriList()))

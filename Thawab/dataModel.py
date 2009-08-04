@@ -17,8 +17,7 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 
 """
 from tags import *
-
-SQL_DATA_MODEL="""\
+MCACHE_BASE="""\
 CREATE TABLE "meta" (
 	"repo" TEXT,
 	"kitab" TEXT,
@@ -29,7 +28,28 @@ CREATE TABLE "meta" (
 	"year" TEXT,
 	"originalYear" TEXT,
 	"classification" TEXT
+);"""
+
+SQL_MCACHE_DATA_MODEL = MCACHE_BASE[:MCACHE_BASE.find(')')]+"""\
+	"uri" TEXT,
+	"cache_hash" TEXT,
+	"flags" INTEGER,
 );
+
+CREATE INDEX MetaKitabIndex on meta (kitab);
+CREATE INDEX MetaKitabVersionIndex on meta (kitab,version);
+CREATE INDEX MetaKitabRelease1Index on meta (kitab,version,release1);
+CREATE INDEX MetaFullKitabIndex on meta (kitab,version,release1,release2);
+CREATE INDEX MetaAuthorIndex on meta (author);
+CREATE INDEX MetaYearIndex on meta (year);
+CREATE INDEX MetaClassificationIndex on meta (classification);
+
+"""
+SQL_MCACHE_GET="""SELECT rowid,* FROM meta"""
+SQL_MCACHE_GET_BY_KITAB="""SELECT rowid,* FROM meta ORDER BY kitab"""
+
+SQL_DATA_MODEL="""\
+%s
 
 CREATE TABLE "nodes" (
 	"idNum" INTEGER PRIMARY KEY NOT NULL,
@@ -55,14 +75,6 @@ CREATE TABLE "nodesTags" (
 	PRIMARY KEY ("tagIdNum", "nodeIdNum")
 );
 
-CREATE INDEX MetaKitabIndex on meta (kitab);
-CREATE INDEX MetaKitabVersionIndex on meta (kitab,version);
-CREATE INDEX MetaKitabRelease1Index on meta (kitab,version,release1);
-CREATE INDEX MetaFullKitabIndex on meta (kitab,version,release1,release2);
-CREATE INDEX MetaAuthorIndex on meta (author);
-CREATE INDEX MetaYearIndex on meta (year);
-CREATE INDEX MetaClassificationIndex on meta (classification);
-
 CREATE INDEX NodesParentIndex on nodes (parent);
 CREATE INDEX NodesNodesGlobalOrderIndex on nodes (globalOrder);
 CREATE INDEX NodesDepthIndex on nodes (depth);
@@ -72,7 +84,7 @@ CREATE INDEX NodesTagNodeIdNumIndex on nodesTags(nodeIdNum);
 CREATE INDEX NodesTagParamIndex on nodesTags(param);
 CREATE INDEX TagsName on tags (name);
 
-"""
+""" % MCACHE_BASE
 #################################################
 # arguments to make the built-in tags
 STD_TAGS_ARGS=( \
