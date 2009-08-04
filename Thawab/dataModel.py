@@ -17,8 +17,17 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 
 """
 from tags import *
+MCACHE_FIELDS=['cache_hash','reop','kitab','version', 'releaseMajor', 'releaseMinor',
+  'author', 'year', 'originalYear', 'classification', 'uri', 'mtime', 'flags'
+]
+
+SQL_MCACHE_ADD='INSERT OR REPLACE INTO (%s) VALUES (%s)' % \
+  (', '.join(MCACHE_FIELDS), ', '.join(map(lambda i: ":"+i,MCACHE_FIELDS)))
+SQL_MCACHE_DROP='DELETE FROM meta WHERE uri=?'
+
 MCACHE_BASE="""\
 CREATE TABLE "meta" (
+	"cache_hash" TEXT,
 	"repo" TEXT,
 	"kitab" TEXT,
 	"version" TEXT,
@@ -32,7 +41,7 @@ CREATE TABLE "meta" (
 
 SQL_MCACHE_DATA_MODEL = MCACHE_BASE[:MCACHE_BASE.find(')')]+"""\
 	"uri" TEXT,
-	"cache_hash" TEXT,
+	"mtime" FLOAT,
 	"flags" INTEGER,
 );
 

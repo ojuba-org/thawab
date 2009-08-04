@@ -36,7 +36,7 @@ th_ext_glob='*.ki3001'
 
 class MCache(object):
   """a class holding metadata cache"""
-  def __init__(self, mcache_db, uri_list):
+  def __init__(self, mcache_db, uri_list, smart=-1):
     if not os.path.exists(mcache_db): create_new=True
     else: create_new=False
     self.__cn=sqlite3.connect(mcache_db, isolation_level=None)
@@ -45,10 +45,10 @@ class MCache(object):
     if create_new:
       self.__c.executescript(SQL_DATA_MODEL)
     self.__reload()
-    if self.__create_cache(uri_list)>0: self.__reload()
+    if self.__create_cache(uri_list, smart)>0: self.__reload()
 
   def __reload(self):
-    self.__meta=map(lambda i: dict(i), cn.execute(SQL_MCACHE_GET_BY_KITAB))
+    self.__meta=map(lambda i: dict(i), self.__c.execute(SQL_MCACHE_GET_BY_KITAB))
     self.__meta_by_uri=(dict(map(lambda i,d: (d['uri'],i),enumerate(self.__meta))))
     self.__meta_uri_list=self.__meta_by_uri.keys()
     self.__meta_by_kitab={}
@@ -56,9 +56,34 @@ class MCache(object):
       g=list(G)
       self.__meta_by_kitab[k]=map(lambda i: i[0],g)
 
+  def __load_from_uri(uri):
+    """extract meta object from kitab's uri and return it"""
+    cn=sqlite3.connect(uri)
+    cn.row_factory=sqlite3.Row
+    c=self.__cn.cursor()
+    r=c.execute(SQL_MCACHE_GET).fetchone()
+    if not r: return None
+    return dict(r)
+
+  def __cache(uri, meta=None):
+    if not meta: meta=self.__load_from_uri(uri)
+    if not meta: return 0
+    #if drop_old_needed: 
+    meta['uri']=uri
+    meta['mtime']=os.path.getmtime(uri)
+    meta['flags']=0
+    self.__c.execute(SQL_MCACHE_ADD,meta)
+    return 1
+
   def __create_cache(uri_list, smart=-1):
-    """return the number of newly created meta caches"""
+    """create cache and return the number of newly created meta caches"""
     r=0
+    self.__c.execute('BEGIN TRANSACTION')
+    # remove meta for kitab that no longer exists
+    deleted=filter(lambda i: i not in uri_list, self.__meta_uri_list)
+    for uri in deleted:
+      self.__c.execute(SQL_MCACHE_DROP, (uri,))
+    # update meta for the rest (in a smart way)
     for uri in uri_list:
       if smart==0:
         # force recreation of cache, drop all, then create all
@@ -73,15 +98,16 @@ class MCache(object):
         drop_old_needed=True
         cache_needed=True
         if smart==-1: continue # don't replace existing cache
-        elif smart==1:
-          if compare_mtime_of_two_files(): continue
-        elif smart==2:
+        elif smart==1: # rely of mtime
+          if abs(os.path.getmtime(uri)-self.get_by_uri(uri)['mtime'])<1e-5: continue
+        elif smart==2: # rely on a hash saved inside the database
           old_meta=self.get_by_uri(uri)
           meta=self.__load_from_uri(uri)
-          if compare_two_hashes(): continue
-          #hash (version and release and mtime and maybe random)
+          if not meta or old_meta['hash']==meta['hash']: continue
       if cache_needed:
-        r+=self.__cache(uri, drop_old_needed, meta)
+        r+=self.__cache(uri, meta)
+    self.__c.execute('END TRANSACTION')
+    self.__cn.commit()
     return r
 
   def get_by_uri(self, uri):
