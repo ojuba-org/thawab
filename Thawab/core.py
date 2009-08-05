@@ -288,23 +288,23 @@ the first thing you should do is to call loadMCache()
     # FIXME: implement node.tagsFlags(): to be binary Or on all tag types applied to the node
     tags=node.getTags()
     # create new consuming main indexing fields [ie. headers]
-    # TODO: let loadToc use TAGTYPE_FLAGS_HEADER instead of hard-coding 'header'
-    #if node.getTagsOfType(TAGTYPE_FLAGS_HEADER):
-    # NOTE: for consistency, header is the only currentely allowed tag having TAGTYPE_FLAGS_HEADER
+    # TODO: let loadToc use TAG_FLAGS_HEADER instead of hard-coding 'header'
+    #if node.getTagsByFlagsMask(TAG_FLAGS_HEADER):
+    # NOTE: for consistency, header is the only currentely allowed tag having TAG_FLAGS_HEADER
     if node.getTags().has_key('header'):
       iix.main_f_node_idnums.append(node.idNum)
       iix.main_f_content_index.append(len(iix.contents))
       iix.main_f_tags_index.append(len(iix.tags))
     # create new sub non-consuming indexing fields
-    if node.getTagsOfType(TAGTYPE_FLAGS_IX_FIELD):
+    if node.getTagsByFlagsMask(TAG_FLAGS_IX_FIELD):
       iix.sub_f_node_idnums.append(node.idNum)
       iix.sub_f_content_index.append(len(iix.contents))
       iix.sub_f_tags_index.append(len(iix.tags))
-    # TODO: check for nodes that are not supposed to be indexed TAGTYPE_IX_SKIP
+    # TODO: check for nodes that are not supposed to be indexed TAG_FLAGS_IX_SKIP
     # append ix contents
-    iix.contents.append(node.getContent()) # TODO: append extra padding space if TAGTYPE_FLAGS_PAD_CONTENT
+    iix.contents.append(node.getContent()) # TODO: append extra padding space if TAG_FLAGS_PAD_CONTENT
     # append ix tags
-    iix.tags.extend(map(lambda t: tags[t]==None and t or u'.'.join((t,tags[t])), node.getTagsOfType(TAGTYPE_IX_TAG)))
+    iix.tags.extend(map(lambda t: tags[t]==None and t or u'.'.join((t,tags[t])), node.getTagsByFlagsMask(TAG_FLAGS_IX_TAG)))
   
   def __ix_nodeEnd(self, node, kitabName, iix):
     # index extra sub fields if any
@@ -531,8 +531,8 @@ and the following methods:
     """return tag dictionary applied to the node, loading it from back-end if needed"""
     if not self.__tags_loaded: self.reloadTags()
     return self.__tags
-  def getTagsOfType(self, mask):
-    """return tag names having type that is masked with mask, used like this node.getTagsOfType(TAGTYPE_IX_TAG)"""
+  def getTagsByFlagsMask(self, mask):
+    """return tag names having flags masked with mask, used like this node.getTagsByFlagsMask(TAG_FLAGS_IX_TAG)"""
     # return filter(lambda t: STD_TAGS_HASH[t][2]&mask, self.getTags())
     return filter(lambda t: self.kitab.getTags()[t][0]&mask, self.getTags())
   def reloadTags(self):

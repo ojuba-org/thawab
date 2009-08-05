@@ -29,13 +29,17 @@ MCACHE_BASE="""\
 CREATE TABLE "meta" (
 	"cache_hash" TEXT,
 	"repo" TEXT,
+	"lang" TEXT,
 	"kitab" TEXT,
 	"version" TEXT,
 	"releaseMajor" TEXT,
 	"releaseMinor" TEXT,
 	"author" TEXT,
 	"year" TEXT,
+	"originalAuthor" TEXT,
 	"originalYear" TEXT,
+	"originalKitab" TEXT,
+	"originalVersion" TEXT,
 	"classification" TEXT
 );"""
 
@@ -45,12 +49,15 @@ SQL_MCACHE_DATA_MODEL = MCACHE_BASE[:MCACHE_BASE.find(')')]+"""\
 	"flags" INTEGER,
 );
 
+CREATE INDEX MetaURIIndex on meta (uri);
+CREATE INDEX MetaRepoIndex on meta (repo);
+CREATE INDEX MetaLangIndex on meta (lang);
 CREATE INDEX MetaKitabIndex on meta (kitab);
-CREATE INDEX MetaKitabVersionIndex on meta (kitab,version);
-CREATE INDEX MetaKitabRelease1Index on meta (kitab,version,release1);
-CREATE INDEX MetaFullKitabIndex on meta (kitab,version,release1,release2);
+CREATE INDEX MetaKitabVersionIndex on meta (repo,kitab,version);
 CREATE INDEX MetaAuthorIndex on meta (author);
 CREATE INDEX MetaYearIndex on meta (year);
+CREATE INDEX MetaOriginalAuthorIndex on meta (originalAuthor);
+CREATE INDEX MetaOriginalYearIndex on meta (originalYear);
 CREATE INDEX MetaClassificationIndex on meta (classification);
 
 """
@@ -71,7 +78,7 @@ CREATE TABLE "nodes" (
 CREATE TABLE "tags" (
 	"idNum" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
 	"name" VARCHAR NOT NULL,
-	"type" INTEGER NOT NULL,
+	"flags" INTEGER NOT NULL,
 	"comment" VARCHAR,
 	"parent" INTEGER,
 	"relation" INTEGER
@@ -97,16 +104,16 @@ CREATE INDEX TagsName on tags (name);
 #################################################
 # arguments to make the built-in tags
 STD_TAGS_ARGS=( \
-  # (name, comment, type, parent, relation)
-  ("header", "an anchor that marks header in TOC.",TAGTYPE_POS_BLOCK | TAGTYPE_FLAGS_HEADER),
+  # (name, comment, flags, parent, relation)
+  ("header", "an anchor that marks header in TOC.",TAG_FLAGS_POS_BLOCK | TAG_FLAGS_HEADER),
   ("textbody", "a tag that marks a typical text.",0),
   # the following index-tags marks the header
-  ("hadith.authenticity", "marks the authenticity of the hadith, param values are Sahih, Hasan, weak, fabricated", TAGTYPE_IX_TAG),
+  ("hadith.authenticity", "marks the authenticity of the hadith, param values are Sahih, Hasan, weak, fabricated", TAG_FLAGS_IX_TAG),
   # new index field for rawi
-  ("hadith.ruwah.rawi", "marks a rawi", TAGTYPE_FLAGS_IX_FIELD),
+  ("hadith.ruwah.rawi", "marks a rawi", TAG_FLAGS_IX_FIELD),
   # the following index-tags marks the rawi field
-  ("hadith.ruwah.authenticity", "marks the authenticity of the rawi, param values are thiqah, ...,kathoob", TAGTYPE_IX_TAG),
-  ("hadith.ruwah.tabaqa", "marks the tabaqa of the rawi, param values are sahabi,tabii,...", TAGTYPE_IX_TAG)
+  ("hadith.ruwah.authenticity", "marks the authenticity of the rawi, param values are thiqah, ...,kathoob", TAG_FLAGS_IX_TAG),
+  ("hadith.ruwah.tabaqa", "marks the tabaqa of the rawi, param values are sahabi,tabii,...", TAG_FLAGS_IX_TAG)
 )
 STD_TAGS_HASH=dict(map(lambda i: (i[0],i),STD_TAGS_ARGS))
 # ENUMs
@@ -116,7 +123,7 @@ WITH_TAGS=2
 WITH_CONTENT_AND_TAGS=3
 #################################################
 # SQL statements for manipulating the dataModel
-SQL_GET_ALL_TAGS="""SELECT name,type,comment,parent,relation FROM tags"""
+SQL_GET_ALL_TAGS="""SELECT name,flags,comment,parent,relation FROM tags"""
 SQL_GET_NODE_CONTENT="""SELECT content from nodes WHERE idNum=? LIMIT 1"""
 
 SQL_GET_NODE_TAGS="""SELECT tags.name,nodesTags.param FROM nodesTags LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodesTags.nodeIdNum=? LIMIT 1"""
@@ -179,7 +186,7 @@ SQL_DROP_TAIL_NODES=["""DELETE FROM nodes WHERE globalOrder>?""",
 SQL_APPEND_NODE=["""INSERT INTO nodes (content,parent,globalOrder,depth) VALUES (?,?,?,?)""",
 """INSERT INTO tmp_nodes (content,parent,globalOrder,depth) VALUES (?,?,?,?)"""]
 # SQL tags commands
-SQL_ADD_TAG="INSERT OR REPLACE INTO tags (name, comment, type, parent,relation) VALUES (?,?,?,-1,-1)"
+SQL_ADD_TAG="INSERT OR REPLACE INTO tags (name, comment, flags, parent,relation) VALUES (?,?,?,-1,-1)"
 
 # modified:
 #  SQL_GET_NODE_BY_IDNUM
