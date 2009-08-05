@@ -66,7 +66,15 @@ class MCache(object):
     return 1
 
   def __create_cache(uri_list, smart=-1):
-    """create cache and return the number of newly created meta caches"""
+    """
+    create cache and return the number of newly created meta caches
+    
+    smart is how fast you want to do that:
+      * 0 force regeneration of entire meta cache
+      * 1 regenerate cache when hash differs (it would need to open every kitab)
+      * 2 regenerate when mtime differs
+      * -1 do not update cache for exiting meta (even if the file is changed)
+    """
     r=0
     self.__c.execute('BEGIN TRANSACTION')
     # remove meta for kitab that no longer exists
@@ -88,9 +96,9 @@ class MCache(object):
         drop_old_needed=True
         cache_needed=True
         if smart==-1: continue # don't replace existing cache
-        elif smart==1: # rely of mtime
+        elif smart==2: # rely of mtime
           if abs(os.path.getmtime(uri)-self.get_by_uri(uri)['mtime'])<1e-5: continue
-        elif smart==2: # rely on a hash saved inside the database
+        elif smart==1: # rely on a hash saved inside the database
           old_meta=self.get_by_uri(uri)
           meta=self.__load_from_uri(uri)
           if not meta or old_meta['hash']==meta['hash']: continue
