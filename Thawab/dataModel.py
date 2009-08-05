@@ -130,8 +130,8 @@ SQL_GET_NODE_TAGS="""SELECT tags.name,nodesTags.param FROM nodesTags LEFT OUTER 
 
 SQL_NODE_ARGS="nodes.idNum, nodes.parent, nodes.depth"
 SQL_NODE_COLS=(SQL_NODE_ARGS, SQL_NODE_ARGS+", nodes.content", 
-  SQL_NODE_ARGS+", tags.name, nodesTags.param",
-  SQL_NODE_ARGS+", nodes.content"+", tags.name, nodesTags.param")
+  SQL_NODE_ARGS+", tags.name, nodesTags.param, tags.flags",
+  SQL_NODE_ARGS+", nodes.content"+", tags.name, nodesTags.param, tags.flags")
 
 SQL_GET_CHILD_NODES=( \
   """SELECT %s FROM nodes WHERE parent=? ORDER BY globalOrder""" % SQL_NODE_ARGS,

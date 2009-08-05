@@ -196,18 +196,18 @@ the first thing you should do is to call loadMCache()
 
   def __ix_nodeStart(self, node, kitabName, iix):
     # NOTE: benchmarks says append then join is faster than s+="foo"
-    # FIXME: implement node.tagsFlags(): to be binary Or on all tag types applied to the node
     tags=node.getTags()
+    tag_flags=node.getTagFlags()
     # create new consuming main indexing fields [ie. headers]
     # TODO: let loadToc use TAG_FLAGS_HEADER instead of hard-coding 'header'
     #if node.getTagsByFlagsMask(TAG_FLAGS_HEADER):
     # NOTE: for consistency, header is the only currentely allowed tag having TAG_FLAGS_HEADER
-    if node.getTags().has_key('header'):
+    if tag_flags & TAG_FLAGS_HEADER:
       iix.main_f_node_idnums.append(node.idNum)
       iix.main_f_content_index.append(len(iix.contents))
       iix.main_f_tags_index.append(len(iix.tags))
     # create new sub non-consuming indexing fields
-    if node.getTagsByFlagsMask(TAG_FLAGS_IX_FIELD):
+    if tag_flags | TAG_FLAGS_IX_FIELD:
       iix.sub_f_node_idnums.append(node.idNum)
       iix.sub_f_content_index.append(len(iix.contents))
       iix.sub_f_tags_index.append(len(iix.tags))
@@ -437,11 +437,21 @@ and the following methods:
       self.__tags=args['tags']
       self.__tags_loaded=True
     except KeyError: self.__tags_loaded=False
+    try:
+      self.__tag_flags=args['tag_flags']
+      self.__tag_flags_loaded=True
+    except KeyError: self.__tag_flags_loaded=False
+    
   # tags related methods
   def getTags(self):
     """return tag dictionary applied to the node, loading it from back-end if needed"""
     if not self.__tags_loaded: self.reloadTags()
     return self.__tags
+  def getTagFlags(self):
+    """return the "or" summation of flags of all tags applied to this node"""
+    if not self.__tags_flags_loaded: self.reloadTags()
+    return self.__tag_flags
+
   def getTagsByFlagsMask(self, mask):
     """return tag names having flags masked with mask, used like this node.getTagsByFlagsMask(TAG_FLAGS_IX_TAG)"""
     # return filter(lambda t: STD_TAGS_HASH[t][2]&mask, self.getTags())
@@ -450,10 +460,16 @@ and the following methods:
     """force reloading of Tags"""
     self.__tags=dict(self.kitab.cn.execute(SQL_GET_NODE_TAGS,(self.idNum,)).fetchall())
     self.__tags_loaded=True
+    T=map(lambda t: self.kitab.getTags()[t][0], self.__tags.keys())
+    self.__tag_flags=reduce(lambda a,b: a|b,T)
+    self.__tag_flags_loaded=True
+    
   def unloadTags(self):
     """unload content to save memory"""
     self.__tags_loaded=False
     self.__tags=None
+    self.__tag_flags=0
+    self.__tag_flags_loaded=False
   # content related methods
   def getContent(self):
     """return node's content, loading it from back-end if needed"""
@@ -505,11 +521,11 @@ each tag should already be in the kitab."""
   def __grouped_rows_to_node2(self,l):
     r=list(l[1])
     return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2], \
-      tags=dict(map(lambda i: (i[3],i[4]),r)))
+      tags=dict(map(lambda i: (i[3],i[4]),r)), tag_flags=reduce(lambda a,b: a[5]|b[5],r,(0,0,0,0,0,0)) )
   def __grouped_rows_to_node3(self,l):
     r=list(l[1])
     return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2], content=r[0][3], \
-       tags=dict(map(lambda i: (i[4],i[5]),r)))
+       tags=dict(map(lambda i: (i[4],i[5]),r)), tag_flags=reduce(lambda a,b: a[6]|b[6],r,(0,0,0,0,0,0,0)) )
 
   # methods that give nodes
   def childrenIter(self, preload=WITH_CONTENT_AND_TAGS):
