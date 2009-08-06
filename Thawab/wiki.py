@@ -38,7 +38,7 @@ def importFromWiki(ki, wiki):
         kv=l.split('=',1)
         key=kv[0][1:].strip()
         if len(kv)==2: value=kv[1].strip()
-        meta[key]=value.decode('utf-8')
+        meta[key]=value
         continue
       else:
         wiki_started=1
@@ -71,10 +71,10 @@ def wiki2th(w,dst):
   import Thawab.core
   import shutil
   n=os.path.basename(w)
-  if n.endswith('.txt'): n=n[:-4]+".th"
+  if n.endswith('.txt'): n=n[:-4]+".ki"
   th=Thawab.core.ThawabMan(os.path.expanduser('~/.thawab'))
   ki=th.mktemp()
-  wiki=open(w,"rt")
+  wiki=open(w,"rt").read().decode('utf-8').splitlines()
   ki.seek(-1,-1)
   importFromWiki(ki,wiki)
   ki.flush()

@@ -30,9 +30,8 @@ from tags import *
 from meta import MCache
 
 import re
-# todo rename to kitab when released
-th_ext='.ki3001'
-th_ext_glob='*.ki3001'
+th_ext='.ki'
+th_ext_glob='*.ki'
 
 class ThawabMan (object):
   def __init__(self,user_prefix,system_prefix=""):
@@ -56,6 +55,7 @@ the first thing you should do is to call loadMCache()
     if system_prefix and os.path.isdir(system_prefix):
       self.prefixes.append(os.path.abspath(system_prefix))
     self.assertManagedTree()
+    self.__ix_writer = None
     self.__init_indexer()
 
   def assertManagedTree(self):
@@ -131,6 +131,7 @@ the first thing you should do is to call loadMCache()
   # search index related
   ##############################
   def __init_indexer(self):
+    self.__ix_writer = None
     try:
       import whoosh
       import whoosh.qparser
@@ -158,9 +159,10 @@ the first thing you should do is to call loadMCache()
     self.__ix_qparser = whoosh.qparser.MultifieldParser(("title","content",), schema=self.indexer.schema)
     #self.__ix_pre=whoosh.query.Prefix
     self.__ix_searcher= self.indexer.searcher()
-    self.__ix_writer = None
+
   def __del__(self):
     if self.__ix_writer: self.__ix_writer.commit()
+
   def ix_refresh(self):
     self.indexer=self.indexer.refresh()
     self.__ix_searcher= self.indexer.searcher()
