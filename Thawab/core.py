@@ -296,6 +296,17 @@ class Kitab(object):
       for t in STD_TAGS_ARGS:
         self.__c.execute(SQL_ADD_TAG,t)
     self.loadToc()
+  def setMCache(self, meta):
+    # TODO: add more checks
+    a=meta.get('author',None)
+    oa=meta.get('originalAuthor',None)
+    if not a and oa: meta['author']=oa
+    if not oa and a: meta['originalAuthor']=a
+    y=meta.get('year',None)
+    oy=meta.get('originalYear',None)
+    if not y and oy: meta['year']=oy
+    if not oy and y: meta['originalYear']=y
+    self.__c.execute(SQL_MCACHE_SET,meta)
   ###################################
   # retrieving data from the Kitab
   ###################################

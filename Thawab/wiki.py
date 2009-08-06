@@ -16,17 +16,32 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
     "http://waqf.ojuba.org/license"
 
 """
-
+import time, re
 ####################################
 header_re=re.compile(r'^\s*(=+)\s*(.+?)\s*\1\s*$')
-def wiki2th(ki, wiki):
+def importFromWiki(ki, wiki):
   """import a wiki-like into a thawab"""
   txt=""
   parents=[ki.root]
   wikidepths=[0]
   title=None
+  wiki_started=0
+  meta={'cache_hash': time.time(),'repo': u'_local',
+  'lang':None,'kitab':None,'version':u'1', 'releaseMajor':u'0', 'releaseMinor':u'0',
+  'author':None, 'year':0, 'originalAuthor':None,'originalYear':0,
+  'originalKitab':None, 'originalVersion':None,
+  'classification':u'_misc'}
   for l in wiki:
-    l=l.decode('utf-8')
+    #l=l.decode('utf-8')
+    if wiki_started==0:
+      if l.startswith('@'):
+        kv=l.split('=',1)
+        key=kv[0][1:].strip()
+        if len(kv)==2: value=kv[1].strip()
+        meta[key]=value.decode('utf-8')
+        continue
+      else:
+        wiki_started=1
     m=header_re.match(l)
     if not m:
       # textbody line: add the line to accumelated textbody variable
@@ -48,4 +63,22 @@ def wiki2th(ki, wiki):
       parent=ki.appendToCurrent(parents[-1], title,{'header':None})
       parents=parents+[parent]
   if (txt): ki.appendToCurrent(parents[-1],txt,{'textbody':None})
+  ki.setMCache(meta)
+
+def wiki2th(w,dst):
+  import os
+  import os.path
+  import Thawab.core
+  import shutil
+  n=os.path.basename(w)
+  if n.endswith('.txt'): n=n[:-4]+".th"
+  th=Thawab.core.ThawabMan(os.path.expanduser('~/.thawab'))
+  ki=th.mktemp()
+  wiki=open(w,"rt")
+  ki.seek(-1,-1)
+  importFromWiki(ki,wiki)
+  ki.flush()
+  o=ki.uri
+  del ki
+  shutil.move(o,os.path.join(dst,n))
 

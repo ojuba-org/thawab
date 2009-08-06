@@ -3,17 +3,10 @@
 import os
 import os.path
 import Thawab.core
-from Thawab.wiki import wiki2th
 
 th=Thawab.core.ThawabMan(os.path.expanduser('~/.thawab'))
 th.loadMCache()
 print th.getManagedList()
-ki=th.mktemp()
-wiki_filename="samples/test.txt"
-wiki=open(wiki_filename,"rt")
-ki.seek(-1,-1)
-wiki2th(ki,wiki)
-ki.flush()
 
 ## export to xml
 #from cStringIO import StringIO

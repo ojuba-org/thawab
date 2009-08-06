@@ -17,11 +17,16 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 
 """
 from tags import *
-MCACHE_FIELDS=['cache_hash','reop','kitab','version', 'releaseMajor', 'releaseMinor',
-  'author', 'year', 'originalYear', 'classification', 'uri', 'mtime', 'flags'
+MCACHE_BASE_FIELDS=[
+  'cache_hash','repo','lang','kitab','version', 'releaseMajor', 'releaseMinor',
+  'author', 'year', 'originalAuthor', 'originalYear', 'originalKitab', 'originalVersion',
+  'classification'
 ]
+MCACHE_FIELDS = MCACHE_BASE_FIELDS + ['uri', 'mtime', 'flags']
 
-SQL_MCACHE_ADD='INSERT OR REPLACE INTO (%s) VALUES (%s)' % \
+SQL_MCACHE_SET='INSERT OR REPLACE INTO meta (rowid, %s) VALUES (1, %s)' % \
+  (', '.join(MCACHE_BASE_FIELDS), ', '.join(map(lambda i: ":"+i,MCACHE_BASE_FIELDS)))
+SQL_MCACHE_ADD='INSERT OR REPLACE INTO meta (%s) VALUES (%s)' % \
   (', '.join(MCACHE_FIELDS), ', '.join(map(lambda i: ":"+i,MCACHE_FIELDS)))
 SQL_MCACHE_DROP='DELETE FROM meta WHERE uri=?'
 
@@ -44,7 +49,7 @@ CREATE TABLE "meta" (
 );"""
 
 SQL_MCACHE_DATA_MODEL = MCACHE_BASE[:MCACHE_BASE.find(')')]+"""\
-	"uri" TEXT,
+	"uri" TEXT UNIQUE,
 	"mtime" FLOAT,
 	"flags" INTEGER,
 );
@@ -105,7 +110,7 @@ CREATE INDEX TagsName on tags (name);
 # arguments to make the built-in tags
 STD_TAGS_ARGS=( \
   # (name, comment, flags, parent, relation)
-  ("header", "an anchor that marks header in TOC.",TAG_FLAGS_POS_BLOCK | TAG_FLAGS_HEADER),
+  ("header", "an anchor that marks header in TOC.",TAG_FLAGS_FLOW_BLOCK | TAG_FLAGS_HEADER),
   ("textbody", "a tag that marks a typical text.",0),
   # the following index-tags marks the header
   ("hadith.authenticity", "marks the authenticity of the hadith, param values are Sahih, Hasan, weak, fabricated", TAG_FLAGS_IX_TAG),
