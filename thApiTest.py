@@ -3,10 +3,10 @@
 import os
 import os.path
 import Thawab.core
-
 th=Thawab.core.ThawabMan(os.path.expanduser('~/.thawab'))
-th.loadMCache()
-print th.getManagedList()
+# th.loadMeta() # to detect new files and add them ..etc.
+meta=th.getMeta()
+print meta.get_uri_list()
 
 ## export to xml
 #from cStringIO import StringIO

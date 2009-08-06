@@ -48,10 +48,10 @@ CREATE TABLE "meta" (
 	"classification" TEXT
 );"""
 
-SQL_MCACHE_DATA_MODEL = MCACHE_BASE[:MCACHE_BASE.find(')')]+"""\
+SQL_MCACHE_DATA_MODEL = MCACHE_BASE[:MCACHE_BASE.find('\n)')]+""",\n\
 	"uri" TEXT UNIQUE,
 	"mtime" FLOAT,
-	"flags" INTEGER,
+	"flags" INTEGER
 );
 
 CREATE INDEX MetaURIIndex on meta (uri);

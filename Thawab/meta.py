@@ -33,29 +33,29 @@ class MCache(object):
     self.__cn.row_factory=sqlite3.Row
     self.__c=self.__cn.cursor()
     if create_new:
-      self.__c.executescript(SQL_DATA_MODEL)
+      self.__c.executescript(SQL_MCACHE_DATA_MODEL)
     self.__reload()
     if self.__create_cache(uri_list, smart)>0: self.__reload()
 
   def __reload(self):
     self.__meta=map(lambda i: dict(i), self.__c.execute(SQL_MCACHE_GET_BY_KITAB))
-    self.__meta_by_uri=(dict(map(lambda i,d: (d['uri'],i),enumerate(self.__meta))))
+    self.__meta_by_uri=(dict(map(lambda a: (a[1]['uri'],a[0]),enumerate(self.__meta))))
     self.__meta_uri_list=self.__meta_by_uri.keys()
     self.__meta_by_kitab={}
     for k,G in groupby(enumerate(self.__meta),lambda a: a[1]['kitab']):
       g=list(G)
       self.__meta_by_kitab[k]=map(lambda i: i[0],g)
 
-  def __load_from_uri(uri):
+  def __load_from_uri(self, uri):
     """extract meta object from kitab's uri and return it"""
     cn=sqlite3.connect(uri)
     cn.row_factory=sqlite3.Row
-    c=self.__cn.cursor()
+    c=cn.cursor()
     r=c.execute(SQL_MCACHE_GET).fetchone()
     if not r: return None
     return dict(r)
 
-  def __cache(uri, meta=None):
+  def __cache(self, uri, meta=None):
     if not meta: meta=self.__load_from_uri(uri)
     if not meta: return 0
     #if drop_old_needed: 
@@ -65,7 +65,7 @@ class MCache(object):
     self.__c.execute(SQL_MCACHE_ADD,meta)
     return 1
 
-  def __create_cache(uri_list, smart=-1):
+  def __create_cache(self, uri_list, smart=-1):
     """
     create cache and return the number of newly created meta caches
     
