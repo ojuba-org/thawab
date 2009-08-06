@@ -50,8 +50,7 @@ the first thing you should do is to call loadMCache()
     except:
       raise OSError
     self.prefixes=[os.path.abspath(user_prefix)]
-    self.managed={}
-    self.managedLoaded=False
+    self.__meta=None
     if system_prefix and os.path.isdir(system_prefix):
       self.prefixes.append(os.path.abspath(system_prefix))
     self.assertManagedTree()
@@ -77,56 +76,20 @@ the first thing you should do is to call loadMCache()
   def getManagedUriList(self):
     """list of all managed uri (absolute filenames for a Kitab)
      this is low level as the user should work with kitabName, title, and rest of meta data"""
+    if self.__meta:
+      return self.__meta.get_uri_list()
     r=[]
     for i in self.prefixes:
       p=glob(os.path.join(i,'db',th_ext_glob))
       r.extend(p)
     return r
-  def managedIter(self):
-    """return an iteratable of Managed kitabNames"""
-    if not self.managedLoaded: self.loadMCache()
-    return self.managed.keys()
-  def getManagedList(self):
-    """return a list of Managed kitabNames"""
-    #return map(lambda i: os.path.basename().replace(th_ext ,''),getManagedUriList())
-    return list(self.managedIter())
-  ##############################
-  # managed metadata cache related
-  ##############################
-  def createMCache(self, smart=2):
-     """create metadata cache entry in cache file"""
-  # FIXME: this is a temporal working implementation of metadata cache, that only hold the kitabName and uri
-  
-  def loadMCache(self):
-    """load managed metadata cache"""
-    self.managed=dict(map(lambda i: (os.path.basename(i).replace(th_ext ,''),{'uri':i}),self.getManagedUriList()))
-    self.managedLoaded=True # max(map(lambda p: os.path.getmtime(os.path.join(p,'db')),self.prefixes))
-    #self.managed[uri]=...
-    # TODO: implementation could use either a separated lucene index directory or a simple sqlite
-     # I prefer the later solution
-  def isMCacheDirty(self):
-    """return True if some metadata cache needs to be refreshed, ex. a Kitab is added"""
-    # TODO: implement me
-    return False
-  def isMCacheDirtyByUrn(self,kitabName):
-    """return True if metadata cache for Kitab pointed by kitabName needs to be refreshed"""
-    # TODO: implement me, just check file time stamp with the meta
-    return False
-  def createMCacheByKitabName(self,kitabName):
-    """the metadata cache contains:
-      kitabName,uri,timestamp,index_status,title,first_author,author_death,category,tag_list
+  def getMeta(self):
+    if not self.__meta: self.loadMeta()
+    return self.__meta
+  def loadMeta(self):
+    p=os.path.join(self.prefixes[0],'cache','meta.db')
+    self.__meta=MCache(p, self.getManagedUriList())
 
-      where index_status: 0 not indexed, 1 indexed, -1 dirty index should be dropped
-    """
-    pass
-
-  def forceGlobalMCacheRefresh(self):
-    """drop all metadata cache and create a new one"""
-    for i in managedUrnIter(): self.dropMCacheByUrn(i); self.createMCacheByUrn(i)
-  def dropMCacheByUrn(self,kitabName):
-    """drop metadata cache for a Kitab given kitabName"""
-    # TODO: implement me
-    pass
   ##############################
   # search index related
   ##############################
@@ -168,11 +131,12 @@ the first thing you should do is to call loadMCache()
     self.__ix_searcher= self.indexer.searcher()
     self.__ix_writer = None
 
+  # FIXME: all the index routines uses uri not kitsabName as the variable suggests, make them consistent
   def reIndexAll(self):
     t=[]
     if not self.__ix_writer: self.__ix_writer=self.indexer.writer()
-    for i in self.managedIter(): self.reIndex(i)
-    #for i in self.managedIter():
+    for i in self.getManagedUriList(): self.reIndex(i)
+    #for i in self.getManagedUriList():
     #  t.append(threading.Thread(target=self.reIndex,args=(i,)))
     #  t[-1].start()
     #for i in t: i.join()
@@ -209,7 +173,7 @@ the first thing you should do is to call loadMCache()
       iix.main_f_content_index.append(len(iix.contents))
       iix.main_f_tags_index.append(len(iix.tags))
     # create new sub non-consuming indexing fields
-    if tag_flags | TAG_FLAGS_IX_FIELD:
+    if tag_flags & TAG_FLAGS_IX_FIELD:
       iix.sub_f_node_idnums.append(node.idNum)
       iix.sub_f_content_index.append(len(iix.contents))
       iix.sub_f_tags_index.append(len(iix.tags))
@@ -246,25 +210,24 @@ the first thing you should do is to call loadMCache()
       self.__ix_writer.add_document(kitabName=unicode(kitabName), nodeIdNum=unicode(n), title=t, content=c, tags=T)
 
 
-  def createIndex(self,kitabName):
-    """create search index for a given Kitab kitabName"""
+  def createIndex(self,uri):
+    """create search index for a given Kitab uri"""
     if not self.__ix_writer: self.__ix_writer=self.indexer.writer()
-    ki=Kitab(self.managed[kitabName]['uri'])
-    #os.path.join([self.prefixs[0],'index'])
+    ki=Kitab(uri)
     iix=self.__IIX()
-    ki.root.traverser(3, self.__ix_nodeStart, self.__ix_nodeEnd, kitabName, iix)
+    ki.root.traverser(3, self.__ix_nodeStart, self.__ix_nodeEnd, uri, iix)
     
-  def dropIndex(self,kitabName):
-    """drop search index for a given Kitab kitsabName"""
+  def dropIndex(self, uri):
+    """drop search index for a given Kitab by its uri"""
     # NOTE: because the searcher could be limited do a loop that keeps deleting till the query is empty
-    while(self.indexer.delete_by_term('kitabName',kitabName, self.__ix_searcher)): pass # query just selects the kitabName
+    while(self.indexer.delete_by_term('kitabName', uri, self.__ix_searcher)): pass # query just selects the kitabName
     # NOTE: in case of having a documentId field prefixed with kitabName:
     #q=self.__ix_pre('documentId',kitabName+':')
     #self.indexer.delete_by_query(q,self.__ix_searcher) # TODO: loop because the searcher could be limited
     
-  def reIndex(self,kitabName):
+  def reIndex(self,uri):
     # can't use updateDocument because each Kitab contains many documents
-    self.dropIndex(kitabName); self.createIndex(kitabName)
+    self.dropIndex(uri); self.createIndex(uri)
   def queryIndex(self, queryString):
     """return an interatable of fields dict"""
     return self.__ix_searcher.search(self.__ix_qparser.parse(queryString))
@@ -462,7 +425,7 @@ and the following methods:
     return self.__tags
   def getTagFlags(self):
     """return the "or" summation of flags of all tags applied to this node"""
-    if not self.__tags_flags_loaded: self.reloadTags()
+    if not self.__tag_flags_loaded: self.reloadTags()
     return self.__tag_flags
 
   def getTagsByFlagsMask(self, mask):
@@ -474,7 +437,7 @@ and the following methods:
     self.__tags=dict(self.kitab.cn.execute(SQL_GET_NODE_TAGS,(self.idNum,)).fetchall())
     self.__tags_loaded=True
     T=map(lambda t: self.kitab.getTags()[t][0], self.__tags.keys())
-    self.__tag_flags=reduce(lambda a,b: a|b,T)
+    self.__tag_flags=reduce(lambda a,b: a|b,T, 0)
     self.__tag_flags_loaded=True
     
   def unloadTags(self):

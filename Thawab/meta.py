@@ -107,7 +107,9 @@ class MCache(object):
     self.__c.execute('END TRANSACTION')
     self.__cn.commit()
     return r
-
+  
+  def get_uri_list(self):
+    return self.__meta_by_uri.keys()
   def get_by_uri(self, uri):
     """return meta object for uri"""
     i=self.__meta_by_uri.get(uri,None)
