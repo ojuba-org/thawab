@@ -100,7 +100,8 @@ the first thing you should do is to call loadMCache()
       import whoosh.qparser
       import whoosh.query
       from indexing import StemFilter, TAGSLIST
-    except ImportError: self.indexer=None; return
+    except: raise # while developing we want to know when we got a problem
+    #except ImportError: self.indexer=None; return
     ix_dir=os.path.join(self.prefixes[0],'index')
     store=whoosh.store.FileStorage(ix_dir)
     analyzer=whoosh.analysis.StemmingAnalyzer()
@@ -132,6 +133,7 @@ the first thing you should do is to call loadMCache()
     self.__ix_writer = None
 
   # FIXME: all the index routines uses uri not kitsabName as the variable suggests, make them consistent
+  # FIXME: a method needed that call commit and optimize and refresh
   def reIndexAll(self):
     t=[]
     if not self.__ix_writer: self.__ix_writer=self.indexer.writer()
@@ -212,6 +214,7 @@ the first thing you should do is to call loadMCache()
 
   def createIndex(self,uri):
     """create search index for a given Kitab uri"""
+    print "creating index for uri:", uri
     if not self.__ix_writer: self.__ix_writer=self.indexer.writer()
     ki=Kitab(uri)
     iix=self.__IIX()
@@ -220,7 +223,11 @@ the first thing you should do is to call loadMCache()
   def dropIndex(self, uri):
     """drop search index for a given Kitab by its uri"""
     # NOTE: because the searcher could be limited do a loop that keeps deleting till the query is empty
-    while(self.indexer.delete_by_term('kitabName', uri, self.__ix_searcher)): pass # query just selects the kitabName
+    print "dropping index for uri:", uri,
+    while(self.indexer.delete_by_term('kitabName', uri)):
+      print "*",
+      pass # query just selects the kitabName
+    print
     # NOTE: in case of having a documentId field prefixed with kitabName:
     #q=self.__ix_pre('documentId',kitabName+':')
     #self.indexer.delete_by_query(q,self.__ix_searcher) # TODO: loop because the searcher could be limited
