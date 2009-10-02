@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-The core classes of thawab
+The meta handling classes of thawab
 Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 
     Released under terms of Waqf Public License.
