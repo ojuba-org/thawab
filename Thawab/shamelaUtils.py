@@ -126,8 +126,10 @@ class ShamelaSqlite(object):
       missing_def=u''
     if missing_def: sql=sql.replace('\n)',','+missing_def+'\n)')
     sql+=schema_index.get(tb,'') % {'table': Tb.lower()}
-    #print sql
-    self.c.executescript(sql)
+    sql_l=no_sql_comments.sub('',sql).split(';')
+    for l in sql_l:
+      l=l.strip()
+      if l: self.c.execute(l)
 
   def importTable(self, Tb, tb, tb_prefix=None, is_tmp=False, is_ignore=False, is_replace=False):
     """
@@ -177,7 +179,7 @@ class ShamelaSqlite(object):
         self.importTable(t, 'book')
     progress=100.0
     if self.progress: self.progress("finished, committing ...",progress, self.progress_data)
-    if in_transaction: self.c.execute('BEGIN TRANSACTION')
+    if in_transaction: self.c.execute('END TRANSACTION')
 
 if __name__ == '__main__':
   # input bok_fn, dst
