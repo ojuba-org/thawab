@@ -106,7 +106,9 @@ class ShamelaSqlite(object):
 
   def __schemaGetCols(self, r):
     """used internally by importTableSchema"""
-    return map(lambda i: i.split()[0],sqlite_cols_re.search(no_sql_comments.sub('',r)).group(1).split(','))
+    m=sqlite_cols_re.search( no_sql_comments.sub('',r) )
+    if not m: return []
+    return map(lambda i: i.split()[0], m.group(1).split(','))
 
   def importTableSchema(self, Tb, tb, is_tmp=False,prefix='tmp_'):
     """create schema for table"""
@@ -114,6 +116,7 @@ class ShamelaSqlite(object):
     else: temp=''
     pipe=Popen(['mdb-schema', '-S','-T', Tb, self.bok_fn], 0, stdout=PIPE,env={'MDB_JET3_CHARSET':'cp1256'})
     r=pipe.communicate()[0]
+    if pipe.returncode!=0: raise TypeError
     sql=schema_fix_text.sub('TEXT',schema_fix_int.sub('INETEGER',schema_fix_del.sub('',r))).lower()
     sql=sql.replace('create table ',' '.join(('create ',temp,' table ',prefix,)))
     sql=sql.replace('drop table ','drop table if exists '+prefix)
@@ -151,6 +154,7 @@ class ShamelaSqlite(object):
       if l==mark: self.__shamela3_fix_insert(sql_cmd,prefix); sql_cmd=[]
       else: sql_cmd.append(l)
     if len(sql_cmd): self.__shamela3_fix_insert(sql_cmd,prefix); sql_cmd=[]
+    if pipe.returncode!=0: raise TypeError
     del pipe
     self.imported_tables.append(Tb)
 
