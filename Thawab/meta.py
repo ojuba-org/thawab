@@ -23,6 +23,14 @@ from itertools import imap,groupby
 from dataModel import *
 import re
 
+def prettyId(i, empty_for_special=True):
+  """convert the id into a more human form"""
+  if empty_for_special and i.startswith('_'): return ''
+  return i.replace('_',' ')
+
+def makeId(i):
+  """convert the id into a canonical form"""
+  return i.strip().replace(' ','_')
 
 class MCache(object):
   """a class holding metadata cache"""

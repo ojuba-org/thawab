@@ -21,10 +21,11 @@ import re
 import sqlite3
 
 from subprocess import Popen,PIPE
-from meta import MCache
+from itertools import groupby
+from meta import MCache, prettyId, makeId
 
 schema={
-  'main':"bkid INTEGER, bk TEXT, thwab INTEGER, shortname TEXT, cat INTEGER, betaka TEXT, inf TEXT, bkord INTEGER DEFAULT -1, authno INTEGER DEFAULT 0, auth_death INTEGER DEFAULT 0,islamshort INTEGER DEFAULT 0, is_tafseer INTEGER DEFAULT 0, is_sharh INTEGER DEFAULT 0",
+  'main':"bkid INTEGER, bk TEXT, shortname TEXT, cat INTEGER, betaka TEXT, inf TEXT, bkord INTEGER DEFAULT -1, authno INTEGER DEFAULT 0, auth TEXT, authinfo TEXT, higrid INTEGER DEFAULT 0, ad INTEGER DEFAULT 0, islamshort INTEGER DEFAULT 0, is_tafseer INTEGER DEFAULT 0, is_sharh INTEGER DEFAULT 0",
   'men': "id INTEGER, arrname TEXT, isoname TEXT, dispname TEXT",
   'shorts': "bk INTEGER, ramz TEXT, nass TEXT",
   'mendetail': "spid INTEGER PRIMARY KEY, manid INTEGER, bk INTEGER, id INTEGER, talween TEXT",
@@ -64,6 +65,8 @@ schema_fix_int=re.compile('(Boolean|Byte|Byte|Numeric|Replication ID|(\w+ )?Inte
 sqlite_cols_re=re.compile("\((.*)\)",re.M | re.S)
 no_sql_comments=re.compile('^--.*$',re.M)
 
+digits_re=re.compile(r'\d+')
+
 class ShamelaSqlite(object):
   def __init__(self, bok_fn, cn=None, progress=None, progress_data=None):
     """import the bok file into sqlite"""
@@ -71,11 +74,15 @@ class ShamelaSqlite(object):
     self.progress_data=progress_data
     self.tables=None
     self.bok_fn=bok_fn
+    self.__bkids=None
+    self.__commentaries=None
     self.version,self.tb,self.bkids=self.identify()
     # note: the difference between tb and self.tables that tables are left as reported by mdbtoolds while tb are lower-cased
     self.cn=cn or sqlite3.connect(':memory:', isolation_level=None)
+    self.cn.row_factory=sqlite3.Row
     self.c=self.cn.cursor()
     self.imported_tables=[]
+    self.__meta_by_bkid={}
 
   def identify(self):
     tables=self.getTables() # Note: would raise OSError or TypeError
@@ -154,6 +161,7 @@ class ShamelaSqlite(object):
       if l==mark: self.__shamela3_fix_insert(sql_cmd,prefix); sql_cmd=[]
       else: sql_cmd.append(l)
     if len(sql_cmd): self.__shamela3_fix_insert(sql_cmd,prefix); sql_cmd=[]
+    print "waiting child process...",pipe.wait() # TODO: why is this needed
     if pipe.returncode!=0: raise TypeError
     del pipe
     self.imported_tables.append(Tb)
@@ -184,6 +192,102 @@ class ShamelaSqlite(object):
     progress=100.0
     if self.progress: self.progress("finished, committing ...",progress, self.progress_data)
     if in_transaction: self.c.execute('END TRANSACTION')
+    self.__getCommentariesHash()
+
+  def __getCommentariesHash(self):
+    if self.__commentaries!=None: return self.__commentaries
+    self.__commentaries={}
+    for a in self.c.execute('SELECT DISTINCT matn, sharh FROM shrooh'):
+      try: r=(int(a[0]),int(a[1])) # fix that some books got string bkids not integer
+      except ValueError: continue # skip non integer book ids
+      if self.__commentaries.has_key(r[0]):
+        self.__commentaries[r[0]].append(r[1])
+      else: self.__commentaries[r[0]]=[r[1]]
+    for i in self.getBookIds():
+      if not self.__commentaries.has_key(i): self.__commentaries[i]=[]
+    return self.__commentaries
+
+  def authorByID(authno, main={}):
+    # TODO: use authno to search shamela specific database
+    a,y='_unset',0
+    if main:
+      a=makeId(main.get('auth'],''))
+      y=makeId(main.get('higrid'],0))
+      if not y: y=makeId(main.get('ad'],0))
+      try: y=int(y)
+      except TypeError:
+        m=digits_re.search(unicode(y))
+        if m: y=int(m.group(0))
+    return a,y
+
+  def classificationByBookId(bkid):
+    return '_unset'
+
+  def getBookIds(self):
+    if self.__bkids!=None: return self.__bkids
+    r=self.c.execute('SELECT bkid FROM main')
+    self.__bkids=map(lambda a: a[0],r.fetchall() or [])
+    if self.__commentaries!=None:
+      # sort to make sure we import the book before its commentary
+      self.__bkids.sort(lambda a,b: (int(a in self.__commentaries.get(b,[]))<<1) - 1)
+    return self.__bkids
+
+  def getBookMeta(self, bkid):
+    if self.__meta_by_bkid.has_key(bkid): return self.__meta_by_bkid[bkid]
+    else:
+      r=self.c.execute('SELECT bk, shortname, cat, betaka, inf, bkord, authno, auth_death, islamshort, is_tafseer, is_sharh FROM main WHERE bkid=?', (bkid,)).fetchone()
+      if not r: m=None
+      else:
+        r=dict(r)
+        m={
+          "repo":"_user", "lang":"ar",
+          "version":"0."+str(bkid), "releaseMajor":"0", "releaseMinor":"0",
+        }
+        m['kitab']=makeId(r['bk'])
+        m['author'],m['year']=self.authorByID(r['authno'], main=r)
+        m['classification']=self.classificationByBookId(bkid)
+        #"originalAuthor", "originalYear", "originalKitab", "originalVersion"
+      self.__meta_by_bkid[bkid]=m
+      return m
+
+def shamelaImport(ki, sh, bkid):
+  """
+  import a ShamelaSqlite book as thawab kitab object, where
+    * ki - an empty thawab kitab object
+    * sh - ShamelaSqlite object
+    * bkid - the id of the shamela book to be imported
+  this function returns the cached meta dictionary
+  """
+  # currently this is dummy importing, that does not process the text
+  c=sh.c
+  # step 1: import meta
+  meta=sh.getBookMeta(bkid)
+  # step 2: prepare topics hashed by page_id
+  r=c.execute("SELECT id FROM b%d ORDER BY id DESC LIMIT 1" % bkid).fetchone()
+  if r: max_id=r[0]
+  else: raise TypeError # no text in the book
+  r=c.execute("SELECT rowid,id,tit,lvl,sub FROM t%d ORDER BY id,sub" % bkid).fetchall()
+  toc=map(lambda a: list(a).append(max_id+1),r)
+  toc.append([-1,max_id+1,'',0,0,max_id+1])
+  toc_hash=map(lambda j: (j[0],list(j[1])),list(groupby(toc,lambda i: i[1])))
+  toc_ids=map(lambda j: j[0],toc_hash)
+  toc_hash=dict(toc_hash)
+  for i,t in range(len(toc)-1): toc[i][5]=toc[i+1][1]
+  # step 3: walk through pages, accumelating conents  
+  # NOTE: in some books id need not be unique
+  for r in c.execute("SELECT id,nass,part,page,hno,sora,aya,na FROM b%d ORDER BY id" % page_id):
+    # step 4: for each page content try to find all headings
+    # step 4.1.1: search for exact entire line matches ie. ^<PAT>$ in the current page and push match start and end, and pop the matched item from toc_hash (ie. delete them)
+    del toc_hash[page_id][found]
+    # step 4.1.2: as 4.1.1 but with leading matches ie. ^<PAT>
+    # step 4.1.3: as 4.1.1 but in-line <PAT> without ^ nor $
+    # step 4.2.1-3: same as 4.1.1-3 but with s/[\W_]//;
+    # step 4.3.1-3: same as 4.1.1-3 but with s/[\W\d_]//;
+    # NOTE: all steps works on tr/ \t/ /s;
+    # NOTE: each step in 4.x.y should be inside a loop over unfinished headers because all topics could be founded in 4.1.1 and poped and all the rest steps are skiped
+    # TODO: how to mark start and end in original content even after offset change after s// and tr// ops ?
+    
+  return meta
 
 if __name__ == '__main__':
   # input bok_fn, dst
