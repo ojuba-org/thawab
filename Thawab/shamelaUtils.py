@@ -250,6 +250,18 @@ class ShamelaSqlite(object):
       self.__meta_by_bkid[bkid]=m
       return m
 
+class _foundShHeadingMatchItem():
+  def __init__(self, start, end=-1, txt='', fuzzy=-1):
+    self.start=start
+    self.end=end
+    self.txt=txt
+    self.fuzzy=fuzzy
+  def overlaps_with(b):
+    return b.end>self.start and self.end>b.start
+
+  def __cmp__(self, b):
+    return cmp(self.start,b.start)
+
 def shamelaImport(ki, sh, bkid):
   """
   import a ShamelaSqlite book as thawab kitab object, where
@@ -267,26 +279,73 @@ def shamelaImport(ki, sh, bkid):
   if r: max_id=r[0]
   else: raise TypeError # no text in the book
   r=c.execute("SELECT rowid,id,tit,lvl,sub FROM t%d ORDER BY id,sub" % bkid).fetchall()
-  toc=map(lambda a: list(a).append(max_id+1),r)
+  toc=map(lambda a: list(a).append(max_id+1),r) # TODO: what are the needed items ?
   toc.append([-1,max_id+1,'',0,0,max_id+1])
   toc_hash=map(lambda j: (j[0],list(j[1])),list(groupby(toc,lambda i: i[1])))
-  toc_ids=map(lambda j: j[0],toc_hash)
+  toc_ids=map(lambda j: j[0],toc_hash) # TODO: is this needed ?
   toc_hash=dict(toc_hash)
+  found=[]
+  parents=[ki.root]
+
+  def _shamelaHeadings(txt, page_id, fuzzy=0):
+    n=0
+    if not toc_hash.get(page_id,{}): return 0
+    if fuzzy=0:
+      for i in toc_hash[page_id]:
+        h_re="^%s$" % re.escape(i)
+        for m in re.finditer(h_re,txt,re.M):
+          candidate=_foundShHeadingMatchItem(m.start(), m.end(), i, fuzzy)
+          # TODO: skip matches that overlaps with previous headings
+          ii = bisect.bisect_left(found, candidate) # only check for overlaps in found[ii:]
+          if any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])): continue
+          n+=1
+          bisect.insort(found, candidate) # add the candidate to the found list
+          # found.append((toc_hash[page_id][i],fuzzy,m.start(),m.end())) # s[:m.start()] s[m.start():m.end()] s[m.end():]
+          del toc_hash[page_id][i]
+          break;
+    else: raise TypeError # invalid fuzzy
+    return n
+    
+
   for i,t in range(len(toc)-1): toc[i][5]=toc[i+1][1]
   # step 3: walk through pages, accumelating conents  
   # NOTE: in some books id need not be unique
   for r in c.execute("SELECT id,nass,part,page,hno,sora,aya,na FROM b%d ORDER BY id" % page_id):
+    pg_txt=r['nass']
+    pg_id=r['id']
+    found=[]
     # step 4: for each page content try to find all headings
     # step 4.1.1: search for exact entire line matches ie. ^<PAT>$ in the current page and push match start and end, and pop the matched item from toc_hash (ie. delete them)
-    del toc_hash[page_id][found]
+    _shamelaHeadings(pg_txt, pg_id, 0)
     # step 4.1.2: as 4.1.1 but with leading matches ie. ^<PAT>
     # step 4.1.3: as 4.1.1 but in-line <PAT> without ^ nor $
     # step 4.2.1-3: same as 4.1.1-3 but with s/[\W_]//;
     # step 4.3.1-3: same as 4.1.1-3 but with s/[\W\d_]//;
+    # TODO: implement 4.1.x-4.2.x
     # NOTE: all steps works on tr/ \t/ /s;
-    # NOTE: each step in 4.x.y should be inside a loop over unfinished headers because all topics could be founded in 4.1.1 and poped and all the rest steps are skiped
+    # NOTE: each step in 4.x.y should be inside a loop over unfinished headings because all topics could be founded in 4.1.1 and poped and all the rest steps are skiped
     # TODO: how to mark start and end in original content even after offset change after s// and tr// ops ?
-    
+    # now we got all headings in found
+    # step 5: add the found headings and its content
+    # splitting page text pg_txt into [:f0.start] [f0.end:f1.start] [f1.end:f2.start]...[fn.end:]
+    # step 5.1: add [:f0.start] to the last heading contents and push it
+    if not found: last+=pg_txt; continue
+    ki.appendToCurrent(parents[-1], last+pg_txt[:found[0].start], {'textbody':None})
+    # step 5.2: same for all rest segments [f0.end:f1.start],[f1.end:f2.start]...[f(n-1).end:fn.start]
+    for i,f in enumerate(found[:-1]):
+      # FIXME: set depth with: while(wikidepths[-1]>=newwikidepth): wikidepths.pop(); parents.pop()
+      parent=ki.appendToCurrent(parents[-1], f.txt,{'header':None})
+      parents.append(parent)
+      parent=ki.appendToCurrent(parent, pg_txt[f.end:found[i+1].start], {'textbody':None})
+    # step 5.3: save [fn.end:] as last heading
+    # FIXME: set depth with: while(wikidepths[-1]>=newwikidepth): wikidepths.pop(); parents.pop()
+    parent=ki.appendToCurrent(parents[-1], found[-1].txt,{'header':None})
+    parents.append(parent)
+    last=pg_txt[found[-1].end:]
+    #s=s.replace('\t','').replace(' ','')
+    #h=r"[\W\s]*?".join(map(lambda i: re.escape(i),list(s)))
+    #h_re=re.compile(h, re.M)
+
   return meta
 
 if __name__ == '__main__':
