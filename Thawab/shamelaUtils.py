@@ -398,6 +398,9 @@ def shamelaImport(ki, sh, bkid):
     parents.append(parent)
     last=pg_txt[f.end:]
 
+  if not started: raise TypeError
+  if last: ki.appendToCurrent(parents[-1], last, {'textbody':None})
+
   return meta
 
 if __name__ == '__main__':
