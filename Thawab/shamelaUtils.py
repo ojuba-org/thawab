@@ -281,6 +281,7 @@ def shamelaImport(ki, sh, bkid):
   if r: max_id=r[0]
   else: raise TypeError # no text in the book
   r=c.execute("SELECT rowid,id,tit,lvl,sub FROM t%d ORDER BY id,sub" % bkid).fetchall()
+  # FIXME: we only need title and depth
   toc=map(lambda a: list(a).append(max_id+1),r) # TODO: what are the needed items ?
   toc.append([-1,max_id+1,'',0,0,max_id+1])
   toc_hash=map(lambda j: (j[0],list(j[1])),list(groupby(toc,lambda i: i[1])))
@@ -291,23 +292,66 @@ def shamelaImport(ki, sh, bkid):
   depths=[-1] # -1 is used to indicate depth or level as shamela could use 0
   last=u''
   started=False
+  rm_fz4_re=re.compile(ur'(?:[^\w\n]|[_ـ])',re.M | re.U) # [\W_ـ] without \n
+  rm_fz7_re=re.compile(ur'(?:[^\w\n]|[\d_ـ])',re.M | re.U) # [\W\d_ـ] without \n
+
+  def _shamelaHeadingsRE(txt, fuzzy=0):
+    # TODO: in which cases of fuzzy should we insert heading text into content
+    if fuzzy=0:
+      # match entire line
+      h_re=u"^\s*%s\s*$" % re.escape(txt)
+    elif fuzzy=1:
+      # ignore all spaces when matching, match entire lines only
+      s=txt.replace('\t','').replace(' ','')
+      h_re=u"^\s*%s\s*$" % ur"\s*?".join(map(lambda i: re.escape(i),list(s)))
+    elif fuzzy=2:
+      # ignore all spaces when matching, match at the beginning of lines
+      s=txt.replace('\t','').replace(' ','')
+      h_re=u"^\s*%s" % ur"\s*?".join(map(lambda i: re.escape(i),list(s)))
+    elif fuzzy=3:
+      # ignore all spaces when matching, match any where in the line
+      s=txt.replace('\t','').replace(' ','')
+      h_re=ur"\s*?".join(map(lambda i: re.escape(i),list(s)))
+    elif fuzzy=4:
+      # ignore all non-letters when matching, match entire lines only
+      s=rm_fz4_re.sub('', txt)
+      h_re=u"^%s$" % ur"(?:[^\w\n]|[_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
+    elif fuzzy=5:
+      # ignore all non-letters when matching, match at the beginning of lines
+      s=rm_fz4_re.sub('', txt)
+      h_re=u'^'+ ur"(?:[^\w\n]|[_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
+    elif fuzzy=6:
+      # ignore all non-letters when matching, match any where in the line
+      s=rm_fz4_re.sub('', txt)
+      h_re=ur"(?:[^\w\n]|[_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
+    elif fuzzy=7:
+      # ignore all digits and non-letters when matching, match entire lines only
+      s=rm_fz7_re.sub('', txt)
+      h_re="^%s$" % ur"(?:[^\w\n]|[\d_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
+    elif fuzzy=8:
+      # ignore all digits and non-letters when matching, match at the beginning of lines
+      s=rm_fz7_re.sub('', txt)
+      h_re=u'^'+ ur"(?:[^\w\n]|[\d_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
+    elif fuzzy=9:
+      # ignore all digits and non-letters when matching, match any where in the line
+      s=rm_fz7_re.sub('', txt)
+      h_re=ur"(?:[^\w\n]|[\d_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
+    else: raise NotImplementedError
+    return h_re
 
   def _shamelaHeadings(txt, page_id, fuzzy=0):
     n=0
-    if not toc_hash.get(page_id,{}): return 0
-    if fuzzy=0:
-      for i in toc_hash[page_id]:
-        h_re="^%s$" % re.escape(i)
-        for m in re.finditer(h_re,txt,re.M):
-          candidate=_foundShHeadingMatchItem(m.start(), m.end(), i, toc_hash[i][SH_DEPTH], fuzzy)
-          ii = bisect.bisect_left(found, candidate) # only check for overlaps in found[ii:]
-          # skip matches that overlaps with previous headings
-          if any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])): continue
-          n+=1
-          bisect.insort(found, candidate) # add the candidate to the found list
-          del toc_hash[page_id][i]
-          break;
-    else: raise TypeError # invalid fuzzy
+    for i in toc_hash[page_id]:
+      h_re=_shamelaHeadingsRE(i, fuzzy)
+      for m in re.finditer(h_re,txt,re.M | re.U):
+        candidate=_foundShHeadingMatchItem(m.start(), m.end(), i, toc_hash[i][SH_DEPTH], fuzzy)
+        ii = bisect.bisect_left(found, candidate) # only check for overlaps in found[ii:]
+        # skip matches that overlaps with previous headings
+        if any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])): continue
+        n+=1
+        bisect.insort(found, candidate) # add the candidate to the found list
+        del toc_hash[page_id][i]
+        break;
     return n
     
 
@@ -317,18 +361,21 @@ def shamelaImport(ki, sh, bkid):
   for r in c.execute("SELECT id,nass,part,page,hno,sora,aya,na FROM b%d ORDER BY id" % page_id):
     pg_txt=r['nass']
     pg_id=r['id']
+    # TODO: set the value of header tag to be a unique reference
+    # TODO: keep part,page,hno,sora,aya,na somewhere in the imported document
+    # TODO: add special handling for hadeeth number and tafseer info
     found=[]
     # step 4: for each page content try to find all headings
     # step 4.1.1: search for exact entire line matches ie. ^<PAT>$ in the current page and push match start and end, and pop the matched item from toc_hash (ie. delete them)
-    _shamelaHeadings(pg_txt, pg_id, 0)
     # step 4.1.2: as 4.1.1 but with leading matches ie. ^<PAT>
     # step 4.1.3: as 4.1.1 but in-line <PAT> without ^ nor $
     # step 4.2.1-3: same as 4.1.1-3 but with s/[\W_]//;
     # step 4.3.1-3: same as 4.1.1-3 but with s/[\W\d_]//;
-    # TODO: implement 4.1.x-4.2.x
     # NOTE: all steps works on tr/ \t/ /s;
-    # NOTE: each step in 4.x.y should be inside a loop over unfinished headings because all topics could be founded in 4.1.1 and poped and all the rest steps are skiped
-    # TODO: how to mark start and end in original content even after offset change after s// and tr// ops ?
+    # NOTE: each step in 4.x.y should be inside a loop over unfinished headings because all topics could be founded in 4.1.1 and popped and all the rest steps are skipped
+    for fz in range(10):
+      if not toc_hash.get(pg_id,{}): break # stop if no more headings to be found
+      _shamelaHeadings(pg_txt, pg_id, fz)
     # now we got all headings in found
     # step 5: add the found headings and its content
     # splitting page text pg_txt into [:f0.start] [f0.end:f1.start] [f1.end:f2.start]...[fn.end:]
@@ -350,9 +397,6 @@ def shamelaImport(ki, sh, bkid):
     started=True
     parents.append(parent)
     last=pg_txt[f.end:]
-    #s=s.replace('\t','').replace(' ','')
-    #h=r"[\W\s]*?".join(map(lambda i: re.escape(i),list(s)))
-    #h_re=re.compile(h, re.M)
 
   return meta
 
