@@ -272,21 +272,19 @@ def shamelaImport(ki, sh, bkid):
     * bkid - the id of the shamela book to be imported
   this function returns the cached meta dictionary
   """
-  # currently this is dummy importing, that does not process the text
+  # NOTE: page id refers to the number used as id in shamela not thawab
   c=sh.c
   # step 1: import meta
   meta=sh.getBookMeta(bkid)
   # step 2: prepare topics hashed by page_id
-  r=c.execute("SELECT id FROM b%d ORDER BY id DESC LIMIT 1" % bkid).fetchone()
-  if r: max_id=r[0]
-  else: raise TypeError # no text in the book
-  r=c.execute("SELECT rowid,id,tit,lvl,sub FROM t%d ORDER BY id,sub" % bkid).fetchall()
-  # FIXME: we only need title and depth
-  toc=map(lambda a: list(a).append(max_id+1),r) # TODO: what are the needed items ?
-  toc.append([-1,max_id+1,'',0,0,max_id+1])
-  toc_hash=map(lambda j: (j[0],list(j[1])),list(groupby(toc,lambda i: i[1])))
-  toc_ids=map(lambda j: j[0],toc_hash) # TODO: is this needed ?
-  toc_hash=dict(toc_hash)
+  r=c.execute("SELECT id,tit,lvl FROM t%d ORDER BY id,sub" % bkid).fetchall()
+  # NOTE: we only need page_id,title and depth, sub is only used to sort them
+  toc_ls=map(lambda i, list(i),list(r)) # make sure we got a list
+  if not toc_ls: raise TypeError # no text in the book
+  toc_hash=map(lambda i: (i[1][0],i[0]),enumerate(toc_ls))
+  # toc_hash.sort(lambda a,b: cmp(a[0],b[0])) # FIXME: this is not needed!
+  toc_hash=dict(map(lambda j: (j[0],map(lambda k:k[1], j[1])), groupby(toc_hash,lambda i: i[0])))
+  # NOTE: toc_hash[pg_id] holds list of indexes in toc_ls
   found=[]
   parents=[ki.root]
   depths=[-1] # -1 is used to indicate depth or level as shamela could use 0
@@ -341,16 +339,18 @@ def shamelaImport(ki, sh, bkid):
 
   def _shamelaHeadings(txt, page_id, fuzzy=0):
     n=0
-    for i in toc_hash[page_id]:
+    for j,ix in enumerate(toc_hash[page_id]):
+      i,d=toc_ls[ix][1:3]
       h_re=_shamelaHeadingsRE(i, fuzzy)
       for m in re.finditer(h_re,txt,re.M | re.U):
-        candidate=_foundShHeadingMatchItem(m.start(), m.end(), i, toc_hash[i][SH_DEPTH], fuzzy)
+        candidate=_foundShHeadingMatchItem(m.start(), m.end(), i, d, fuzzy)
         ii = bisect.bisect_left(found, candidate) # only check for overlaps in found[ii:]
         # skip matches that overlaps with previous headings
         if any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])): continue
         n+=1
         bisect.insort(found, candidate) # add the candidate to the found list
-        del toc_hash[page_id][i]
+        del toc_hash[page_id][j]
+        if not toc_hash[page_id]: del toc_hash[page_id]
         break;
     return n
     
@@ -358,7 +358,7 @@ def shamelaImport(ki, sh, bkid):
   for i,t in range(len(toc)-1): toc[i][5]=toc[i+1][1]
   # step 3: walk through pages, accumelating conents  
   # NOTE: in some books id need not be unique
-  for r in c.execute("SELECT id,nass,part,page,hno,sora,aya,na FROM b%d ORDER BY id" % page_id):
+  for r in c.execute("SELECT id,nass,part,page,hno,sora,aya,na FROM b%d ORDER BY id" % bkid):
     pg_txt=r['nass']
     pg_id=r['id']
     # TODO: set the value of header tag to be a unique reference
@@ -374,7 +374,7 @@ def shamelaImport(ki, sh, bkid):
     # NOTE: all steps works on tr/ \t/ /s;
     # NOTE: each step in 4.x.y should be inside a loop over unfinished headings because all topics could be founded in 4.1.1 and popped and all the rest steps are skipped
     for fz in range(10):
-      if not toc_hash.get(pg_id,{}): break # stop if no more headings to be found
+      if not toc_hash.get(pg_id,False): break # stop if no more headings to be found
       _shamelaHeadings(pg_txt, pg_id, fz)
     # now we got all headings in found
     # step 5: add the found headings and its content
