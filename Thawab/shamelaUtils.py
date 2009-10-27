@@ -251,11 +251,13 @@ class ShamelaSqlite(object):
       return m
 
 class _foundShHeadingMatchItem():
-  def __init__(self, start, end=-1, txt='', fuzzy=-1):
+  def __init__(self, start, end=-1, txt='', depth=-1, fuzzy=-1):
     self.start=start
     self.end=end
     self.txt=txt
+    self.depth=depth
     self.fuzzy=fuzzy
+
   def overlaps_with(b):
     return b.end>self.start and self.end>b.start
 
@@ -286,6 +288,9 @@ def shamelaImport(ki, sh, bkid):
   toc_hash=dict(toc_hash)
   found=[]
   parents=[ki.root]
+  depths=[-1] # -1 is used to indicate depth or level as shamela could use 0
+  last=u''
+  started=False
 
   def _shamelaHeadings(txt, page_id, fuzzy=0):
     n=0
@@ -294,13 +299,12 @@ def shamelaImport(ki, sh, bkid):
       for i in toc_hash[page_id]:
         h_re="^%s$" % re.escape(i)
         for m in re.finditer(h_re,txt,re.M):
-          candidate=_foundShHeadingMatchItem(m.start(), m.end(), i, fuzzy)
-          # TODO: skip matches that overlaps with previous headings
+          candidate=_foundShHeadingMatchItem(m.start(), m.end(), i, toc_hash[i][SH_DEPTH], fuzzy)
           ii = bisect.bisect_left(found, candidate) # only check for overlaps in found[ii:]
+          # skip matches that overlaps with previous headings
           if any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])): continue
           n+=1
           bisect.insort(found, candidate) # add the candidate to the found list
-          # found.append((toc_hash[page_id][i],fuzzy,m.start(),m.end())) # s[:m.start()] s[m.start():m.end()] s[m.end():]
           del toc_hash[page_id][i]
           break;
     else: raise TypeError # invalid fuzzy
@@ -330,18 +334,22 @@ def shamelaImport(ki, sh, bkid):
     # splitting page text pg_txt into [:f0.start] [f0.end:f1.start] [f1.end:f2.start]...[fn.end:]
     # step 5.1: add [:f0.start] to the last heading contents and push it
     if not found: last+=pg_txt; continue
-    ki.appendToCurrent(parents[-1], last+pg_txt[:found[0].start], {'textbody':None})
+    if started: ki.appendToCurrent(parents[-1], last+pg_txt[:found[0].start], {'textbody':None})
     # step 5.2: same for all rest segments [f0.end:f1.start],[f1.end:f2.start]...[f(n-1).end:fn.start]
     for i,f in enumerate(found[:-1]):
-      # FIXME: set depth with: while(wikidepths[-1]>=newwikidepth): wikidepths.pop(); parents.pop()
+      while(depths[-1]>=f.depth): depths.pop(); parents.pop()
+      started=True
       parent=ki.appendToCurrent(parents[-1], f.txt,{'header':None})
       parents.append(parent)
+      depths.append(f.depth)
       parent=ki.appendToCurrent(parent, pg_txt[f.end:found[i+1].start], {'textbody':None})
     # step 5.3: save [fn.end:] as last heading
-    # FIXME: set depth with: while(wikidepths[-1]>=newwikidepth): wikidepths.pop(); parents.pop()
-    parent=ki.appendToCurrent(parents[-1], found[-1].txt,{'header':None})
+    f=found[-1]
+    while(depths[-1]>=f.depth): depths.pop(); parents.pop()
+    parent=ki.appendToCurrent(parents[-1], f.txt,{'header':None})
+    started=True
     parents.append(parent)
-    last=pg_txt[found[-1].end:]
+    last=pg_txt[f.end:]
     #s=s.replace('\t','').replace(' ','')
     #h=r"[\W\s]*?".join(map(lambda i: re.escape(i),list(s)))
     #h_re=re.compile(h, re.M)
