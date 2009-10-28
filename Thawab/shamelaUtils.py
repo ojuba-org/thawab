@@ -19,9 +19,10 @@ Copyright © 2008-2009, Muayyad Saleh Alsadi <alsadi@ojuba.org>
 import sys, os, os.path
 import re
 import sqlite3
+import bisect
 
 from subprocess import Popen,PIPE
-from itertools import groupby
+from itertools import groupby,imap
 from meta import MCache, prettyId, makeId
 
 schema={
@@ -207,20 +208,20 @@ class ShamelaSqlite(object):
       if not self.__commentaries.has_key(i): self.__commentaries[i]=[]
     return self.__commentaries
 
-  def authorByID(authno, main={}):
+  def authorByID(self, authno, main_tb={}):
     # TODO: use authno to search shamela specific database
     a,y='_unset',0
-    if main:
-      a=makeId(main.get('auth'],''))
-      y=makeId(main.get('higrid'],0))
-      if not y: y=makeId(main.get('ad'],0))
+    if main_tb:
+      a=makeId(main_tb.get('auth',''))
+      y=main_tb.get('higrid',0)
+      if not y: y=main_tb.get('ad',0)
       try: y=int(y)
       except TypeError:
         m=digits_re.search(unicode(y))
         if m: y=int(m.group(0))
     return a,y
 
-  def classificationByBookId(bkid):
+  def classificationByBookId(self, bkid):
     return '_unset'
 
   def getBookIds(self):
@@ -235,7 +236,7 @@ class ShamelaSqlite(object):
   def getBookMeta(self, bkid):
     if self.__meta_by_bkid.has_key(bkid): return self.__meta_by_bkid[bkid]
     else:
-      r=self.c.execute('SELECT bk, shortname, cat, betaka, inf, bkord, authno, auth_death, islamshort, is_tafseer, is_sharh FROM main WHERE bkid=?', (bkid,)).fetchone()
+      r=self.c.execute('SELECT bk, shortname, cat, betaka, inf, bkord, authno, higrid, ad, islamshort, is_tafseer, is_sharh FROM main WHERE bkid=?', (bkid,)).fetchone()
       if not r: m=None
       else:
         r=dict(r)
@@ -244,7 +245,7 @@ class ShamelaSqlite(object):
           "version":"0."+str(bkid), "releaseMajor":"0", "releaseMinor":"0",
         }
         m['kitab']=makeId(r['bk'])
-        m['author'],m['year']=self.authorByID(r['authno'], main=r)
+        m['author'],m['year']=self.authorByID(r['authno'], r)
         m['classification']=self.classificationByBookId(bkid)
         #"originalAuthor", "originalYear", "originalKitab", "originalVersion"
       self.__meta_by_bkid[bkid]=m
@@ -258,7 +259,7 @@ class _foundShHeadingMatchItem():
     self.depth=depth
     self.fuzzy=fuzzy
 
-  def overlaps_with(b):
+  def overlaps_with(self,b):
     return b.end>self.start and self.end>b.start
 
   def __cmp__(self, b):
@@ -279,7 +280,7 @@ def shamelaImport(ki, sh, bkid):
   # step 2: prepare topics hashed by page_id
   r=c.execute("SELECT id,tit,lvl FROM t%d ORDER BY id,sub" % bkid).fetchall()
   # NOTE: we only need page_id,title and depth, sub is only used to sort them
-  toc_ls=map(lambda i, list(i),list(r)) # make sure we got a list
+  toc_ls=map(lambda i: list(i),list(r)) # make sure we got a list
   if not toc_ls: raise TypeError # no text in the book
   toc_hash=map(lambda i: (i[1][0],i[0]),enumerate(toc_ls))
   # toc_hash.sort(lambda a,b: cmp(a[0],b[0])) # FIXME: this is not needed!
@@ -295,42 +296,42 @@ def shamelaImport(ki, sh, bkid):
 
   def _shamelaHeadingsRE(txt, fuzzy=0):
     # TODO: in which cases of fuzzy should we insert heading text into content
-    if fuzzy=0:
+    if fuzzy==0:
       # match entire line
       h_re=u"^\s*%s\s*$" % re.escape(txt)
-    elif fuzzy=1:
+    elif fuzzy==1:
       # ignore all spaces when matching, match entire lines only
       s=txt.replace('\t','').replace(' ','')
       h_re=u"^\s*%s\s*$" % ur"\s*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy=2:
+    elif fuzzy==2:
       # ignore all spaces when matching, match at the beginning of lines
       s=txt.replace('\t','').replace(' ','')
       h_re=u"^\s*%s" % ur"\s*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy=3:
+    elif fuzzy==3:
       # ignore all spaces when matching, match any where in the line
       s=txt.replace('\t','').replace(' ','')
       h_re=ur"\s*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy=4:
+    elif fuzzy==4:
       # ignore all non-letters when matching, match entire lines only
       s=rm_fz4_re.sub('', txt)
       h_re=u"^%s$" % ur"(?:[^\w\n]|[_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy=5:
+    elif fuzzy==5:
       # ignore all non-letters when matching, match at the beginning of lines
       s=rm_fz4_re.sub('', txt)
       h_re=u'^'+ ur"(?:[^\w\n]|[_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy=6:
+    elif fuzzy==6:
       # ignore all non-letters when matching, match any where in the line
       s=rm_fz4_re.sub('', txt)
       h_re=ur"(?:[^\w\n]|[_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy=7:
+    elif fuzzy==7:
       # ignore all digits and non-letters when matching, match entire lines only
       s=rm_fz7_re.sub('', txt)
       h_re="^%s$" % ur"(?:[^\w\n]|[\d_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy=8:
+    elif fuzzy==8:
       # ignore all digits and non-letters when matching, match at the beginning of lines
       s=rm_fz7_re.sub('', txt)
       h_re=u'^'+ ur"(?:[^\w\n]|[\d_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy=9:
+    elif fuzzy==9:
       # ignore all digits and non-letters when matching, match any where in the line
       s=rm_fz7_re.sub('', txt)
       h_re=ur"(?:[^\w\n]|[\d_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
@@ -353,9 +354,7 @@ def shamelaImport(ki, sh, bkid):
         if not toc_hash[page_id]: del toc_hash[page_id]
         break;
     return n
-    
 
-  for i,t in range(len(toc)-1): toc[i][5]=toc[i+1][1]
   # step 3: walk through pages, accumelating conents  
   # NOTE: in some books id need not be unique
   for r in c.execute("SELECT id,nass,part,page,hno,sora,aya,na FROM b%d ORDER BY id" % bkid):
