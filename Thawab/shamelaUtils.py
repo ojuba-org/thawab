@@ -399,8 +399,6 @@ def shamelaImport(ki, sh, bkid):
     # TODO: add special handling for hadeeth number and tafseer info
     found=[]
     # step 4: for each page content try to find all headings
-    # NOTE: all steps works on tr/ \t/ /s;
-    # NOTE: each step in 4.x.y should be inside a loop over unfinished headings because all topics could be founded in 4.1.1 and popped and all the rest steps are skipped
     _shamelaHeadings(pg_txt, pg_id)
     # now we got all headings in found
     # step 5: add the found headings and its content
