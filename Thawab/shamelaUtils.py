@@ -67,6 +67,19 @@ sqlite_cols_re=re.compile("\((.*)\)",re.M | re.S)
 no_sql_comments=re.compile('^--.*$',re.M)
 
 digits_re=re.compile(r'\d+')
+no_w_re=re.compile(r'[^a-zابتثجحخدذرزسشصضطظعغفقكلمنهوي\s]')
+# one to one transformations that does not change chars order
+sh_digits_to_spaces_tb={
+  48:32, 49:32, 50:32, 51:32, 52:32,
+  53:32, 54:32, 55:32, 56:32, 57:32
+}
+
+sh_normalize_tb={
+65: 97, 66: 98, 67: 99, 68: 100, 69: 101, 70: 102, 71: 103, 72: 104, 73: 105, 74: 106, 75: 107, 76: 108, 77: 109, 78: 110, 79: 111, 80: 112, 81: 113, 82: 114, 83: 115, 84: 116, 85: 117, 86: 118, 87: 119, 88: 120, 89: 121, 90: 122,
+1569: 1575, 1570: 1575, 1571: 1575, 1572: 1575, 1573: 1575, 1574: 1575, 1577: 1607,  1609: 1575, 
+8: 32, 1600:32, 1632: 48, 1633: 49, 1634: 50, 1635: 51, 1636: 52, 1637: 53, 1638: 54, 1639: 55, 1640: 56, 1641: 57, 1642:37, 1643:46
+}
+# TODO: remove unused variables and methods
 
 class ShamelaSqlite(object):
   def __init__(self, bok_fn, cn=None, progress=None, progress_data=None):
@@ -294,87 +307,101 @@ def shamelaImport(ki, sh, bkid):
   rm_fz4_re=re.compile(ur'(?:[^\w\n]|[_ـ])',re.M | re.U) # [\W_ـ] without \n
   rm_fz7_re=re.compile(ur'(?:[^\w\n]|[\d_ـ])',re.M | re.U) # [\W\d_ـ] without \n
 
-  def _shamelaHeadingsRE(txt, fuzzy=0):
-    # TODO: in which cases of fuzzy should we insert heading text into content
-    if fuzzy==0:
-      # match entire line
-      h_re=u"^\s*%s\s*$" % re.escape(txt)
-    elif fuzzy==1:
-      # ignore all spaces when matching, match entire lines only
-      s=txt.replace('\t','').replace(' ','')
-      h_re=u"^\s*%s\s*$" % ur"\s*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy==2:
-      # ignore all spaces when matching, match at the beginning of lines
-      s=txt.replace('\t','').replace(' ','')
-      h_re=u"^\s*%s" % ur"\s*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy==3:
-      # ignore all spaces when matching, match any where in the line
-      s=txt.replace('\t','').replace(' ','')
-      h_re=ur"\s*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy==4:
-      # ignore all non-letters when matching, match entire lines only
-      s=rm_fz4_re.sub('', txt)
-      h_re=u"^%s$" % ur"(?:[^\w\n]|[_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy==5:
-      # ignore all non-letters when matching, match at the beginning of lines
-      s=rm_fz4_re.sub('', txt)
-      h_re=u'^'+ ur"(?:[^\w\n]|[_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy==6:
-      # ignore all non-letters when matching, match any where in the line
-      s=rm_fz4_re.sub('', txt)
-      h_re=ur"(?:[^\w\n]|[_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy==7:
-      # ignore all digits and non-letters when matching, match entire lines only
-      s=rm_fz7_re.sub('', txt)
-      h_re="^%s$" % ur"(?:[^\w\n]|[\d_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy==8:
-      # ignore all digits and non-letters when matching, match at the beginning of lines
-      s=rm_fz7_re.sub('', txt)
-      h_re=u'^'+ ur"(?:[^\w\n]|[\d_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    elif fuzzy==9:
-      # ignore all digits and non-letters when matching, match any where in the line
-      s=rm_fz7_re.sub('', txt)
-      h_re=ur"(?:[^\w\n]|[\d_ـ])*?".join(map(lambda i: re.escape(i),list(s)))
-    else: raise NotImplementedError
-    return h_re
+  def _shamelaFindHeadings(page_txt, page_id, d, h, headings_re, heading_ix,j, fuzzy):
+    # fuzzy is saved because it could be used later to figure whither to add newline or to move start point
+    for m in headings_re.finditer(page_txt): # 
+      candidate=_foundShHeadingMatchItem(m.start(), m.end(), h, d, fuzzy)
+      ii = bisect.bisect_left(found, candidate) # only check for overlaps in found[ii:]
+      # skip matches that overlaps with previous headings
+      if any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])): continue
+      bisect.insort(found, candidate) # add the candidate to the found list
+      toc_hash[page_id][j]=None
+      return True
+    return False
 
-  def _shamelaHeadings(txt, page_id, fuzzy=0):
-    n=0
-    for j,ix in enumerate(toc_hash[page_id]):
-      i,d=toc_ls[ix][1:3]
-      h_re=_shamelaHeadingsRE(i, fuzzy)
-      for m in re.finditer(h_re,txt,re.M | re.U):
-        candidate=_foundShHeadingMatchItem(m.start(), m.end(), i, d, fuzzy)
+  def _shamelaFindExactHeadings(page_txt, page_id, f, d, heading, heading_ix,j, fuzzy):
+    shift=0
+    s= f % page_txt
+    h= f % heading
+    #print "*** page:", s
+    #print "*** h:", page_id, heading_ix, fuzzy, "[%s]" % h.encode('utf-8')
+    l=len(heading)
+    while(True):
+      i=s.find(h)
+      if i>=0:
+        # print "found"
+        candidate=_foundShHeadingMatchItem(i+shift, i+shift+l, h, d, fuzzy)
         ii = bisect.bisect_left(found, candidate) # only check for overlaps in found[ii:]
         # skip matches that overlaps with previous headings
-        if any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])): continue
-        n+=1
-        bisect.insort(found, candidate) # add the candidate to the found list
-        del toc_hash[page_id][j]
-        if not toc_hash[page_id]: del toc_hash[page_id]
-        break;
-    return n
+        if not any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])):
+          bisect.insort(found, candidate) # add the candidate to the found list
+          toc_hash[page_id][j]=None
+          return True
+        # skip to i+l
+        s=s[i+l:]
+        shift+=i+l
+      # not found:
+      return False
+    return False
+
+  def _shamelaHeadings(page_txt, page_id):
+    l=toc_hash.get(page_id,[])
+    if not l: return
+    txt=None
+    txt_no_d=None
+    # for each heading
+    for j,ix in enumerate(l):
+      h,d=toc_ls[ix][1:3]
+      # search for entire line matches (exact, then only letters and digits then only letters)
+      # search for leading matches (exact, then only letters and digits then only letters)
+      # search for matches anywhere (exact, then only letters and digits then only letters)
+      if _shamelaFindExactHeadings(page_txt, page_id, "\n%s\n", d, h, ix,j, 0): continue
+      if not txt: txt=no_w_re.sub(' ', page_txt.translate(sh_normalize_tb))
+      h_p=no_w_re.sub(' ', h.translate(sh_normalize_tb)).strip()
+      if h_p: # if normalized h_p is not empty
+        # NOTE: no need for map h_p on re.escape() because it does not contain special chars
+        h_re_entire_line=re.compile(u"^\s*%s\s*$" % ur" *".join(list(h_p)), re.M)
+        if _shamelaFindHeadings(txt, page_id, d, h, h_re_entire_line, ix, j, 1): continue
+
+      if not txt_no_d: txt_no_d=txt.translate(sh_digits_to_spaces_tb)
+      h_p_no_d=h_p.translate(sh_digits_to_spaces_tb).strip()
+      if h_p_no_d:
+        h_re_entire_line_no_d=re.compile(u"^\s*%s\s*$" % ur" *".join(list(h_p_no_d)), re.M)
+        if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_entire_line_no_d, ix, j, 2): continue
+
+      # at the beginning of the line
+      if _shamelaFindExactHeadings(page_txt, page_id, "\n%s", d, h, ix,j, 3): continue
+      if h_p:
+        h_re_line_start=re.compile(u"^\s*%s" % ur" *".join(list(h_p)), re.M)
+        if _shamelaFindHeadings(txt, page_id, d, h, h_re_line_start, ix, j, 4): continue
+      if h_p_no_d:
+        h_re_line_start_no_d=re.compile(u"^\s*%s" % ur" *".join(list(h_p_no_d)), re.M)
+        if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_line_start_no_d, ix, j, 5): continue
+      # any where in the line
+      if _shamelaFindExactHeadings(page_txt, page_id, "%s", d, h, ix,j, 6): continue
+      if h_p:
+        h_re_any_ware=re.compile(ur" *".join(list(h_p)), re.M)
+        if _shamelaFindHeadings(txt, page_id, d, h, h_re_any_ware, ix, j, 7): continue
+      if h_p_no_d:
+        h_re_any_ware_no_d=re.compile(ur" *".join(list(h_p_no_d)), re.M)
+        if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_any_ware, ix, j, 8): continue
+    toc_hash[page_id]=filter(lambda i:i!=None, toc_hash[page_id])
+    if not toc_hash[page_id]: del toc_hash[page_id]
+    return
 
   # step 3: walk through pages, accumelating conents  
   # NOTE: in some books id need not be unique
   for r in c.execute("SELECT id,nass,part,page,hno,sora,aya,na FROM b%d ORDER BY id" % bkid):
-    pg_txt=r['nass']
+    pg_txt=r['nass'].translate(dos2unix_tb)
     pg_id=r['id']
     # TODO: set the value of header tag to be a unique reference
     # TODO: keep part,page,hno,sora,aya,na somewhere in the imported document
     # TODO: add special handling for hadeeth number and tafseer info
     found=[]
     # step 4: for each page content try to find all headings
-    # step 4.1.1: search for exact entire line matches ie. ^<PAT>$ in the current page and push match start and end, and pop the matched item from toc_hash (ie. delete them)
-    # step 4.1.2: as 4.1.1 but with leading matches ie. ^<PAT>
-    # step 4.1.3: as 4.1.1 but in-line <PAT> without ^ nor $
-    # step 4.2.1-3: same as 4.1.1-3 but with s/[\W_]//;
-    # step 4.3.1-3: same as 4.1.1-3 but with s/[\W\d_]//;
     # NOTE: all steps works on tr/ \t/ /s;
     # NOTE: each step in 4.x.y should be inside a loop over unfinished headings because all topics could be founded in 4.1.1 and popped and all the rest steps are skipped
-    for fz in range(10):
-      if not toc_hash.get(pg_id,False): break # stop if no more headings to be found
-      _shamelaHeadings(pg_txt, pg_id, fz)
+    _shamelaHeadings(pg_txt, pg_id)
     # now we got all headings in found
     # step 5: add the found headings and its content
     # splitting page text pg_txt into [:f0.start] [f0.end:f1.start] [f1.end:f2.start]...[fn.end:]
@@ -399,7 +426,9 @@ def shamelaImport(ki, sh, bkid):
 
   if not started: raise TypeError
   if last: ki.appendToCurrent(parents[-1], last, {'textbody':None})
-
+  l=filter(lambda i: i,toc_hash.values())
+  for j in l: print j
+  print "*** headings left: ",len(l)
   return meta
 
 if __name__ == '__main__':
