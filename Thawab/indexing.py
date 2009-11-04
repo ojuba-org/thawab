@@ -133,7 +133,10 @@ class StemFilter(object):
         cache[text] = s
         yield t
 
-from whoosh.fields import Existance, KeywordAnalyzer, FieldType
+from whoosh.fields import FieldType, KeywordAnalyzer
+try: from whoosh.fields import Existence
+except ImportError: from whoosh.fields import Existance as Existence
+
 class TAGSLIST(FieldType):
     """
     Configured field type for fields containing space-separated or comma-separated
@@ -153,7 +156,7 @@ class TAGSLIST(FieldType):
         """
         
         ana = KeywordAnalyzer(lowercase = lowercase, commas = commas)
-        self.format = Existance(analyzer = ana, field_boost = field_boost)
+        self.format = Existence(analyzer = ana, field_boost = field_boost)
         self.scorable = scorable
         self.stored = stored
         self.unique = unique
