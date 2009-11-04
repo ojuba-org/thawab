@@ -27,7 +27,7 @@ from StringIO import StringIO
 from xml.sax.saxutils import escape, unescape, quoteattr # for xml rendering
 from dataModel import *
 from tags import *
-from meta import MCache
+from meta import MCache, metaDict2Hash
 
 import re
 th_ext='.ki'
@@ -211,7 +211,6 @@ the first thing you should do is to call loadMCache()
       del iix.tags[j:]
       self.__ix_writer.add_document(kitabName=unicode(kitabName), nodeIdNum=unicode(n), title=t, content=c, tags=T)
 
-
   def createIndex(self,uri):
     """create search index for a given Kitab uri"""
     print "creating index for uri:", uri
@@ -235,6 +234,7 @@ the first thing you should do is to call loadMCache()
   def reIndex(self,uri):
     # can't use updateDocument because each Kitab contains many documents
     self.dropIndex(uri); self.createIndex(uri)
+
   def queryIndex(self, queryString):
     """return an interatable of fields dict"""
     return self.__ix_searcher.search(self.__ix_qparser.parse(queryString))
@@ -268,17 +268,23 @@ class Kitab(object):
       for t in STD_TAGS_ARGS:
         self.__c.execute(SQL_ADD_TAG,t)
     self.loadToc()
+
   def setMCache(self, meta):
     # TODO: add more checks
     a=meta.get('author',None)
     oa=meta.get('originalAuthor',None)
-    if not a and oa: meta['author']=oa
-    if not oa and a: meta['originalAuthor']=a
+    if not oa and not a: meta['author']='_unset'
+    if not a and oa!=None: meta['author']=oa
+    if not oa and a!=None: meta['originalAuthor']=a
     y=meta.get('year',None)
     oy=meta.get('originalYear',None)
-    if not y and oy: meta['year']=oy
-    if not oy and y: meta['originalYear']=y
+    if not y and oy!=None: meta['year']=oy
+    if not oy and y!=None: meta['originalYear']=y
+    if not meta.get('cache_hash',None): meta['cache_hash']=metaDict2Hash(meta)
+    print SQL_MCACHE_SET
+    print meta
     self.__c.execute(SQL_MCACHE_SET,meta)
+
   ###################################
   # retrieving data from the Kitab
   ###################################

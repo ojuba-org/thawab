@@ -19,6 +19,8 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 import os
 import os.path
 import sqlite3
+import time
+import hashlib
 from itertools import imap,groupby
 from dataModel import *
 import re
@@ -31,6 +33,16 @@ def prettyId(i, empty_for_special=True):
 def makeId(i):
   """convert the id into a canonical form"""
   return i.strip().replace(' ','_')
+
+def metaDict2Hash(meta, suffix=None):
+  k=filter(lambda i: i!='cache_hash',meta.keys())
+  k.sort()
+  l=[]
+  for i in k:
+    l.append(u"%s:%s" % (i,meta[i]))
+  l.append(u"timestamp:%d" % int(time.time()))
+  if suffix: l.append(suffix)
+  return hashlib.sha256((u"-".join(l)).encode('utf-8')).digest().encode('base64').strip()[:-1]
 
 class MCache(object):
   """a class holding metadata cache"""
@@ -118,6 +130,7 @@ class MCache(object):
   
   def get_uri_list(self):
     return self.__meta_by_uri.keys()
+
   def get_by_uri(self, uri):
     """return meta object for uri"""
     i=self.__meta_by_uri.get(uri,None)

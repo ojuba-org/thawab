@@ -256,6 +256,7 @@ class ShamelaSqlite(object):
         m={
           "repo":"_user", "lang":"ar",
           "version":"0."+str(bkid), "releaseMajor":"0", "releaseMinor":"0",
+          'originalKitab':None, 'originalVersion':None,
         }
         m['kitab']=makeId(r['bk'])
         m['author'],m['year']=self.authorByID(r['authno'], r)
@@ -290,6 +291,7 @@ def shamelaImport(ki, sh, bkid):
   c=sh.c
   # step 1: import meta
   meta=sh.getBookMeta(bkid)
+  ki.setMCache(meta)
   # step 2: prepare topics hashed by page_id
   r=c.execute("SELECT id,tit,lvl FROM t%d ORDER BY id,sub" % bkid).fetchall()
   # NOTE: we only need page_id,title and depth, sub is only used to sort them
