@@ -134,7 +134,7 @@ class MCache(object):
   def get_by_uri(self, uri):
     """return meta object for uri"""
     i=self.__meta_by_uri.get(uri,None)
-    if not i: return None
+    if i==None: return None
     return self.__meta[i]
 
   def get_by_kitab(self, kitab):
