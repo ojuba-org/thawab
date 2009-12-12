@@ -4,9 +4,11 @@ import os
 import os.path
 import Thawab.core
 th=Thawab.core.ThawabMan(os.path.expanduser('~/.thawab'))
+th.searchEngine.reindexAll()
 # th.loadMeta() # to detect new files and add them ..etc.
 meta=th.getMeta()
-print meta.get_uri_list()
+print meta.getUriList()
+th.searchEngine.reindexKitab('/home/alsadi/.thawab/db/uthaymine.ki')
 
 ## export to xml
 #from cStringIO import StringIO
@@ -22,6 +24,6 @@ print meta.get_uri_list()
 #print s
 
 ##searching the index
-#for i in th.queryIndex('إنشاء'.decode('utf-8')): print i['title']
-#for i in th.queryIndex('إنشاء kitabName:pyqt4'.decode('utf-8')): print i['title']
-#for i in th.queryIndex('إنشاء kitabName:test'.decode('utf-8')): print i['title']
+#for i in th.searchEngine.queryIndex('إنشاء'.decode('utf-8')): print i['title']
+#for i in th.searchEngine.queryIndex('إنشاء kitabName:pyqt4'.decode('utf-8')): print i['title']
+#for i in th.searchEngine.queryIndex('إنشاء kitabName:test'.decode('utf-8')): print i['title']

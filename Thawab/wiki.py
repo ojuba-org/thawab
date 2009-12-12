@@ -18,8 +18,9 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 import time, re
 ####################################
 header_re=re.compile(r'^\s*(=+)\s*(.+?)\s*\1\s*$')
-def importFromWiki(ki, wiki):
+def importFromWiki(c, wiki):
   """import a wiki-like into a thawab"""
+  ki=c.ki
   txt=""
   parents=[ki.root]
   wikidepths=[0]
@@ -49,7 +50,7 @@ def importFromWiki(ki, wiki):
       # new header:
       # add the accumelated textbody of a previous header (if exists) to the Kitab 
       if txt and title:
-        ki.appendToCurrent(parents[-1], txt, {'textbody':None})
+        c.appendNode(parents[-1], txt, {'textbody':None})
       # elif txt and not title: pass # it's leading noise, as title can't be empty because of + in the RE
       # reset the accumelated textbody
       txt=""
@@ -59,9 +60,9 @@ def importFromWiki(ki, wiki):
       # several methods, first one is to use:
       while(wikidepths[-1]>=newwikidepth): wikidepths.pop(); parents.pop()
       wikidepths=wikidepths+[newwikidepth]
-      parent=ki.appendToCurrent(parents[-1], title,{'header':None})
+      parent=c.appendNode(parents[-1], title,{'header':None})
       parents=parents+[parent]
-  if (txt): ki.appendToCurrent(parents[-1],txt,{'textbody':None})
+  if (txt): c.appendNode(parents[-1],txt,{'textbody':None})
   ki.setMCache(meta)
 
 def wiki2th(w,dst):
@@ -74,9 +75,9 @@ def wiki2th(w,dst):
   th=Thawab.core.ThawabMan(os.path.expanduser('~/.thawab'))
   ki=th.mktemp()
   wiki=open(w,"rt").read().decode('utf-8').splitlines()
-  ki.seek(-1,-1)
-  importFromWiki(ki,wiki)
-  ki.flush()
+  c=ki.seek(-1,-1)
+  importFromWiki(c,wiki)
+  c.flush()
   o=ki.uri
   del ki
   shutil.move(o,os.path.join(dst,n))

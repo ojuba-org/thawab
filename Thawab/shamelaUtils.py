@@ -279,7 +279,7 @@ class _foundShHeadingMatchItem():
   def __cmp__(self, b):
     return cmp(self.start,b.start)
 
-def shamelaImport(ki, sh, bkid):
+def shamelaImport(cursor, sh, bkid):
   """
   import a ShamelaSqlite book as thawab kitab object, where
     * ki - an empty thawab kitab object
@@ -287,6 +287,7 @@ def shamelaImport(ki, sh, bkid):
     * bkid - the id of the shamela book to be imported
   this function returns the cached meta dictionary
   """
+  ki=cursor.ki
   # NOTE: page id refers to the number used as id in shamela not thawab
   c=sh.c
   # step 1: import meta
@@ -407,25 +408,26 @@ def shamelaImport(ki, sh, bkid):
     # splitting page text pg_txt into [:f0.start] [f0.end:f1.start] [f1.end:f2.start]...[fn.end:]
     # step 5.1: add [:f0.start] to the last heading contents and push it
     if not found: last+=pg_txt; continue
-    if started: ki.appendToCurrent(parents[-1], last+pg_txt[:found[0].start], {'textbody':None})
+    if started: cursor.appendNode(parents[-1], last+pg_txt[:found[0].start], {'textbody':None})
     # step 5.2: same for all rest segments [f0.end:f1.start],[f1.end:f2.start]...[f(n-1).end:fn.start]
     for i,f in enumerate(found[:-1]):
       while(depths[-1]>=f.depth): depths.pop(); parents.pop()
       started=True
-      parent=ki.appendToCurrent(parents[-1], f.txt,{'header':None})
+      parent=cursor.appendNode(parents[-1], f.txt,{'header':None})
       parents.append(parent)
       depths.append(f.depth)
-      parent=ki.appendToCurrent(parent, pg_txt[f.end:found[i+1].start], {'textbody':None})
+      parent=cursor.appendNode(parent, pg_txt[f.end:found[i+1].start], {'textbody':None})
     # step 5.3: save [fn.end:] as last heading
     f=found[-1]
     while(depths[-1]>=f.depth): depths.pop(); parents.pop()
-    parent=ki.appendToCurrent(parents[-1], f.txt,{'header':None})
+    parent=cursor.appendNode(parents[-1], f.txt,{'header':None})
     started=True
     parents.append(parent)
+    depths.append(f.depth)
     last=pg_txt[f.end:]
 
   if not started: raise TypeError
-  if last: ki.appendToCurrent(parents[-1], last, {'textbody':None})
+  if last: cursor.appendNode(parents[-1], last, {'textbody':None})
   l=filter(lambda i: i,toc_hash.values())
   for j in l: print j
   print "*** headings left: ",len(l)
@@ -438,9 +440,9 @@ if __name__ == '__main__':
   sh.toSqlite()
   for bok_id in sh.getBokIds():
     ki=th.mktemp()
-    ki.seek(-1,-1)
-    meta=shamelaImport(ki, cn, bok_id)
-    ki.flush()
+    c=ki.seek(-1,-1)
+    meta=shamelaImport(c, cn, bok_id)
+    c.flush()
     o=ki.uri
     n=meta['kitab']
     del ki

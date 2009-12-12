@@ -29,6 +29,8 @@ from dataModel import *
 from tags import *
 from meta import MCache, metaDict2Hash
 
+from whooshSearchEngine import SearchEngine
+
 import re
 th_ext='.ki'
 th_ext_glob='*.ki'
@@ -54,8 +56,10 @@ the first thing you should do is to call loadMCache()
     if system_prefix and os.path.isdir(system_prefix):
       self.prefixes.append(os.path.abspath(system_prefix))
     self.assertManagedTree()
-    self.__ix_writer = None
-    self.__init_indexer()
+    self.searchEngine=SearchEngine(self)
+
+  def __del__(self):
+    del self.searchEngine
 
   def assertManagedTree(self):
      """create the hierarchy inside the user-managed prefix    
@@ -70,174 +74,122 @@ the first thing you should do is to call loadMCache()
   def mktemp(self):
     h,fn=mkstemp(th_ext, 'THAWAB_',os.path.join(self.prefixes[0],'tmp'))
     return Kitab(fn,True)
+
+  def getUriByKitabName(self,kitabName):
+    m=self.getMeta().getByKitab(kitabName)
+    if not m: return None
+    return m[0]['uri']
+
   def getKitab(self,kitabName):
-    if not self.managedLoaded: self.loadMCache()
-    return Kitab(self.managed[kitabName]['uri'])
+    uri=self.getUriByKitabName(kitabName)
+    if uri: return Kitab(uri)
+    return None
+
+  def getKitabByUri(self,uri):
+    return Kitab(uri)
+
   def getManagedUriList(self):
     """list of all managed uri (absolute filenames for a Kitab)
      this is low level as the user should work with kitabName, title, and rest of meta data"""
     if self.__meta:
-      return self.__meta.get_uri_list()
+      return self.__meta.getUriList()
     r=[]
     for i in self.prefixes:
       p=glob(os.path.join(i,'db',th_ext_glob))
       r.extend(p)
     return r
+
   def getMeta(self):
     if not self.__meta: self.loadMeta()
     return self.__meta
+
   def loadMeta(self):
     p=os.path.join(self.prefixes[0],'cache','meta.db')
     self.__meta=MCache(p, self.getManagedUriList())
 
-  ##############################
-  # search index related
-  ##############################
-  def __init_indexer(self):
-    self.__ix_writer = None
-    try:
-      import whoosh
-      import whoosh.qparser
-      import whoosh.query
-      from indexing import StemFilter, TAGSLIST
-    except: raise # while developing we want to know when we got a problem
-    #except ImportError: self.indexer=None; return
-    ix_dir=os.path.join(self.prefixes[0],'index')
-    store=whoosh.store.FileStorage(ix_dir)
-    analyzer=whoosh.analysis.StemmingAnalyzer()
-    analyzer.tokenizer=whoosh.analysis.SpaceSeparatedTokenizer()
-    analyzer.stemfilter=StemFilter()
-    # try to load a pre-existing index
-    try:
-      self.indexer=whoosh.index.Index(store)
-    except whoosh.index.EmptyIndexError:
-      # create a new one
-      schema=whoosh.fields.Schema( \
-        # TODO: a single uniq field documentId=kitabName:nodeIdNum or two fields
-        kitabName=whoosh.fields.ID(stored=True,unique=False), 
-        nodeIdNum=whoosh.fields.ID(stored=True,unique=False), 
-        title=whoosh.fields.TEXT(stored=True,field_boost=1.5), content=whoosh.fields.TEXT(analyzer=analyzer),
-        tags=TAGSLIST(lowercase=True)
-      )
-      self.indexer=whoosh.index.Index(store,schema, True)
-    self.__ix_qparser = whoosh.qparser.MultifieldParser(("title","content",), schema=self.indexer.schema)
-    #self.__ix_pre=whoosh.query.Prefix
-    self.__ix_searcher= self.indexer.searcher()
-
-  def __del__(self):
-    if self.__ix_writer: self.__ix_writer.commit()
-
-  def ix_refresh(self):
-    self.indexer=self.indexer.refresh()
-    self.__ix_searcher= self.indexer.searcher()
-    self.__ix_writer = None
-
-  # FIXME: all the index routines uses uri not kitsabName as the variable suggests, make them consistent
-  # FIXME: a method needed that call commit and optimize and refresh
-  def reIndexAll(self):
-    t=[]
-    if not self.__ix_writer: self.__ix_writer=self.indexer.writer()
-    for i in self.getManagedUriList(): self.reIndex(i)
-    #for i in self.getManagedUriList():
-    #  t.append(threading.Thread(target=self.reIndex,args=(i,)))
-    #  t[-1].start()
-    #for i in t: i.join()
-    self.__ix_writer.commit()
-    self.indexer.optimize()
-    self.ix_refresh()
-
-  class __IIX(object):
-    "internal indexing object"
-    def __init__(self):
-      # independent arrays
-      self.contents=[] # array of contents to be indexed
-      self.tags=[] # array of ix tags
-      # main_f* parallel arrays
-      self.main_f_node_idnums=[] # array of node.idNum of consuming ix fields (ie. header)
-      self.main_f_content_index=[] # array of the starting index in self.contents for each main ix field (ie. header)
-      self.main_f_tags_index=[] # array of the starting index in self.contents for each main ix field (ie. header)
-      # sub_f* parallel arrays
-      self.sub_f_node_idnums=[] # array of node.idNum for each sub ix field
-      self.sub_f_content_index=[] # array of the starting index in self.contents for each sub ix field
-      self.sub_f_tags_index=[] # array of the starting index in self.tags for each sub ix field
-      # TODO: benchmark which is faster parallel arrays or small tubles sub_field=(idNum,content_i,tag_i)
-
-  def __ix_nodeStart(self, node, kitabName, iix):
-    # NOTE: benchmarks says append then join is faster than s+="foo"
-    tags=node.getTags()
-    tag_flags=node.getTagFlags()
-    # create new consuming main indexing fields [ie. headers]
-    # TODO: let loadToc use TAG_FLAGS_HEADER instead of hard-coding 'header'
-    #if node.getTagsByFlagsMask(TAG_FLAGS_HEADER):
-    # NOTE: for consistency, header is the only currentely allowed tag having TAG_FLAGS_HEADER
-    if tag_flags & TAG_FLAGS_HEADER:
-      iix.main_f_node_idnums.append(node.idNum)
-      iix.main_f_content_index.append(len(iix.contents))
-      iix.main_f_tags_index.append(len(iix.tags))
-    # create new sub non-consuming indexing fields
-    if tag_flags & TAG_FLAGS_IX_FIELD:
-      iix.sub_f_node_idnums.append(node.idNum)
-      iix.sub_f_content_index.append(len(iix.contents))
-      iix.sub_f_tags_index.append(len(iix.tags))
-    # TODO: check for nodes that are not supposed to be indexed TAG_FLAGS_IX_SKIP
-    # append ix contents
-    iix.contents.append(node.getContent()) # TODO: append extra padding space if TAG_FLAGS_PAD_CONTENT
-    # append ix tags
-    iix.tags.extend(map(lambda t: tags[t]==None and t or u'.'.join((t,tags[t])), node.getTagsByFlagsMask(TAG_FLAGS_IX_TAG)))
-  
-  def __ix_nodeEnd(self, node, kitabName, iix):
-    # index extra sub fields if any
-    if iix.sub_f_node_idnums and iix.sub_f_node_idnums[-1]==node.idNum:
-      n=iix.sub_f_node_idnums.pop()
-      i=iix.sub_f_content_index.pop()
-      j=iix.sub_f_tags_index.pop()
-      c=u"".join(iix.contents[i:])
-      T=u" ".join(iix.tags[j:])
-      del iix.tags[j:]
-      k=iix.main_f_content_index[-1] # the nearest header title index
-      N=iix.main_f_node_idnums[-1] # the nearest header node.idNum
-      # NOTE: the above two lines means that a sub ix fields should be children of some main field (header)
-      t=iix.contents[k]
-      self.__ix_writer.add_document(kitabName=unicode(kitabName), nodeIdNum=unicode(N), title=t, content=c, tags=T)
-    # index consuming main indexing fields if any
-    if iix.main_f_node_idnums and iix.main_f_node_idnums[-1]==node.idNum: 
-      n=iix.main_f_node_idnums.pop()
-      i=iix.main_f_content_index.pop()
-      j=iix.main_f_tags_index.pop()
-      t=iix.contents[i]
-      c=u"".join(iix.contents[i:])
-      del iix.contents[i:]
-      T=u" ".join(iix.tags[j:])
-      del iix.tags[j:]
-      self.__ix_writer.add_document(kitabName=unicode(kitabName), nodeIdNum=unicode(n), title=t, content=c, tags=T)
-
-  def createIndex(self,uri):
-    """create search index for a given Kitab uri"""
-    print "creating index for uri:", uri
-    if not self.__ix_writer: self.__ix_writer=self.indexer.writer()
-    ki=Kitab(uri)
-    iix=self.__IIX()
-    ki.root.traverser(3, self.__ix_nodeStart, self.__ix_nodeEnd, uri, iix)
+class KitabCursor:
+  """
+  an object used to do a sequence of SQL operation
+  """
+  def __init__(self, ki , *args, **kw):
+    self.ki=ki
+    self.__is_tailing=False
+    self.__is_tmp=False
+    self.__tmp_str=''
+    self.__parents=[]
+    self.__c=None
+    self.__last_go=-1
+    if args or kw: self.seek(*args, **kw)
     
-  def dropIndex(self, uri):
-    """drop search index for a given Kitab by its uri"""
-    # NOTE: because the searcher could be limited do a loop that keeps deleting till the query is empty
-    print "dropping index for uri:", uri,
-    while(self.indexer.delete_by_term('kitabName', uri)):
-      print "*",
-      pass # query just selects the kitabName
-    print
-    # NOTE: in case of having a documentId field prefixed with kitabName:
-    #q=self.__ix_pre('documentId',kitabName+':')
-    #self.indexer.delete_by_query(q,self.__ix_searcher) # TODO: loop because the searcher could be limited
-    
-  def reIndex(self,uri):
-    # can't use updateDocument because each Kitab contains many documents
-    self.dropIndex(uri); self.createIndex(uri)
+  def __lock(self):
+    # TODO: this is just a place holders, could be used to do "BEGIN TRANS"
+    pass
 
-  def queryIndex(self, queryString):
-    """return an interatable of fields dict"""
-    return self.__ix_searcher.search(self.__ix_qparser.parse(queryString))
+  def __unlock(self):
+    pass
+
+  def seek(self, parentNodeIdNum=-1,nodesNum=-1):
+    """should be called before concatenating nodes, all descendants will be dropped
+where:
+  parentNodeIdNum	- the parent below which the concatenation will begin, -1 at the tail
+  nodesNum		- number of nodes to be concatenated, -1 for unknown open number
+
+seek()
+appendNode(parentNodeIdNum, content, tags)
+appendNode(parentNodeIdNum, content, tags)
+...
+plush()
+"""
+    self.__lock()
+    self.__is_tailing=False
+    self.__is_tmp=False
+    self.__tmp_str=''
+    self.__parents=[]
+    self.__c=self.ki.cn.cursor()
+    self.__c.execute('BEGIN TRANSACTION')
+    if parentNodeIdNum!=-1:
+      self.dropDescendants(parentNodeIdNum)
+      if nodesNum==-1: self.__is_tmp=True; self.__tmp_str='tmp';
+      else:
+        # FIXME: make sure 
+        raise IndexError, "not implented"
+    else:
+      self.__parents=[self.root]
+      r=self.__c.execute(SQL_GET_LAST_GLOBAL_ORDER).fetchone()
+      if r: self.__last_go=r[0]
+      else: self.__last_go=0
+      self.__is_tailing=True
+
+  def flush(self):
+    """Called after the last appendNode"""
+    if self.__is_tmp:
+      # TODO: implement using "insert into ... select tmp_nodes ...;"
+      raise IndexError, "not implented"
+    self.__c.execute('END TRANSACTION')
+    #self.__c.execute('COMMIT')
+    self.ki.cn.commit() # is this needed ?
+    self.__unlock()
+
+  def appendNode(self, parentNode, content, tags):
+    parentNodeIdNum=parentNode.idNum
+    while(self.__parents[-1].idNum!=parentNodeIdNum): self.__parents.pop()
+    new_go=self.__last_go+self.ki.inc_size
+    newid=self.__c.execute(SQL_APPEND_NODE[self.__is_tmp],(content, self.__parents[-1].idNum, new_go, self.__parents[-1].depth+1)).lastrowid
+    self.__last_go=new_go
+    node=Node(kitab=self, idNum=newid,parent=self.__parents[-1].idNum,depth=self.__parents[-1].depth+1)
+    node.applyTags(tags)
+    self.__parents.append(node)
+    return node
+
+  def dropDescendants(self,parentNodeIdNum, withParent=False):
+    """remove all child nodes going deep at any depth, and optionally with their parent"""
+    o1,o2=self.ki.getSliceBoundary(parentNodeIdNum)
+    c=self.__c
+    if not c: c=self.ki.cn.cursor()
+    if o2==-1:
+      c.execute(SQL_DROP_TAIL_NODES[withParent],(o1,))
+    else:
+      c.execute(SQL_DROP_DESC_NODES[withParent],(o1,o2))
 
 class Kitab(object):
   """this class represents a book or an article ...etc."""
@@ -250,12 +202,13 @@ class Kitab(object):
     # check if fn exists, if not then set the flag sql_create_schema
     if is_tmp or not os.path.exists(uri): sql_create_schema=True
     else: sql_create_schema=False
-    # 
-    self.cn=sqlite3.connect(uri, isolation_level=None)
+    self.cn=None
+    self.connect()
     self.cn.create_function("th_enumerate", 0, self.rowsEnumerator) # FIXME: do we really need this
-    self.__c=self.cn.cursor() # TODO: have a policy when should the default sql cursor be used ? eg. only for reading
+    # NOTE: we have a policy, no saving of cursors in object attributes for thread safty
+    c=self.cn.cursor()
+    self.toc = None # a KitabToc instance or None if not loaded
     # private
-    self.__toc = [] # flat list of children Nodes having HEADER tag
     self.__tags = {} # a hash by of tags data by tag name
     self.__tags_loaded=False
     self.__counter = 0 # used to renumber rows
@@ -263,11 +216,20 @@ class Kitab(object):
     # TODO: make a decision, should the root node be saved in SQL, if so a lower bound checks to Kitab.getSliceBoundary() and an exception into Kitab.getNodeByIdNum()
     self.root=Node(kitab=self, idNum=0,parent=-1,depth=0,content='',tags={})
     if sql_create_schema:
-      self.__c.executescript(SQL_DATA_MODEL)
+      c.executescript(SQL_DATA_MODEL)
       # create standard tags
       for t in STD_TAGS_ARGS:
-        self.__c.execute(SQL_ADD_TAG,t)
+        c.execute(SQL_ADD_TAG,t)
     self.loadToc()
+  def __del__(self):
+    self.disconnect()
+
+  def connect(self):
+    self.cn=sqlite3.connect(self.uri, isolation_level=None)
+
+  def disconnect(self):
+    if self.cn: self.cn.close()
+    del self.cn
 
   def setMCache(self, meta):
     # TODO: add more checks
@@ -283,7 +245,7 @@ class Kitab(object):
     if not meta.get('cache_hash',None): meta['cache_hash']=metaDict2Hash(meta)
     print SQL_MCACHE_SET
     print meta
-    self.__c.execute(SQL_MCACHE_SET,meta)
+    self.cn.execute(SQL_MCACHE_SET,meta)
 
   ###################################
   # retrieving data from the Kitab
@@ -292,108 +254,113 @@ class Kitab(object):
     if not self.__tags_loaded: self.reloadTags()
     return self.__tags
   def reloadTags(self):
-    self.__tags = dict(map(lambda r: (r[0],r[1:]),self.__c.execute(SQL_GET_ALL_TAGS).fetchall()))
+    self.__tags = dict(map(lambda r: (r[0],r[1:]),self.cn.execute(SQL_GET_ALL_TAGS).fetchall()))
     self.__tags_loaded=True
 
   def getNodeByIdNum(self, idNum, load_content=False):
     if idNum==0: return self.root
-    r=self.__c.execute(SQL_GET_NODE_BY_IDNUM[load_content],(idNum,)).fetchone()
+    r=self.cn.execute(SQL_GET_NODE_BY_IDNUM[load_content],(idNum,)).fetchone()
     if not r: raise IndexError, "idNum not found"
     r=list(r)
-    if len(r)<=3: return Node(kitab=self, idNum=r[0],parent=r[1],depth=r[2])
-    return Node(kitab=self, idNum=r[0],parent=r[1],depth=r[2],content=r[3])
-  ##############################
-  # manipulating Kitab's content
-  ##############################
-  # feeding content
-  def __lock(self):
-    # TODO: make it "BEGIN TRANS"
-    pass
-  def __unlock(self):
-    pass
-  def seek(self,parentNodeIdNum=-1,nodesNum=-1):
-    """should be called before concatenating nodes, all descendents will be dropped
-where:
-  parentNodeIdNum	- the parent below which the concatenation will begin, -1 at the tail
-  nodesNum		- number of nodes to be concatenated, -1 for unknown open number
+    if len(r)<=4: return Node(kitab=self, idNum=r[0],parent=r[1],depth=r[2])
+    return Node(kitab=self, idNum=r[0],parent=r[1],depth=r[2],content=r[4])
 
-nodesConcatenationStart()
-concatenateNode(parentNodeIdNum, content, tags)
-concatenateNode(parentNodeIdNum, content, tags)
-...
-nodesConcatenationEnd()
-"""
-    self.__lock()
-    self.__is_tailing=False
-    self.__is_tmp=False
-    self.__tmp_str=''
-    self.__parents=[]
-    self.__c.execute('BEGIN TRANSACTION')
-    # self.__last_go # last globalOrder
-    if parentNodeIdNum!=-1:
-      self.dropDescendants(parentNodeIdNum)
-      if nodesNum==-1: self.__is_tmp=True; self.__tmp_str='tmp';
-      else:
-        # FIXME: make sure 
-        raise IndexError, "not implented"
-    else:
-      self.__parents=[self.root]
-      r=self.__c.execute(SQL_GET_LAST_GLOBAL_ORDER).fetchone()
-      if r: self.__last_go=r[0]
-      else: self.__last_go=0
-      self.__is_tailing=True
-  def flush(self):
-    """Called after the last concatenateNode"""
-    if self.__is_tmp:
-      # TODO: implement using "insert into ... select tmp_nodes ...;"
-      raise IndexError, "not implented"
-    self.__c.execute('END TRANSACTION')
-    #self.__c.execute('COMMIT')
-    self.cn.commit()
-    self.__unlock()
-  def appendToCurrent(self, parentNode, content, tags):
-    parentNodeIdNum=parentNode.idNum
-    while(self.__parents[-1].idNum!=parentNodeIdNum): self.__parents.pop()
-    new_go=self.__last_go+self.inc_size
-    newid=self.__c.execute(SQL_APPEND_NODE[self.__is_tmp],(content, self.__parents[-1].idNum, new_go, self.__parents[-1].depth+1)).lastrowid
-    self.__last_go=new_go
-    node=Node(kitab=self, idNum=newid,parent=self.__parents[-1].idNum,depth=self.__parents[-1].depth+1)
-    node.applyTags(tags)
-    self.__parents.append(node)
-    return node
+  def seek(self, *args, **kw):
+    """
+    short hand for creating a cursor object and seeking it, returns a new cursor object used for manipulation ops
+    """
+    return KitabCursor(self, *args, **kw)
+
   def getSliceBoundary(self, nodeIdNum):
     """return a tuble of o1,o2 where:
       o1: is the globalOrder of the given Node
       o2: is the globalOrder of the next sibling of the given node, -1 if unbounded
-all the descendents of the given nodes have globalOrder belongs to the interval (o1,o2)
+all the descendants of the given nodes have globalOrder belongs to the interval (o1,o2)
     """
     # this is a private method used by dropDescendants
     if nodeIdNum==0: return 0,-1
-    r=self.__c.execute(SQL_GET_GLOBAL_ORDER,(nodeIdNum,)).fetchone()
+    r=self.cn.execute(SQL_GET_GLOBAL_ORDER,(nodeIdNum,)).fetchone()
     if not r: raise IndexError
     o1=r[0]
-    parent=r[1]
-    r=self.__c.execute(SQL_GET_SIBLING_GLOBAL_ORDER,(parent,o1)).fetchone()
+    depth=r[1]
+    r=self.cn.execute(SQL_GET_DESC_UPPER_BOUND,(o1,depth)).fetchone()
     if not r: o2=-1
     else: o2=r[0]
     return o1,o2
 
-  def dropDescendants(self,parentNodeIdNum, withParent=False):
-    """remove all child nodes going deep at any depth, and optionally with their parent"""
-    o1,o2=self.getSliceBoundary(parentNodeIdNum)
-    if o2==-1:
-      self.__c.execute(SQL_DROP_TAIL_NODES[withParent],(o1,))
-    else:
-      self.__c.execute(SQL_DROP_DESC_NODES[withParent],(o1,o2))
   # FIXME: do we really need this
   def rowsEnumerator(self):
     """private method used internally"""
     self.__counter+=self.inc_size
     return self.__counter
+
+  def getToc(self):
+    if self.toc: return self.toc
+    return self.loadToc()
+
   def loadToc(self):
-    self.__toc=list(self.root.descendantsWithTagNameIter('header'))
-    self.__toc_loaded=True
-    # for i in self.__toc: print i.depth,i.getContent()
+    self.toc=KitabToc(self,list(self.root.descendantsWithTagNameIter('header')))
+    return self.toc
+
+
+class KitabToc(object):
+  def __init__(self, kitab, tocNodes):
+    self.tocList=[kitab.root]+tocNodes
+    self.tocHash={}
+    self.childenByParentIdNum={}
+    for i,n in enumerate(self.tocList):
+      self.tocHash[n.idNum]=i
+      h=n.getTags().get('header',None)
+      if h: self.tocHash[h]=i
+      try: self.childenByParentIdNum[n.parent].append(i)
+      except KeyError: self.childenByParentIdNum[n.parent]=[i]
+
+  def indexFromId(self, i):
+    if type(i)==int: j=i
+    elif i.startswith('_i'):
+      try: j=int(i[2:])
+      except TypeError: return None
+    else: j=i # FIXME: should be raise
+    return self.tocHash.get(j,None)
+
+  def getNodePrevUpNextChildren(self, i):
+    """
+    an optimized way to get a tuple of node, prev, up, next, children
+    equivalent of nodeFromId(i),prev(i),up(i),next(i),children(i))
+    """
+    # TODO: optimize this by calling indexFromId once
+    return (self.nodeFromId(i),self.prev(i),self.up(i),self.next(i),self.children(i))
+
+  def nodeFromId(self, i):
+    j=self.indexFromId(i)
+    if j==None: return None
+    return self.tocList[j]
+
+  def children(self, i):
+    j=self.indexFromId(i)
+    if j==None: return None
+    p=self.tocList[j].idNum
+    return map(lambda j: self.tocList[j], self.childenByParentIdNum.get(p,[]))
+
+  def prev(self, i):
+    j=self.indexFromId(i)
+    if j==None: return None
+    if j>0: return self.tocList[j-1]
+    return None
+
+  def up(self, i):
+    j=self.indexFromId(i)
+    if not j: return None # in case of None ie not found or 0 ie. root no up
+    n=self.tocList[j]
+    p=self.tocHash.get(n.parent,None)
+    if p==None: return None
+    return self.tocList[p]
+
+  def next(self, i):
+    j=self.indexFromId(i)
+    if j==None: return None
+    if j+1<len(self.tocList): return self.tocList[j+1]
+    return None
 
 class Node (object):
   """A node class returned by some Kitab methods, avoid creating your own
@@ -414,6 +381,7 @@ and the following methods:
     self.parent=args.get('parent',-1)
     self.idNum=args.get('idNum',-1)
     self.depth=args.get('depth',-1)
+    self.globalOrder=args.get('globalOrder',-1)
     self.__grouped_rows_to_node=(self.__grouped_rows_to_node0, self.__grouped_rows_to_node1, self.__grouped_rows_to_node2, self.__grouped_rows_to_node3)
     self.__row_to_node=(self.__row_to_node0, self.__row_to_node1)
     # TODO: should globalOrder be a properity ?
@@ -498,23 +466,24 @@ each tag should already be in the kitab."""
 
   # internal node generators
   def __row_to_node0(self,r):
-    return Node(kitab=self.kitab, idNum=r[0],parent=r[1],depth=r[2])
+    return Node(kitab=self.kitab, idNum=r[0],parent=r[1],depth=r[2],globalOrder=r[3])
   def __row_to_node1(self,r):
-    return Node(kitab=self.kitab, idNum=r[0],parent=r[1],depth=r[2],content=r[3])
+    return Node(kitab=self.kitab, idNum=r[0],parent=r[1],depth=r[2],globalOrder=r[3], content=r[4])
   def __grouped_rows_to_node0(self,l):
     r=list(l[1])
-    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2])
+    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2], globalOrder=r[0][3])
   def __grouped_rows_to_node1(self,l):
     r=list(l[1])
-    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2],content=r[0][3])
+    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2],globalOrder=r[0][3], content=r[0][4])
   def __grouped_rows_to_node2(self,l):
     r=list(l[1])
-    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2], \
-      tags=dict(map(lambda i: (i[3],i[4]),r)), tag_flags=reduce(lambda a,b: a[5]|b[5],r,(0,0,0,0,0,0)) )
+    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1], \
+      depth=r[0][2], globalOrder=r[0][3], \
+      tags=dict(map(lambda i: (i[4],i[5]),r)), tag_flags=reduce(lambda a,b: a[6]|b[6],r,(0,0,0,0,0,0,0)) )
   def __grouped_rows_to_node3(self,l):
     r=list(l[1])
-    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2], content=r[0][3], \
-       tags=dict(map(lambda i: (i[4],i[5]),r)), tag_flags=reduce(lambda a,b: a[6]|b[6],r,(0,0,0,0,0,0,0)) )
+    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2], globalOrder=r[0][3], content=r[0][4], \
+       tags=dict(map(lambda i: (i[5],i[6]),r)), tag_flags=reduce(lambda a,b: a[7]|b[7],r,(0,0,0,0,0,0,0,0)) )
 
   # methods that give nodes
   def childrenIter(self, preload=WITH_CONTENT_AND_TAGS):
@@ -531,7 +500,7 @@ where preload can be:
     if preload & 2: return imap(self.__grouped_rows_to_node[preload], groupby(it,lambda i:i[0]))
     return imap(self.__row_to_node[preload], it)
 
-  def descendantsIter(self,preload=WITH_CONTENT_AND_TAGS):
+  def descendantsIter(self,preload=WITH_CONTENT_AND_TAGS, upperBound=-1):
     """an iter retrieves all the children of this node, going deeper in a flat-fashion, pre-loading content and tags by default.
 
 where preload can be:
@@ -541,6 +510,8 @@ where preload can be:
   3  WITH_CONTENT_AND_TAGS
 """
     o1,o2=self.kitab.getSliceBoundary(self.idNum)
+    if upperBound!=-1 and (o2==-1 or o2>upperBound):
+      o2=upperBound
     if o2==-1: sql=SQL_GET_UNBOUNDED_NODES_SLICE[preload] ; args=(o1,)
     else: sql=SQL_GET_NODES_SLICE[preload]; args=(o1,o2)
     it=self.kitab.cn.execute(sql, args)
@@ -598,27 +569,34 @@ Note: the implementation is a non-recursive optimized code with a single query""
       nodeStart(stack,*args)
     while(stack): nodeEnd(stack,*args); stack.pop()
 
-  def sTraverser(self, preload, nodeStart, nodeEnd,*args):
+  def sTraverser(self, preload, nodeStart, nodeEnd,upperBound=-1,*args):
     """recursively traverser nodes calling nodeStart and nodeEnd and concatenating the return values"""
     stack=[self]
     s=nodeStart(self,*args)
-    for i in self.descendantsIter(preload):
-      while(i.parent!=stack[-1].idNum): s+=nodeEnd(stack[-1],*args); stack.pop()
+    for i in self.descendantsIter(preload,upperBound):
+      while(i.parent!=stack[-1].idNum):
+        s+=nodeEnd(stack[-1],*args); stack.pop()
       s+=nodeStart(i,*args)
       stack.append(i)
     while(stack): s+=nodeEnd(stack[-1],*args); stack.pop()
     return s
 
   def toWiki(self):
-    """export the node and its descendents into a wiki-like string"""
+    """export the node and its descendants into a wiki-like string"""
     return self.sTraverser( 3, lambda n: n.getTags().has_key('header') and ''.join((u'\n',((7-n.depth)*u'='),n.getContent(),((7-n.depth)*u'='),u'\n')) or n.getContent(), lambda n: u'');
 
-  def toHTML(self):
-    """export the node and its descendents into a wiki-like string"""
+  def toHtml(self, upperBound=-1):
+    """export the node and its descendants into HTML string"""
     # TODO: escape special chars
     # TODO: replace ^$ with '<br/>' or '</p><p>'
-    return self.sTraverser( 3, lambda n: n.getTags().has_key('header') and u'\n<H%d>%s</H%d>\n' % (n.depth,escape(n.getContent()),n.depth) or escape(n.getContent()), lambda n: u'');
+    return self.sTraverser( 3, lambda n: n.getTags().has_key('header') and u'\n<H%d>%s</H%d>\n' % (n.depth,escape(n.getContent()),n.depth) or "<p>%s</p>" % escape(n.getContent()), lambda n: u'', upperBound);
 
+  def toText(self, upperBound=-1):
+    """
+    export node and its descendants into plain text string,
+    can be used for generating excerpts of search results
+    """
+    return self.sTraverser( 3, lambda n: n.getContent(), lambda n: u'', upperBound);
 
   def __toXmlStart(self, node, ostream):
     margin=u'  '*node.depth
@@ -631,7 +609,7 @@ Note: the implementation is a non-recursive optimized code with a single query""
     ostream.write(margin+u' </Node>\n')
     
   def toXml(self,ostream):
-    """export the node and its descendents into a wiki-like string using ostream as output"""
+    """export the node and its descendants into a xml-like string using ostream as output"""
     # TODO: escape special chars
     self.traverser(3,self.__toXmlStart,self.__toXmlEnd,ostream)
 
@@ -648,7 +626,6 @@ Note: the implementation is a non-recursive optimized code with a single query""
 #      ostream.write(i.getContent())
 #      ostream.write(u'\n'+margin+u' </Node>\n')
 #    ostream.write(u'\n'+margin+u' </Node>\n')
-
 ####################################
 
 if __name__ == '__main__':

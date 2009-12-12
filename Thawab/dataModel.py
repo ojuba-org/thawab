@@ -133,7 +133,9 @@ SQL_GET_NODE_CONTENT="""SELECT content from nodes WHERE idNum=? LIMIT 1"""
 
 SQL_GET_NODE_TAGS="""SELECT tags.name,nodesTags.param FROM nodesTags LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodesTags.nodeIdNum=? LIMIT 1"""
 
-SQL_NODE_ARGS="nodes.idNum, nodes.parent, nodes.depth"
+# FIXME: all sql that uses SQL_NODE_ARGS should be revised to check the shift after adding globalOrder
+
+SQL_NODE_ARGS="nodes.idNum, nodes.parent, nodes.depth, nodes.globalOrder"
 SQL_NODE_COLS=(SQL_NODE_ARGS, SQL_NODE_ARGS+", nodes.content", 
   SQL_NODE_ARGS+", tags.name, nodesTags.param, tags.flags",
   SQL_NODE_ARGS+", nodes.content"+", tags.name, nodesTags.param, tags.flags")
@@ -181,7 +183,8 @@ SQL_GET_UNBOUNDED_TAGGED_NODES_SLICE=( \
   """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE tags.name=? AND nodes.globalOrder>? ORDER BY nodes.globalOrder""" % SQL_NODE_ARGS,
   """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE tags.name=? AND nodes.globalOrder>? ORDER BY nodes.globalOrder""" % SQL_NODE_COLS[1])
 
-SQL_GET_GLOBAL_ORDER="""SELECT globalOrder,parent FROM nodes WHERE idNum=? LIMIT 1"""
+SQL_GET_GLOBAL_ORDER="""SELECT globalOrder,depth FROM nodes WHERE idNum=? LIMIT 1"""
+SQL_GET_DESC_UPPER_BOUND="""SELECT globalOrder FROM nodes WHERE globalOrder>? AND depth<=? ORDER BY globalOrder LIMIT 1"""
 SQL_GET_SIBLING_GLOBAL_ORDER="""SELECT globalOrder FROM nodes WHERE parent=? and globalOrder>? ORDER BY globalOrder LIMIT 1"""
 SQL_GET_LAST_GLOBAL_ORDER="""SELECT globalOrder FROM nodes ORDER BY globalOrder DESC LIMIT 1"""
 SQL_DROP_DESC_NODES=["""DELETE FROM nodes WHERE globalOrder>? AND globalOrder<?""",

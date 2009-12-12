@@ -101,6 +101,7 @@ class MCache(object):
     deleted=filter(lambda i: i not in uri_list, self.__meta_uri_list)
     for uri in deleted:
       self.__c.execute(SQL_MCACHE_DROP, (uri,))
+      r+=1
     # update meta for the rest (in a smart way)
     for uri in uri_list:
       if smart==0:
@@ -117,9 +118,9 @@ class MCache(object):
         cache_needed=True
         if smart==-1: continue # don't replace existing cache
         elif smart==2: # rely of mtime
-          if abs(os.path.getmtime(uri)-self.get_by_uri(uri)['mtime'])<1e-5: continue
+          if abs(os.path.getmtime(uri)-self.getByUri(uri)['mtime'])<1e-5: continue
         elif smart==1: # rely on a hash saved inside the database
-          old_meta=self.get_by_uri(uri)
+          old_meta=self.getByUri(uri)
           meta=self.__load_from_uri(uri)
           if not meta or old_meta['hash']==meta['hash']: continue
       if cache_needed:
@@ -127,19 +128,22 @@ class MCache(object):
     self.__c.execute('END TRANSACTION')
     self.__cn.commit()
     return r
-  
-  def get_uri_list(self):
+
+  def get_kitab_list(self):
+    return self.__meta_by_kitab.keys()
+
+  def getUriList(self):
     return self.__meta_by_uri.keys()
 
-  def get_by_uri(self, uri):
+  def getByUri(self, uri):
     """return meta object for uri"""
     i=self.__meta_by_uri.get(uri,None)
     if i==None: return None
     return self.__meta[i]
 
-  def get_by_kitab(self, kitab):
+  def getByKitab(self, kitab):
     """return a list of meta objects for a kitab"""
-    a=self.__meta_by_kitab.get(uri,None)
+    a=self.__meta_by_kitab.get(kitab,None)
     if not a: return None
     return map(lambda i: self.__meta[i], a)
 

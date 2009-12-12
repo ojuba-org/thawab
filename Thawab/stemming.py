@@ -16,7 +16,8 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
     "http://waqf.ojuba.org/license"
 
 """
-import re
+
+import sys, os, os.path, re
 #harakat="ًٌٍَُِّْـ".decode('utf-8')
 #normalize_tb=dict(map(lambda i: (ord(i),None),list(harakat)))
 #normalize_tb[ord('ة'.decode('utf-8'))]=ord('ه'.decode('utf-8'))
@@ -81,83 +82,4 @@ def removeArabicPrefix(word):
 
 def stemArabic(word):
   return removeArabicPrefix(removeArabicSuffix(unicode(word).translate(normalize_tb)))
-
-from whoosh.lang.porter import stem
-class StemFilter(object):
-  """Stems (removes suffixes from) the text of tokens using the Porter stemming
-  algorithm. Stemming attempts to reduce multiple forms of the same root word
-  (for example, "rendering", "renders", "rendered", etc.) to a single word in
-  the index.
-  
-  Note that I recommend you use a strategy of morphologically expanding the
-  query terms (see query.Variations) rather than stemming the indexed words.
-  """
-  
-  def __init__(self, ignore = None):
-    """
-    :ignore: a set/list of words that should not be stemmed. This
-      is converted into a frozenset. If you omit this argument, all tokens
-      are stemmed.
-    """
-    
-    self.cache = {}
-    if ignore is None:
-      self.ignores = frozenset()
-    else:
-      self.ignores = frozenset(ignore)
-  
-  def clear(self):
-    """
-    This filter memoizes previously stemmed words to greatly speed up
-    stemming. This method clears the cache of previously stemmed words.
-    """
-    self.cache.clear()
-  
-  def __call__(self, tokens):
-    cache = self.cache
-    ignores = self.ignores
-    
-    for t in tokens:
-      if t.stopped:
-        yield t
-        continue
-      
-      text = t.text
-      if text in ignores:
-        yield t
-      elif text in cache:
-        t.text = cache[text]
-        yield t
-      else:
-        t.text = s = stemArabic(stem(text))
-        cache[text] = s
-        yield t
-
-from whoosh.fields import FieldType, KeywordAnalyzer
-try: from whoosh.fields import Existence
-except ImportError: from whoosh.fields import Existance as Existence
-
-class TAGSLIST(FieldType):
-    """
-    Configured field type for fields containing space-separated or comma-separated
-    keyword-like data (such as tags). The default is to not store positional information
-    (so phrase searching is not allowed in this field) and to not make the field scorable.
-    
-    unlike KEYWORD field type, TAGS list does not count frequency just existence.
-    """
-    
-    def __init__(self, stored = False, lowercase = False, commas = False,
-                 scorable = False, unique = False, field_boost = 1.0):
-        """
-        :stored: Whether to store the value of the field with the document.
-        :comma: Whether this is a comma-separated field. If this is False
-            (the default), it is treated as a space-separated field.
-        :scorable: Whether this field is scorable.
-        """
-        
-        ana = KeywordAnalyzer(lowercase = lowercase, commas = commas)
-        self.format = Existence(analyzer = ana, field_boost = field_boost)
-        self.scorable = scorable
-        self.stored = stored
-        self.unique = unique
 
