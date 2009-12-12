@@ -262,8 +262,8 @@ class Kitab(object):
     r=self.cn.execute(SQL_GET_NODE_BY_IDNUM[load_content],(idNum,)).fetchone()
     if not r: raise IndexError, "idNum not found"
     r=list(r)
-    if len(r)<=4: return Node(kitab=self, idNum=r[0],parent=r[1],depth=r[2])
-    return Node(kitab=self, idNum=r[0],parent=r[1],depth=r[2],content=r[4])
+    if len(r)<=4: return Node(kitab=self, idNum=r[0], parent=r[1], depth=r[2], globalOrder=r[3])
+    return Node(kitab=self, idNum=r[0], parent=r[1], depth=r[2], globalOrder=r[3], content=r[4])
 
   def seek(self, *args, **kw):
     """
