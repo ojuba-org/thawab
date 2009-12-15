@@ -154,7 +154,7 @@ plush()
         # FIXME: make sure 
         raise IndexError, "not implented"
     else:
-      self.__parents=[self.root]
+      self.__parents=[self.ki.root]
       r=self.__c.execute(SQL_GET_LAST_GLOBAL_ORDER).fetchone()
       if r: self.__last_go=r[0]
       else: self.__last_go=0
@@ -176,7 +176,7 @@ plush()
     new_go=self.__last_go+self.ki.inc_size
     newid=self.__c.execute(SQL_APPEND_NODE[self.__is_tmp],(content, self.__parents[-1].idNum, new_go, self.__parents[-1].depth+1)).lastrowid
     self.__last_go=new_go
-    node=Node(kitab=self, idNum=newid,parent=self.__parents[-1].idNum,depth=self.__parents[-1].depth+1)
+    node=Node(kitab=self.ki, idNum=newid,parent=self.__parents[-1].idNum,depth=self.__parents[-1].depth+1)
     node.applyTags(tags)
     self.__parents.append(node)
     return node
@@ -450,7 +450,6 @@ and the following methods:
     """apply a single tag to this node,
 if node is already taged with it, just update the param
 the tag should already be in the kitab."""
-    
     r=self.kitab.cn.execute(SQL_TAG,(self.idNum,param,tag)).rowcount
     if not r: raise IndexError, "tag not found"
 
