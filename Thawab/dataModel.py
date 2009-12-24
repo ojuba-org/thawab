@@ -111,6 +111,7 @@ CREATE INDEX TagsName on tags (name);
 STD_TAGS_ARGS=( \
   # (name, comment, flags, parent, relation)
   ("header", "an anchor that marks header in TOC.",TAG_FLAGS_FLOW_BLOCK | TAG_FLAGS_HEADER),
+  ("request.fix", "a tag that marks an error in content.", 0),
   ("textbody", "a tag that marks a typical text.",0),
   # the following index-tags marks the header
   ("hadith.authenticity", "marks the authenticity of the hadith, param values are Sahih, Hasan, weak, fabricated", TAG_FLAGS_IX_TAG),

@@ -67,7 +67,7 @@ sqlite_cols_re=re.compile("\((.*)\)",re.M | re.S)
 no_sql_comments=re.compile('^--.*$',re.M)
 
 digits_re=re.compile(r'\d+')
-no_w_re=re.compile(r'[^a-zابتثجحخدذرزسشصضطظعغفقكلمنهوي\s]')
+no_w_re=re.compile(ur'[^A-Za-zابتثجحخدذرزسشصضطظعغفقكلمنهوي\s]')
 # one to one transformations that does not change chars order
 sh_digits_to_spaces_tb={
   48:32, 49:32, 50:32, 51:32, 52:32,
@@ -358,38 +358,45 @@ def shamelaImport(cursor, sh, bkid):
       # search for entire line matches (exact, then only letters and digits then only letters)
       # search for leading matches (exact, then only letters and digits then only letters)
       # search for matches anywhere (exact, then only letters and digits then only letters)
-      if _shamelaFindExactHeadings(page_txt, page_id, "\n%s\n", d, h, ix,j, 0): continue
+      if _shamelaFindExactHeadings(page_txt, page_id, "\n%s\n", d, h, ix,j, 1): continue
       if not txt: txt=no_w_re.sub(' ', page_txt.translate(sh_normalize_tb))
       h_p=no_w_re.sub(' ', h.translate(sh_normalize_tb)).strip()
       if h_p: # if normalized h_p is not empty
         # NOTE: no need for map h_p on re.escape() because it does not contain special chars
-        h_re_entire_line=re.compile(u"^\s*%s\s*$" % ur" *".join(list(h_p)), re.M)
-        if _shamelaFindHeadings(txt, page_id, d, h, h_re_entire_line, ix, j, 1): continue
+        h_re_entire_line=re.compile(ur"^\s*%s\s*$" % ur" *".join(list(h_p)), re.M)
+        if _shamelaFindHeadings(txt, page_id, d, h, h_re_entire_line, ix, j, 2): continue
 
       if not txt_no_d: txt_no_d=txt.translate(sh_digits_to_spaces_tb)
       h_p_no_d=h_p.translate(sh_digits_to_spaces_tb).strip()
       if h_p_no_d:
-        h_re_entire_line_no_d=re.compile(u"^\s*%s\s*$" % ur" *".join(list(h_p_no_d)), re.M)
-        if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_entire_line_no_d, ix, j, 2): continue
+        h_re_entire_line_no_d=re.compile(ur"^\s*%s\s*$" % ur" *".join(list(h_p_no_d)), re.M)
+        if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_entire_line_no_d, ix, j, 3): continue
 
       # at the beginning of the line
-      if _shamelaFindExactHeadings(page_txt, page_id, "\n%s", d, h, ix,j, 3): continue
+      if _shamelaFindExactHeadings(page_txt, page_id, "\n%s", d, h, ix,j, 4): continue
       if h_p:
-        h_re_line_start=re.compile(u"^\s*%s" % ur" *".join(list(h_p)), re.M)
-        if _shamelaFindHeadings(txt, page_id, d, h, h_re_line_start, ix, j, 4): continue
+        h_re_line_start=re.compile(ur"^\s*%s\s*" % ur" *".join(list(h_p)), re.M)
+        if _shamelaFindHeadings(txt, page_id, d, h, h_re_line_start, ix, j, 5): continue
       if h_p_no_d:
-        h_re_line_start_no_d=re.compile(u"^\s*%s" % ur" *".join(list(h_p_no_d)), re.M)
-        if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_line_start_no_d, ix, j, 5): continue
+        h_re_line_start_no_d=re.compile(ur"^\s*%s\s*" % ur" *".join(list(h_p_no_d)), re.M)
+        if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_line_start_no_d, ix, j, 6): continue
       # any where in the line
-      if _shamelaFindExactHeadings(page_txt, page_id, "%s", d, h, ix,j, 6): continue
+      if _shamelaFindExactHeadings(page_txt, page_id, "%s", d, h, ix,j, 7): continue
       if h_p:
-        h_re_any_ware=re.compile(ur" *".join(list(h_p)), re.M)
-        if _shamelaFindHeadings(txt, page_id, d, h, h_re_any_ware, ix, j, 7): continue
+        h_re_any_ware=re.compile(ur"\s*%s\s*" % ur" *".join(list(h_p)), re.M)
+        if _shamelaFindHeadings(txt, page_id, d, h, h_re_any_ware, ix, j, 8): continue
       if h_p_no_d:
-        h_re_any_ware_no_d=re.compile(ur" *".join(list(h_p_no_d)), re.M)
-        if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_any_ware, ix, j, 8): continue
-    toc_hash[page_id]=filter(lambda i:i!=None, toc_hash[page_id])
-    if not toc_hash[page_id]: del toc_hash[page_id]
+        h_re_any_ware_no_d=re.compile(ur"\s*%s\s*" % ur" *".join(list(h_p_no_d)), re.M)
+        if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_any_ware, ix, j, 9): continue
+      # No head found, add it just after last one
+      if found:
+        last_end=found[-1].end
+        try: last_end+=page_txt[last_end:].index('\n')+1
+        except ValueError: last_end=len(page_txt)
+      else: last_end=0
+      candidate=_foundShHeadingMatchItem(last_end, last_end, h, d, 0)
+      bisect.insort(found, candidate) # add the candidate to the found list
+    del toc_hash[page_id]
     return
 
   # step 3: walk through pages, accumelating conents  
@@ -413,24 +420,49 @@ def shamelaImport(cursor, sh, bkid):
     for i,f in enumerate(found[:-1]):
       while(depths[-1]>=f.depth): depths.pop(); parents.pop()
       started=True
-      parent=cursor.appendNode(parents[-1], f.txt,{'header':None})
+      h_suffix=''
+      h_tags={'header':None} # FIXME: replace None with a unique _aXYZ identifier
+      txt_start=f.end
+      if f.fuzzy==0: h_tags[u'request.fix']=u'shamela import error: missing head'
+      elif f.fuzzy>=4:
+        # then the heading is part of some text
+        txt_start=f.start
+        h_suffix=u'\u2026'
+        if f.fuzzy>=7:
+          #then move f.start to the last \n 
+          txt_start=max(pg_txt[:txt_start].rfind('\n'),0)
+          if i>0: txt_start=max(txt_start,found[i-1].end)
+      parent=cursor.appendNode(parents[-1], f.txt+h_suffix, h_tags)
       parents.append(parent)
       depths.append(f.depth)
-      parent=cursor.appendNode(parent, pg_txt[f.end:found[i+1].start], {'textbody':None})
+      parent=cursor.appendNode(parent, pg_txt[txt_start:found[i+1].start], {'textbody':None})
     # step 5.3: save [fn.end:] as last heading
     f=found[-1]
     while(depths[-1]>=f.depth): depths.pop(); parents.pop()
-    parent=cursor.appendNode(parents[-1], f.txt,{'header':None})
+    h_suffix=''
+    h_tags={'header':None} # FIXME: replace None with a unique _aXYZ identifier
+    txt_start=f.end
+    if f.fuzzy==0: h_tags[u'request.fix']=u'shamela import error: missing header'
+    elif f.fuzzy>=4:
+      # then the heading is part of some text
+      txt_start=f.start
+      h_suffix=u'\u2026'
+      if f.fuzzy>=7:
+        #then move f.start to the last \n 
+        txt_start=max(pg_txt[:txt_start].rfind('\n'),0)
+        if len(found)>1: txt_start=max(txt_start,found[-2].end)
+    parent=cursor.appendNode(parents[-1], f.txt+h_suffix,h_tags)
     started=True
     parents.append(parent)
     depths.append(f.depth)
-    last=pg_txt[f.end:]
+    last=pg_txt[txt_start:]
 
   if not started: raise TypeError
   if last: cursor.appendNode(parents[-1], last, {'textbody':None})
-  l=filter(lambda i: i,toc_hash.values())
-  for j in l: print j
-  print "*** headings left: ",len(l)
+  # l should be empty because we have managed missing headers
+  #l=filter(lambda i: i,toc_hash.values())
+  #for j in l: print j
+  #print "*** headings left: ",len(l)
   return meta
 
 if __name__ == '__main__':
