@@ -272,12 +272,26 @@ class _foundShHeadingMatchItem():
     self.txt=txt
     self.depth=depth
     self.fuzzy=fuzzy
+    self.suffix=''
 
   def overlaps_with(self,b):
     return b.end>self.start and self.end>b.start
 
   def __cmp__(self, b):
     return cmp(self.start,b.start)
+
+def _fixHeadBounds(pg_txt, found):
+  for i,f in enumerate(found):
+    if f.fuzzy>=4:
+      # then the heading is part of some text
+      f.end=f.start
+      f.suffix=u'\u2026'
+      if f.fuzzy>=7:
+        #then move f.start to the last \n 
+        f.end=max(pg_txt[:f.end].rfind('\n'),0)
+      if i>0:
+        f.end=max(f.end,found[i-1].end)
+      f.start=min(f.start, f.end)
 
 def shamelaImport(cursor, sh, bkid):
   """
@@ -415,47 +429,29 @@ def shamelaImport(cursor, sh, bkid):
     # splitting page text pg_txt into [:f0.start] [f0.end:f1.start] [f1.end:f2.start]...[fn.end:]
     # step 5.1: add [:f0.start] to the last heading contents and push it
     if not found: last+=pg_txt; continue
+    _fixHeadBounds(pg_txt, found)
     if started: cursor.appendNode(parents[-1], last+pg_txt[:found[0].start], {'textbody':None})
     # step 5.2: same for all rest segments [f0.end:f1.start],[f1.end:f2.start]...[f(n-1).end:fn.start]
     for i,f in enumerate(found[:-1]):
       while(depths[-1]>=f.depth): depths.pop(); parents.pop()
       started=True
-      h_suffix=''
       h_tags={'header':None} # FIXME: replace None with a unique _aXYZ identifier
-      txt_start=f.end
       if f.fuzzy==0: h_tags[u'request.fix']=u'shamela import error: missing head'
-      elif f.fuzzy>=4:
-        # then the heading is part of some text
-        txt_start=f.start
-        h_suffix=u'\u2026'
-        if f.fuzzy>=7:
-          #then move f.start to the last \n 
-          txt_start=max(pg_txt[:txt_start].rfind('\n'),0)
-          if i>0: txt_start=max(txt_start,found[i-1].end)
-      parent=cursor.appendNode(parents[-1], f.txt+h_suffix, h_tags)
+      parent=cursor.appendNode(parents[-1], f.txt+f.suffix, h_tags)
       parents.append(parent)
       depths.append(f.depth)
-      parent=cursor.appendNode(parent, pg_txt[txt_start:found[i+1].start], {'textbody':None})
+      parent=cursor.appendNode(parent, pg_txt[f.end:found[i+1].start], {'textbody':None})
     # step 5.3: save [fn.end:] as last heading
     f=found[-1]
     while(depths[-1]>=f.depth): depths.pop(); parents.pop()
-    h_suffix=''
     h_tags={'header':None} # FIXME: replace None with a unique _aXYZ identifier
     txt_start=f.end
     if f.fuzzy==0: h_tags[u'request.fix']=u'shamela import error: missing header'
-    elif f.fuzzy>=4:
-      # then the heading is part of some text
-      txt_start=f.start
-      h_suffix=u'\u2026'
-      if f.fuzzy>=7:
-        #then move f.start to the last \n 
-        txt_start=max(pg_txt[:txt_start].rfind('\n'),0)
-        if len(found)>1: txt_start=max(txt_start,found[-2].end)
-    parent=cursor.appendNode(parents[-1], f.txt+h_suffix,h_tags)
+    parent=cursor.appendNode(parents[-1], f.txt+f.suffix,h_tags)
     started=True
     parents.append(parent)
     depths.append(f.depth)
-    last=pg_txt[txt_start:]
+    last=pg_txt[f.end:]+'\n\n'
 
   if not started: raise TypeError
   if last: cursor.appendNode(parents[-1], last, {'textbody':None})
