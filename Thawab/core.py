@@ -478,11 +478,11 @@ each tag should already be in the kitab."""
     r=list(l[1])
     return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1], \
       depth=r[0][2], globalOrder=r[0][3], \
-      tags=dict(map(lambda i: (i[4],i[5]),r)), tag_flags=reduce(lambda a,b: a[6]|b[6],r,(0,0,0,0,0,0,0)) )
+      tags=dict(map(lambda i: (i[4],i[5]),r)), tag_flags=reduce(lambda a,b: a|b[6],r,0) )
   def __grouped_rows_to_node3(self,l):
     r=list(l[1])
     return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2], globalOrder=r[0][3], content=r[0][4], \
-       tags=dict(map(lambda i: (i[5],i[6]),r)), tag_flags=reduce(lambda a,b: a[7]|b[7],r,(0,0,0,0,0,0,0,0)) )
+       tags=dict(map(lambda i: (i[5],i[6]),r)), tag_flags=reduce(lambda a,b: a|b[7],r, 0) )
 
   # methods that give nodes
   def childrenIter(self, preload=WITH_CONTENT_AND_TAGS):
