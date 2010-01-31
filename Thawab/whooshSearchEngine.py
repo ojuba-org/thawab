@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 """
 
 Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
@@ -18,14 +18,18 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 """
 import sys, os, os.path, re
 from tags import *
+from meta import prettyId,makeId
 
 from whoosh.index import EmptyIndexError, create_in, open_dir
-from whoosh.highlight import highlight, SentenceFragmenter, BasicFragmentScorer, FIRST
+from whoosh.highlight import highlight, SentenceFragmenter, BasicFragmentScorer, FIRST, HtmlFormatter
 from whoosh.filedb.filestore import FileStorage
 from whoosh.fields import Schema, ID, IDLIST, TEXT
 
 from whoosh.lang.porter import stem
 from whoosh.analysis import StandardAnalyzer, StemFilter
+
+from whoosh.query import Term # used by getIndexedVersion
+
 from stemming import stemArabic
 
 def stemfn(word): return stemArabic(stem(word))
@@ -81,10 +85,7 @@ class ThMultifieldParser(MultifieldParser):
     f=self._fieldsTranslation.get(fieldname,None)
     if f: fieldname=f
     if fieldname=="kitab":
-      uri=self.th.getUriByKitabName(text)
-      if uri:
-        text=uri
-        fieldname="kitabUri"
+      text=makeId(text)
     return fieldname, text
 
   def make_term(self, fieldname, text):
@@ -108,7 +109,7 @@ class ExcerptFormatter(object):
                 output.append(text[index:t.startchar])
             
             ttxt = text[t.startchar:t.endchar]
-            if t.matched: ttxt = "**"+ttxt.upper()+"**"
+            if t.matched: ttxt = "\0"+ttxt.upper()+"\010"
             output.append(ttxt)
             index = t.endchar
         
@@ -131,7 +132,8 @@ class SearchEngine(BaseSearchEngine):
     except EmptyIndexError:
       # create a new one
       schema = Schema(
-        kitabUri=ID(stored=True,unique=False),
+        kitab=ID(stored=True),
+        vrr=ID(stored=True,unique=False), # version release
         nodeIdNum=ID(stored=True,unique=False), 
         title=TEXT(stored=True,field_boost=1.5, analyzer=analyzer),
         content=TEXT(stored=False,analyzer=analyzer),
@@ -145,6 +147,14 @@ class SearchEngine(BaseSearchEngine):
   def __del__(self):
     if self.__ix_writer: self.__ix_writer.commit()
 
+  def getIndexedVersion(self, name):
+    """
+    return a Version-Release string if in index, otherwise return None
+    """
+    d=self.__ix_searcher.document(kitab=unicode(makeId(name)))
+    if d: return d['vrr']
+    return None
+
   def queryIndex(self, queryString):
     """return an interatable of fields dict"""
     # FIXME: the return should not be implementation specific
@@ -152,8 +162,13 @@ class SearchEngine(BaseSearchEngine):
 
   def resultExcerpt(self, results, i, ki=None):
     # FIXME: this should not be implementation specific
+    print "** snippet:"
     if not ki:
-      ki=self.th.getKitabByUri(results[i]['kitabUri'])
+      r=results[i]
+      name=r['kitab']
+      v=r['vrr'].split('-')[0]
+      m=self.th.getMeta().getLatestKitabV(name,v)
+      ki=self.th.getKitabByUri(m['uri'])
     num=int(results[i]['nodeIdNum'])
     node=ki.getNodeByIdNum(num)
     n=ki.getToc().next(num)
@@ -161,15 +176,18 @@ class SearchEngine(BaseSearchEngine):
     else: ub=-1
     txt=node.toText(ub)
     s=set()
-    results.query.all_terms(s) # return (field,term) pairs 
+    #results.query.all_terms(s) # return (field,term) pairs 
+    results.query.existing_terms(self.indexer.reader(), s, phrases=True) # return (field,term) pairs  # self.self.__ix_searcher.reader()
     terms=dict(
       map(lambda i: (i[1],i[0]),
       filter(lambda j: j[0]=='content' or j[0]=='title', s))).keys()
     snippet=highlight(txt, terms, analyzer,
-       SentenceFragmenter(sentencechars = ".!?"), ExcerptFormatter(between = "...\n"), top=3,
-       scorer=BasicFragmentScorer, minscore=1,
-       order=FIRST)
-
+      SentenceFragmenter(sentencechars = ".!?"), HtmlFormatter(between=u"\u2026\n"),
+      top=3, scorer=BasicFragmentScorer, minscore=1, order=FIRST)
+    #snippet=highlight(txt, terms, analyzer,
+    #   SentenceFragmenter(sentencechars = ".!?"), ExcerptFormatter(between = u"\u2026\n"), top=3,
+    #   scorer=BasicFragmentScorer, minscore=1,
+    #   order=FIRST)
     return snippet
 
   def indexingStart(self):
@@ -194,18 +212,17 @@ class SearchEngine(BaseSearchEngine):
     self.__ix_searcher= self.indexer.searcher()
     self.__ix_writer = None
 
-  def dropKitabIndex(self, uri):
+  def dropKitabIndex(self, name):
     """
     drop search index for a given Kitab by its uri
     you need to call indexingStart() before this and indexingEnd() after it
     """
     # FIXME: it seems that this does not work correctly without commit() just after drop, this mean that reindex needs a commit in-between
     # NOTE: because the searcher could be limited do a loop that keeps deleting till the query is empty
-    print "dropping index for uri:", uri,
+    print "dropping index for kitab name:", name,
     #self.indexingStart()
-    while(self.indexer.delete_by_term('kitabUri', uri)):
+    while(self.indexer.delete_by_term('kitab', name)):
       print "*",
-      pass # query just selects the kitabUri
     #self.__ix_writer.commit() # without this reindexKitab won't work
     print
 
@@ -214,22 +231,22 @@ class SearchEngine(BaseSearchEngine):
     # NOTE: see http://groups.google.com/group/whoosh/browse_thread/thread/35b1700b4e4a3d5d
     self.indexingStart()
     reader = self.indexer.reader() # also self.__ix_searcher.reader()
-    for doc in reader.all_stored_fields():
+    for docnum in reader.all_stored_fields():
       self.indexer.delete_document(docnum)
     self.indexingEnd()
 
-  def reindexKitab(self,uri):
+  def reindexKitab(self,name):
     """
     you need to call indexingStart() before this and indexingEnd() after it
     """
     # NOTE: this method is overridden here because we need to commit between dropping and creating a new index.
     # NOTE: can't use updateDocument because each Kitab contains many documents
-    self.dropKitabIndex(uri); self.__ix_writer.commit(); self. self.indexKitab(uri)
+    self.dropKitabIndex(name); self.__ix_writer.commit(); self. self.indexKitab(name)
 
-  def addDocumentToIndex(self, kitabUri, nodeIdNum, title, content, tags):
+  def addDocumentToIndex(self, name, vrr, nodeIdNum, title, content, tags):
     """
     this method must be overridden in implementation specific way
     """
-    if content: self.__ix_writer.add_document(kitabUri=kitabUri, nodeIdNum=unicode(nodeIdNum), title=title, content=content, tags=tags)
+    if content: self.__ix_writer.add_document(kitab=name, vrr=vrr, nodeIdNum=unicode(nodeIdNum), title=title, content=content, tags=tags)
 
 

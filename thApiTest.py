@@ -1,5 +1,5 @@
 #! /usr/bin/python
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 import os
 import os.path
 import Thawab.core
@@ -25,5 +25,5 @@ th.searchEngine.reindexKitab('/home/alsadi/.thawab/db/uthaymine.ki')
 
 ##searching the index
 #for i in th.searchEngine.queryIndex('إنشاء'.decode('utf-8')): print i['title']
-#for i in th.searchEngine.queryIndex('إنشاء kitabName:pyqt4'.decode('utf-8')): print i['title']
-#for i in th.searchEngine.queryIndex('إنشاء kitabName:test'.decode('utf-8')): print i['title']
+#for i in th.searchEngine.queryIndex('إنشاء kitab:pyqt4'.decode('utf-8')): print i['title']
+#for i in th.searchEngine.queryIndex('إنشاء kitab:test'.decode('utf-8')): print i['title']

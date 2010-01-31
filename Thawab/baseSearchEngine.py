@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 """
 
 Copyright © 2009, Muayyad Alsadi <alsadi@ojuba.org>
@@ -16,13 +16,19 @@ Copyright © 2009, Muayyad Alsadi <alsadi@ojuba.org>
     "http://waqf.ojuba.org/license"
 
 """
-
+from meta import metaVrr
 from tags import *
 
 class BaseSearchEngine:
   def __init__(self, th, multithreading=False):
     self.th=th
     self.multithreading=multithreading
+
+  def getIndexedVersion(self, name):
+    """
+    return a Version-Release string if in index, otherwise return None
+    """
+    raise NotImplementedError
 
   def queryIndex(self, queryString):
     """
@@ -49,15 +55,15 @@ class BaseSearchEngine:
     """
     pass
 
-  def dropKitabIndex(self, uri):
+  def dropKitabIndex(self, name):
     """
-    drop search index for a given Kitab by its uri
+    drop search index for a given Kitab name
     you need to call indexingStart() before this and indexingEnd() after it
     this method must be overridden in implementation specific way
     """
     raise NotImplementedError
 
-  def addDocumentToIndex(self, kitabUri, nodeIdNum, title, content, tags):
+  def addDocumentToIndex(self, name, vrr, nodeIdNum, title, content, tags):
     """
     this method must be overridden in implementation specific way
     """
@@ -76,7 +82,7 @@ class BaseSearchEngine:
     # FIXME: should be dropAll() then usual index not reindex
     t=[]
     self.indexingStart()
-    for i in self.th.getManagedUriList(): self.indexKitab(i)
+    for n in self.th.getKitabList(): self.indexKitab(n)
     # if threading is supported by indexer it would look like
     #if self.multithreading:
     #  for i in self.getManagedUriList():
@@ -85,13 +91,13 @@ class BaseSearchEngine:
     #  for i in t: i.join()
     self.indexingEnd()
 
-  def reindexKitab(self,uri):
+  def reindexKitab(self, name):
     """
     you need to call indexingStart() before this and indexingEnd() after it
     """
-    self.dropKitabIndex(uri); self.indexKitab(uri)
+    self.dropKitabIndex(name); self.indexKitab(name)
 
-  def __ix_nodeStart(self, node, kitabUri, iix):
+  def __ix_nodeStart(self, node, name, vrr, iix):
     # NOTE: benchmarks says append then join is faster than s+="foo"
     tags=node.getTags()
     tag_flags=node.getTagFlags()
@@ -114,7 +120,7 @@ class BaseSearchEngine:
     # append ix tags
     iix.tags.extend(map(lambda t: tags[t]==None and t or u'.'.join((t,tags[t])), node.getTagsByFlagsMask(TAG_FLAGS_IX_TAG)))
   
-  def __ix_nodeEnd(self, node, kitabUri, iix):
+  def __ix_nodeEnd(self, node, name, vrr, iix):
     # index extra sub fields if any
     if iix.sub_f_node_idnums and iix.sub_f_node_idnums[-1]==node.idNum:
       n=iix.sub_f_node_idnums.pop()
@@ -127,7 +133,7 @@ class BaseSearchEngine:
       N=iix.main_f_node_idnums[-1] # the nearest header node.idNum
       # NOTE: the above two lines means that a sub ix fields should be children of some main field (header)
       t=iix.contents[k]
-      self.addDocumentToIndex(unicode(kitabUri), N, t, c, T)
+      self.addDocumentToIndex(unicode(name), vrr, N, t, c, T)
     # index consuming main indexing fields if any
     if iix.main_f_node_idnums and iix.main_f_node_idnums[-1]==node.idNum: 
       n=iix.main_f_node_idnums.pop()
@@ -138,10 +144,7 @@ class BaseSearchEngine:
       del iix.contents[i:]
       T=u" ".join(iix.tags[j:])
       del iix.tags[j:]
-      self.addDocumentToIndex(unicode(kitabUri), n, t.strip(), c, T)
-      #try:
-      #  if c: self.__ix_writer.add_document(kitabUri=unicode(kitabUri), nodeIdNum=unicode(n), title=t.strip(), content=c, tags=T)
-      #except: print "node=",node.idNum,"t=",t, "len(c)=",len(c), "tags=",T; raise
+      self.addDocumentToIndex(unicode(name), vrr, n, t.strip(), c, T)
 
   class __IIX(object):
     "internal indexing object"
@@ -159,13 +162,14 @@ class BaseSearchEngine:
       self.sub_f_tags_index=[] # array of the starting index in self.tags for each sub ix field
       # TODO: benchmark which is faster parallel arrays or small tubles sub_field=(idNum,content_i,tag_i)
 
-  def indexKitab(self, uri):
+  def indexKitab(self, name):
     """
-    create search index for a given Kitab uri
-    you need to call indexingStart() before this and indexingEnd() after it
+    create search index for a given Kitab name
+    NOTE: you need to call indexingStart() before this and indexingEnd() after it
     """
-    print "creating index for uri:", uri
-    ki=self.th.getKitabByUri(uri)
+    print "creating index for kitab with name:", name
+    ki=self.th.getKitab(name)
+    vrr=metaVrr(ki.meta)
     iix=self.__IIX()
-    ki.root.traverser(3, self.__ix_nodeStart, self.__ix_nodeEnd, uri, iix)
+    ki.root.traverser(3, self.__ix_nodeStart, self.__ix_nodeEnd, name, vrr, iix)
 

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 """
 The shamela related tools for thawab
 Copyright © 2008-2009, Muayyad Saleh Alsadi <alsadi@ojuba.org>

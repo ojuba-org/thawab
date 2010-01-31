@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 """
 The string constants to handle the data model
 Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>

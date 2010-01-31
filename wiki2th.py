@@ -1,5 +1,5 @@
 #! /usr/bin/python
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 """
 The is wiki importing tool for testing and demonestration of thawab
 Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>

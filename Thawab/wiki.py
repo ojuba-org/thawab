@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 """
 Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 """
 The meta handling classes of thawab
 Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
@@ -23,6 +23,7 @@ import time
 import hashlib
 from itertools import imap,groupby
 from dataModel import *
+from okasha.utils import strverscmp
 import re
 
 def prettyId(i, empty_for_special=True):
@@ -33,6 +34,13 @@ def prettyId(i, empty_for_special=True):
 def makeId(i):
   """convert the id into a canonical form"""
   return i.strip().replace(' ','_')
+
+def metaVr(m):
+  return m[u"version"]+u"-"+m[u"releaseMajor"]
+
+def metaVrr(m):
+  return u"-".join((m[u"version"],m[u"releaseMajor"],m[u"releaseMinor"]))
+
 
 def metaDict2Hash(meta, suffix=None):
   k=filter(lambda i: i!='cache_hash',meta.keys())
@@ -129,7 +137,7 @@ class MCache(object):
     self.__cn.commit()
     return r
 
-  def get_kitab_list(self):
+  def getKitabList(self):
     return self.__meta_by_kitab.keys()
 
   def getUriList(self):
@@ -147,4 +155,37 @@ class MCache(object):
     if not a: return None
     return map(lambda i: self.__meta[i], a)
 
+  def _latest(self, a):
+    lm=a[0]
+    l=metaVrr(lm)
+    for m in a[1:]:
+      v=metaVrr(m)
+      if strverscmp(v, l)>0: lm=m; l=v
+    return lm
+
+  def getLatestKitab(self, kitab):
+    """return a meta object for latest kitab (based on version)"""
+    a=self.__meta_by_kitab.get(kitab,None)
+    if not a: return None
+    return self._latest([self.__meta[i] for i in a])
+
+  def getLatestKitabV(self, kitab, v):
+    """
+    given kitab name and version
+    return a meta object for latest kitab (based on version)
+    """
+    a=self.__meta_by_kitab.get(kitab,None)
+    ma=filter(lambda m: m[u'version']==v,[self.__meta[i] for i in a])
+    if not ma: return None
+    return self._latest(ma)
+
+  def getLatestKitabVr(self, kitab, v, r):
+    """
+    given kitab name and version and major release
+    return a meta object for latest kitab (based on version)
+    """
+    a=self.__meta_by_kitab.get(kitab,None)
+    ma=filter(lambda m: m[u'version']==v and m[u'releaseMajor']==r,[self.__meta[i] for i in a])
+    if not ma: return None
+    return self._latest(ma)
 

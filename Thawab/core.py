@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 """
 The core classes of thawab
 Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
@@ -76,17 +76,28 @@ the first thing you should do is to call loadMCache()
     return Kitab(fn,True)
 
   def getUriByKitabName(self,kitabName):
-    m=self.getMeta().getByKitab(kitabName)
+    """
+    return uri for the latest kitab with the given name
+    """
+    m=self.getMeta().getLatestKitab(kitabName)
     if not m: return None
-    return m[0]['uri']
+    return m['uri']
 
   def getKitab(self,kitabName):
-    uri=self.getUriByKitabName(kitabName)
-    if uri: return Kitab(uri)
+    m=self.getMeta().getLatestKitab(kitabName)
+    if m: return Kitab(m['uri'], th=self, meta=m)
     return None
 
   def getKitabByUri(self,uri):
+    m=self.getMeta().getByUri(uri)
+    if m: return Kitab(uri, th=self, meta=m)
     return Kitab(uri)
+
+  def getKitabList(self):
+    """
+    return a list of managed kitab's name
+    """
+    return self.getMeta().getKitabList()
 
   def getManagedUriList(self):
     """list of all managed uri (absolute filenames for a Kitab)
@@ -193,11 +204,20 @@ plush()
 
 class Kitab(object):
   """this class represents a book or an article ...etc."""
-  def __init__(self,uri, is_tmp=False):
-    """open the Kitab pointed by uri (or try to create it)"""
+  def __init__(self,uri, is_tmp=False, th=None, meta=None):
+    """
+    open the Kitab pointed by uri (or try to create it)
+    is_tmp should be set to True when we are creating a new kitab from scratch in temporary 
+    th is ThawabManaget to which this book belongs
+    meta is meta cache entry of this kitab
+    
+    Note: don't rely on meta having uri, mtime, flags unless th is set (use uri property instead)
+    """
     # TODO: do we need a mode = r|w ?
     self.uri=uri
     self.is_tmp=is_tmp
+    self.th=th
+    self.meta=meta
     # the logic to open the uri goes here
     # check if fn exists, if not then set the flag sql_create_schema
     if is_tmp or not os.path.exists(uri): sql_create_schema=True
@@ -245,6 +265,7 @@ class Kitab(object):
     if not meta.get('cache_hash',None): meta['cache_hash']=metaDict2Hash(meta)
     print SQL_MCACHE_SET
     print meta
+    self.meta=meta
     self.cn.execute(SQL_MCACHE_SET,meta)
 
   ###################################
