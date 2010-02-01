@@ -17,6 +17,7 @@ Copyright © 2009, Muayyad Alsadi <alsadi@ojuba.org>
 
 """
 from meta import metaVrr
+from okasha.utils import strverscmp
 from tags import *
 
 class BaseSearchEngine:
@@ -77,7 +78,36 @@ class BaseSearchEngine:
     #for i in self.th.getManagedUriList(): self.dropKitabIndex(i)
     #self.indexingEnd()
 
+  def dropOld(self):
+    """
+    drop index for all indexed kutub that got updated
+    this is useful if followed by indexNew
+    
+    no need you need to call indexingStart() indexingEnd() around this
+    """
+    self.indexingStart()
+    m=self.th.getMeta()
+    for n in self.th.getKitabList():
+      vr=self.getIndexedVersion(n)
+      if vr and strverscmp(vr,metaVrr(m.getLatestKitab(n)))>0: self.dropKitabIndex(n)
+    self.indexingEnd()
+
+  def indexNew(self):
+    """
+    index all non-indexed
+    
+    no need you need to call indexingStart() indexingEnd() around this
+    """
+    self.indexingStart()
+    for n in self.th.getKitabList():
+      vr=self.getIndexedVersion(n)
+      if not vr: self.indexKitab(n)
+    self.indexingEnd()
+
   def reindexAll(self):
+    """
+    no need you need to call indexingStart() indexingEnd() around this
+    """
     self.dropAll()
     # FIXME: should be dropAll() then usual index not reindex
     t=[]
