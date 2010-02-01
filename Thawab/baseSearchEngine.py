@@ -78,6 +78,20 @@ class BaseSearchEngine:
     #for i in self.th.getManagedUriList(): self.dropKitabIndex(i)
     #self.indexingEnd()
 
+  def dropChanged(self):
+    """
+    drop index for all indexed kutub that got changed (updated or downgraded)
+    this is useful if followed by indexNew
+    
+    no need you need to call indexingStart() indexingEnd() around this
+    """
+    self.indexingStart()
+    m=self.th.getMeta()
+    for n in self.th.getKitabList():
+      vr=self.getIndexedVersion(n)
+      if vr and vr==metaVrr(m.getLatestKitab(n)): self.dropKitabIndex(n)
+    self.indexingEnd()
+
   def dropOld(self):
     """
     drop index for all indexed kutub that got updated
