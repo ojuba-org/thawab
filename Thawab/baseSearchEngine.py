@@ -20,6 +20,8 @@ from meta import metaVrr
 from okasha.utils import strverscmp
 from tags import *
 
+# TODO: use flags in meta cache object to indicate if indexing was started for some kitab so that if something wrong happend while indexing we can drop index of that kitab
+
 class BaseSearchEngine:
   def __init__(self, th, multithreading=False):
     self.th=th
