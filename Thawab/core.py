@@ -30,13 +30,14 @@ from tags import *
 from meta import MCache, metaDict2Hash
 
 from whooshSearchEngine import SearchEngine
+from asyncIndex import AsyncIndex
 
 import re
 th_ext='.ki'
 th_ext_glob='*.ki'
 
 class ThawabMan (object):
-  def __init__(self,user_prefix,system_prefix=""):
+  def __init__(self,user_prefix,system_prefix="", indexerQueueSize=0):
     """Create a new Thawab instance given a user writable directory and an optional system-wide read-only directory
 
   user_prefix can be:
@@ -44,6 +45,8 @@ class ThawabMan (object):
     user_prefix=os.path.join([os.path.dirname(sys.argv[0]),'..','data'])
   
   and system_prefix is a system-wide read-only directory like "/usr/share/thawab/"
+
+  indexerQueueSize is the size of threaded index queue (0 infinite, -1 disabled)
 
 the first thing you should do is to call loadMCache()
 """
@@ -57,6 +60,10 @@ the first thing you should do is to call loadMCache()
       self.prefixes.append(os.path.abspath(system_prefix))
     self.assertManagedTree()
     self.searchEngine=SearchEngine(self)
+    if indexerQueueSize>=0:
+      self.asyncIndexer=AsyncIndex(self.searchEngine, indexerQueueSize)
+    else:
+      self.asyncIndexer=None
 
   def __del__(self):
     del self.searchEngine

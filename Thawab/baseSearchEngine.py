@@ -118,6 +118,15 @@ class BaseSearchEngine:
       if not vr: self.indexKitab(n)
     self.indexingEnd()
 
+  def refresh(self):
+    """
+    drop changed then index them along with new unindexed.
+    
+    no need you need to call indexingStart() indexingEnd() around this
+    """
+    self.dropChanged()
+    self.indexNew()
+
   def reindexAll(self):
     """
     no need you need to call indexingStart() indexingEnd() around this
