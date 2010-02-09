@@ -162,7 +162,6 @@ class SearchEngine(BaseSearchEngine):
 
   def resultExcerpt(self, results, i, ki=None):
     # FIXME: this should not be implementation specific
-    print "** snippet:"
     if not ki:
       r=results[i]
       name=r['kitab']
