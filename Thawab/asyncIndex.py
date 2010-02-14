@@ -18,6 +18,7 @@ Copyright © 2010, Muayyad Alsadi <alsadi@ojuba.org>
 """
 from Queue import Queue
 from threading import Thread
+from time import sleep
 
 class AsyncIndex():
   def __init__(self, searchEngine, queueSize=0, workers=1):
