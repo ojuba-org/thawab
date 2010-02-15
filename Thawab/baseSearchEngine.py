@@ -91,7 +91,7 @@ class BaseSearchEngine:
     m=self.th.getMeta()
     for n in self.th.getKitabList():
       vr=self.getIndexedVersion(n)
-      if vr and vr==metaVrr(m.getLatestKitab(n)): self.dropKitabIndex(n)
+      if vr and vr!=metaVrr(m.getLatestKitab(n)): self.dropKitabIndex(n)
     self.indexingEnd()
 
   def dropOld(self):
