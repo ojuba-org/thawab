@@ -228,10 +228,12 @@ class ShamelaSqlite(object):
       a=makeId(main_tb.get('auth',''))
       y=main_tb.get('higrid',0)
       if not y: y=main_tb.get('ad',0)
-      try: y=int(y)
-      except TypeError:
+      if isinstance(y,basestring) and y.isdigit():
+        y=int(y)
+      else:
         m=digits_re.search(unicode(y))
         if m: y=int(m.group(0))
+        else: y=0
     return a,y
 
   def classificationByBookId(self, bkid):
@@ -310,7 +312,7 @@ def shamelaImport(cursor, sh, bkid):
   # step 2: prepare topics hashed by page_id
   r=c.execute("SELECT id,tit,lvl FROM t%d ORDER BY id,sub" % bkid).fetchall()
   # NOTE: we only need page_id,title and depth, sub is only used to sort them
-  toc_ls=map(lambda i: list(i),list(r)) # make sure we got a list
+  toc_ls=filter(lambda i: i[2] and i[1], [list(i) for i in r])
   if not toc_ls: raise TypeError # no text in the book
   toc_hash=map(lambda i: (i[1][0],i[0]),enumerate(toc_ls))
   # toc_hash.sort(lambda a,b: cmp(a[0],b[0])) # FIXME: this is not needed!
