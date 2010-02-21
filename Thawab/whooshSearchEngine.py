@@ -167,7 +167,7 @@ class SearchEngine(BaseSearchEngine):
       name=r['kitab']
       v=r['vrr'].split('-')[0]
       m=self.th.getMeta().getLatestKitabV(name,v)
-      ki=self.th.getKitabByUri(m['uri'])
+      ki=self.th.getCachedKitab(m['uri'])
     num=int(results[i]['nodeIdNum'])
     node=ki.getNodeByIdNum(num)
     n=ki.getToc().next(num)
@@ -180,8 +180,10 @@ class SearchEngine(BaseSearchEngine):
     terms=dict(
       map(lambda i: (i[1],i[0]),
       filter(lambda j: j[0]=='content' or j[0]=='title', s))).keys()
+    #print "txt=[%s]" % len(txt)
+    snippet=txt[:min(len(txt),512)] # dummy summary
     snippet=highlight(txt, terms, analyzer,
-      SentenceFragmenter(sentencechars = ".!?"), HtmlFormatter(between=u"\u2026\n"),
+      SentenceFragmenter(sentencechars = ".!?؟\n"), HtmlFormatter(between=u"\u2026\n"),
       top=3, scorer=BasicFragmentScorer, minscore=1, order=FIRST)
     #snippet=highlight(txt, terms, analyzer,
     #   SentenceFragmenter(sentencechars = ".!?"), ExcerptFormatter(between = u"\u2026\n"), top=3,

@@ -16,9 +16,7 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
     "http://waqf.ojuba.org/license"
 
 """
-import os
-import os.path
-import sqlite3
+import sys, os, os.path, sqlite3, re
 #import threading
 from glob import glob
 from itertools import imap,groupby
@@ -31,13 +29,13 @@ from meta import MCache, metaDict2Hash
 
 from whooshSearchEngine import SearchEngine
 from asyncIndex import AsyncIndex
+from okasha.utils import ObjectsCache
 
-import re
 th_ext='.ki'
 th_ext_glob='*.ki'
 
 class ThawabMan (object):
-  def __init__(self,user_prefix,system_prefix="", indexerQueueSize=0):
+  def __init__(self,user_prefix,system_prefix="", isMonolithic=True, indexerQueueSize=0):
     """Create a new Thawab instance given a user writable directory and an optional system-wide read-only directory
 
   user_prefix can be:
@@ -46,6 +44,8 @@ class ThawabMan (object):
   
   and system_prefix is a system-wide read-only directory like "/usr/share/thawab/"
 
+  isMonolithic=True if we should use locks and reconnect to sqlite
+  
   indexerQueueSize is the size of threaded index queue (0 infinite, -1 disabled)
 
 the first thing you should do is to call loadMCache()
@@ -65,6 +65,14 @@ the first thing you should do is to call loadMCache()
     else:
       self.asyncIndexer=None
 
+    self.isMonolithic=isMonolithic
+    if not self.isMonolithic:
+      import threading
+      lock1=threading.Lock();
+    else:
+      lock1=None
+    self.kutubCache=ObjectsCache(lock=lock1)
+
   def __del__(self):
     del self.searchEngine
 
@@ -82,6 +90,18 @@ the first thing you should do is to call loadMCache()
     h,fn=mkstemp(th_ext, 'THAWAB_',os.path.join(self.prefixes[0],'tmp'))
     return Kitab(fn,True)
 
+  def getCachedKitab(self, uri):
+    """
+    try to get a kitab by uri from cache,
+    if it's not in the cache, it will be opened and cached
+    """
+    ki=self.kutubCache.get(uri)
+    if not ki:
+      ki=self.getKitabByUri(uri)
+      if ki: self.kutubCache.append(uri, ki)
+    elif not self.isMonolithic: ki.connect()
+    return ki
+  
   def getUriByKitabName(self,kitabName):
     """
     return uri for the latest kitab with the given name

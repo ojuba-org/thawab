@@ -116,6 +116,7 @@ class ShamelaSqlite(object):
     except OSError: raise
     r=p.returncode; del p
     if r!=0: raise TypeError
+    self.tables=filter(lambda t: not t.isdigit(), self.tables)
     return self.tables
 
   def __shamela3_fix_insert(self, sql_cmd, prefix="OR IGNORE INTO tmp_"):
@@ -153,7 +154,9 @@ class ShamelaSqlite(object):
     sql_l=no_sql_comments.sub('',sql).split(';')
     for l in sql_l:
       l=l.strip()
-      if l: self.c.execute(l)
+      if l:
+        try: self.c.execute(l)
+        except: print l; raise
 
   def importTable(self, Tb, tb, tb_prefix=None, is_tmp=False, is_ignore=False, is_replace=False):
     """
