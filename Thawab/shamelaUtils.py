@@ -20,17 +20,18 @@ import sys, os, os.path
 import re
 import sqlite3
 import bisect
+from okasha.utils import cmp_bisect_right
 
 from subprocess import Popen,PIPE
 from itertools import groupby,imap
 from meta import MCache, prettyId, makeId
 
 schema={
-  'main':"bkid INTEGER, bk TEXT, shortname TEXT, cat INTEGER, betaka TEXT, inf TEXT, bkord INTEGER DEFAULT -1, authno INTEGER DEFAULT 0, auth TEXT, authinfo TEXT, higrid INTEGER DEFAULT 0, ad INTEGER DEFAULT 0, islamshort INTEGER DEFAULT 0, is_tafseer INTEGER DEFAULT 0, is_sharh INTEGER DEFAULT 0",
+  'main':"bkid INTEGER, bk TEXT, shortname TEXT, cat INTEGER, betaka TEXT, inf TEXT, bkord INTEGER DEFAULT -1, authno INTEGER DEFAULT 0, auth TEXT, authinfo TEXT, higrid INTEGER DEFAULT 0, ad INTEGER DEFAULT 0, islamshort INTEGER DEFAULT 0",
   'men': "id INTEGER, arrname TEXT, isoname TEXT, dispname TEXT",
   'shorts': "bk INTEGER, ramz TEXT, nass TEXT",
   'mendetail': "spid INTEGER PRIMARY KEY, manid INTEGER, bk INTEGER, id INTEGER, talween TEXT",
-  'shrooh': "matn INTEGER, matnid INTEGER, sharh INTEGER, sharhid INTEGER",
+  'shrooh': "matn INTEGER, matnid INTEGER, sharh INTEGER, sharhid INTEGER, PRIMARY KEY (sharh, sharhid)",
   'cat':"id INTEGER PRIMARY KEY, name Text, catord INTEGER, lvl INTEGER",
   'book':"id, nass TEXT, part INTEGER DEFAULT 0, page INTEGER DEFAULT 0, hno INTEGER DEFAULT 0, sora INTEGER DEFAULT 0, aya INTEGER DEFAULT 0, na INTEGER DEFAULT 0",
   'toc': "id INTEGER, tit TEXT, lvl INTEGER DEFAULT 1, sub INTEGER DEFAULT 0"
@@ -40,7 +41,7 @@ schema_index={
   'men': "CREATE INDEX MenIdIndex on men (id); CREATE INDEX MenIsoNameIndex on men (isoname);",
   'shorts': "CREATE INDEX ShortsIndex on shorts (bk,ramz);",
   'mendetail': "CREATE INDEX MenDetailSpIdIndex on mendetail (spid);",
-  'shrooh': "CREATE INDEX ShroohIndex on shrooh (matn,matnid);",
+  'shrooh': "CREATE INDEX ShroohIndex on shrooh (sharhid);",
   'book':"CREATE INDEX Book%(table)sIdIndex on %(table)s (id);",
   'toc': "CREATE INDEX Toc%(table)sIdIndex on %(table)s (id);"
 }
@@ -65,7 +66,7 @@ schema_fix_text=re.compile('Memo/Hyperlink',re.I)
 schema_fix_int=re.compile('(Boolean|Byte|Byte|Numeric|Replication ID|(\w+ )?Integer)',re.I)
 sqlite_cols_re=re.compile("\((.*)\)",re.M | re.S)
 no_sql_comments=re.compile('^--.*$',re.M)
-
+shamela_footers_re=re.compile('^(_{4,})$',re.M)
 digits_re=re.compile(r'\d+')
 no_w_re=re.compile(ur'[^A-Za-zابتثجحخدذرزسشصضطظعغفقكلمنهوي\s]')
 # one to one transformations that does not change chars order
@@ -81,13 +82,38 @@ sh_normalize_tb={
 }
 # TODO: remove unused variables and methods
 
+# shorts
+std_shorts={
+  u'A': u'صلى الله عليه وسلم',
+  u'B': u'رضي الله عن',
+  u'C': u'رحمه الله',
+  u'D': u'عز وجل',
+  u'E': u'عليه الصلاة و السلام', 
+}
+
+footnotes_cnd=[] # candidate, in the form of (footnote_mark, footnote_text) tuples
+footnotes=[]
+def footer_shift_cb(mi):
+  global footnotes_cnd, footnotes
+  if footnotes_cnd and footnotes_cnd[0][0]==mi.group(1):
+    # int(mi.group(1))
+    footnotes.append(footnotes_cnd.pop(0))
+    return " ^["+str(len(footnotes))+"]"
+  return mi.group(0)
+
+
 class ShamelaSqlite(object):
-  def __init__(self, bok_fn, cn=None, progress=None, progress_data=None):
+  def __init__(self, bok_fn, cn=None, releaseMajor=0, releaseMinor=0, progress=None, progress_args=[], progress_kw={}):
     """import the bok file into sqlite"""
-    self.progress=progress
-    self.progress_data=progress_data
+    self.releaseMajor = releaseMajor
+    self.releaseMinor = releaseMinor
+    self.progress = progress
+    self.progress_args = progress_args
+    self.progress_kw = progress_kw
     self.tables=None
     self.bok_fn=bok_fn
+    self.metaById={}
+    self.xref={}
     self.__bkids=None
     self.__commentaries=None
     self.version,self.tb,self.bkids=self.identify()
@@ -97,6 +123,18 @@ class ShamelaSqlite(object):
     self.c=self.cn.cursor()
     self.imported_tables=[]
     self.__meta_by_bkid={}
+
+  def set_xref(self, bkid, pg_id, xref):
+    if self.xref.has_key(bkid):
+      self.xref[bkid].append( (pg_id, xref,) )
+    else:
+      self.xref[bkid]=[ (pg_id, xref,) ]
+
+  def get_xref(self, bkid, pg_id):
+    if self.xref.has_key(bkid):
+      i=cmp_bisect_right( lambda a,b: cmp(a[0], b), self.xref[bkid], pg_id)
+      if i>0: return self.xref[bkid][i-1][1]
+    return None
 
   def identify(self):
     tables=self.getTables() # Note: would raise OSError or TypeError
@@ -196,18 +234,18 @@ class ShamelaSqlite(object):
     progress_delta=1.0/(len(s_tables)+len(g_tables))*100.0
     progress=0.0
     for t in g_tables:
-      if self.progress: self.progress("importing table [%s]" % t,progress, self.progress_data)
+      if self.progress: self.progress("importing table [%s]" % t,progress, *self.progress_args, **self.progress_kw)
       progress+=progress_delta
       self.importTable(t, t.lower())
     for t in s_tables:
-      if self.progress: self.progress("importing table [%s]" % t,progress, self.progress_data)
+      if self.progress: self.progress("importing table [%s]" % t,progress, *self.progress_args, **self.progress_kw)
       progress+=progress_delta
       if t.lower().startswith('t'):
         self.importTable(t, 'toc')
       else:
         self.importTable(t, 'book')
     progress=100.0
-    if self.progress: self.progress("finished, committing ...",progress, self.progress_data)
+    if self.progress: self.progress("finished, committing ...",progress, *self.progress_args, **self.progress_kw)
     if in_transaction: self.c.execute('END TRANSACTION')
     self.__getCommentariesHash()
 
@@ -251,22 +289,41 @@ class ShamelaSqlite(object):
       self.__bkids.sort(lambda a,b: (int(a in self.__commentaries.get(b,[]))<<1) - 1)
     return self.__bkids
 
+  def _is_tafseer(self, bkid):
+    r=self.c.execute('''SELECT sora, aya FROM b%d WHERE sora>0 and sora <115 and aya>0 LIMIT 1''' % bkid).fetchone()
+    return bool(r)
+
+  def _get_matn(self, sharh_bkid):
+    r=self.c.execute('''SELECT matn, matnid, sharh, sharhid FROM shrooh WHERE sharh=? LIMIT 1''', (sharh_bkid, ) ).fetchone()
+    if not r: return -1
+    return int(r['matn'])
+
   def getBookMeta(self, bkid):
     if self.__meta_by_bkid.has_key(bkid): return self.__meta_by_bkid[bkid]
     else:
-      r=self.c.execute('SELECT bk, shortname, cat, betaka, inf, bkord, authno, higrid, ad, islamshort, is_tafseer, is_sharh FROM main WHERE bkid=?', (bkid,)).fetchone()
+      r=self.c.execute('SELECT bk, shortname, cat, betaka, inf, bkord, authno, auth, higrid, ad, islamshort FROM main WHERE bkid=?', (bkid,)).fetchone()
       if not r: m=None
       else:
         r=dict(r)
+        # FIXME: make "releaseMajor" "releaseMinor" integers
         m={
-          "repo":"_user", "lang":"ar",
-          "version":"0."+str(bkid), "releaseMajor":"0", "releaseMinor":"0",
+          "repo":"_user", "lang":"ar", "type": int(self._is_tafseer(bkid)),
+          "version":"0."+str(bkid), "releaseMajor":0, "releaseMinor":0,
           'originalKitab':None, 'originalVersion':None,
+          'originalAuthor':None, 'originalYear':None
         }
         m['kitab']=makeId(r['bk'])
         m['author'],m['year']=self.authorByID(r['authno'], r)
         m['classification']=self.classificationByBookId(bkid)
-        #"originalAuthor", "originalYear", "originalKitab", "originalVersion"
+        matn_bkid=self._get_matn(bkid)
+        print "%d is sharh for %d" % (bkid, matn_bkid)
+        if matn_bkid>0:
+          matn_m=self.getBookMeta(matn_bkid)
+          if matn_m:
+            m['originalKitab']=matn_m['kitab']
+            m['originalVersion']=matn_m['version']
+            m['originalAuthor']=matn_m['author']
+            m['originalYear']=matn_m['year']
       self.__meta_by_bkid[bkid]=m
       return m
 
@@ -278,6 +335,8 @@ class _foundShHeadingMatchItem():
     self.depth=depth
     self.fuzzy=fuzzy
     self.suffix=''
+  def __repr__(self):
+    return (u"<start={0}, end={1}, txt={2}>".format(self.start, self.end, self.txt)).encode('utf-8')
 
   def overlaps_with(self,b):
     return b.end>self.start and self.end>b.start
@@ -298,17 +357,45 @@ def _fixHeadBounds(pg_txt, found):
         f.end=max(f.end,found[i-1].end)
       f.start=min(f.start, f.end)
 
-def shamelaImport(cursor, sh, bkid):
+def reformat(txt, shorts_t, shorts_dict):
+  txt=txt.replace('\n','\n\n')
+  if shorts_t & 1:
+    for k in std_shorts:
+      txt=txt.replace(k,std_shorts[k])
+  for k in shorts_dict:
+    txt=txt.replace(k,"\n====== %s ======\n\n" % shorts_dict[k])
+  return txt
+
+def set_get_xref(xref, h_tags, sh, bkid, pg_id, matn, matnid):
+  h_tags['header']=xref
+  sh.set_xref(bkid, pg_id, xref)
+  if matn and matnid and sh.metaById.has_key(matn):
+    m=sh.metaById[matn]
+    xref=sh.get_xref(matn, matnid)
+    if xref: h_tags['embed.section.ref']=u"".join((m['kitab'], u"-", m['version'], u"/", xref, ))
+
+
+def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=ur'\((\d+)\)', ft_prefix_len=1, ft_suffix_len=1):
   """
   import a ShamelaSqlite book as thawab kitab object, where
-    * ki - an empty thawab kitab object
+    * cursor - a cursor for an empty thawab kitab object
     * sh - ShamelaSqlite object
     * bkid - the id of the shamela book to be imported
   this function returns the cached meta dictionary
   """
+  global footnotes_cnd, footnotes
+  shamela_footer_re=re.compile(footnote_re, re.M | re.U)
+  shamela_shift_footers_re=re.compile(body_footnote_re, re.M | re.U)
   ki=cursor.ki
   # NOTE: page id refers to the number used as id in shamela not thawab
   c=sh.c
+  # step 0: prepare shorts
+  shorts_t=c.execute("SELECT islamshort FROM main WHERE bkid=?", (bkid,)).fetchone()
+  if shorts_t: shorts_t=shorts_t[0]
+  else: shorts_t=0
+  if shorts_t>1:
+    shorts_dict=dict(c.execute("SELECT ramz,nass FROM shorts WHERE bk=?", (bkid,)).fetchall())
+  else: shorts_dict={}
   # step 1: import meta
   meta=sh.getBookMeta(bkid)
   ki.setMCache(meta)
@@ -332,7 +419,7 @@ def shamelaImport(cursor, sh, bkid):
   def _shamelaFindHeadings(page_txt, page_id, d, h, headings_re, heading_ix,j, fuzzy):
     # fuzzy is saved because it could be used later to figure whither to add newline or to move start point
     for m in headings_re.finditer(page_txt): # 
-      candidate=_foundShHeadingMatchItem(m.start(), m.end(), h, d, fuzzy)
+      candidate=_foundShHeadingMatchItem(m.start(), m.start(), h, d, fuzzy) # NOTE: since this is not exact, make it ends at start. FIXME: it was m.end()
       ii = bisect.bisect_left(found, candidate) # only check for overlaps in found[ii:]
       # skip matches that overlaps with previous headings
       if any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])): continue
@@ -374,9 +461,9 @@ def shamelaImport(cursor, sh, bkid):
     # for each heading
     for j,ix in enumerate(l):
       h,d=toc_ls[ix][1:3]
-      # search for entire line matches (exact, then only letters and digits then only letters)
-      # search for leading matches (exact, then only letters and digits then only letters)
-      # search for matches anywhere (exact, then only letters and digits then only letters)
+      # search for entire line matches (exact, then only letters and digits then only letters: 1,2,3)
+      # search for leading matches (exact, then only letters and digits then only letters: 4,5,6)
+      # search for matches anywhere (exact, then only letters and digits then only letters: 7,8,9)
       if _shamelaFindExactHeadings(page_txt, page_id, "\n%s\n", d, h, ix,j, 1): continue
       if not txt: txt=no_w_re.sub(' ', page_txt.translate(sh_normalize_tb))
       h_p=no_w_re.sub(' ', h.translate(sh_normalize_tb)).strip()
@@ -407,63 +494,197 @@ def shamelaImport(cursor, sh, bkid):
       if h_p_no_d:
         h_re_any_ware_no_d=re.compile(ur"\s*%s\s*" % ur" *".join(list(h_p_no_d)), re.M)
         if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_any_ware, ix, j, 9): continue
-      # No head found, add it just after last one
+      # if we reached here then head is not found
+      # place it just after last one
       if found:
         last_end=found[-1].end
-        try: last_end+=page_txt[last_end:].index('\n')+1
-        except ValueError: last_end=len(page_txt)
+        #try: last_end+=page_txt[last_end:].index('\n')+1
+        #except ValueError: last_end=len(page_txt); print "*"
+        #print "last_end=",last_end
       else: last_end=0
       candidate=_foundShHeadingMatchItem(last_end, last_end, h, d, 0)
       bisect.insort(found, candidate) # add the candidate to the found list
     del toc_hash[page_id]
     return
 
-  # step 3: walk through pages, accumelating conents  
+  footnotes_cnd=[]
+  footnotes=[]
+  h_tags={}
+  t_tags0={'textbody':None}
+  t_tags=t_tags0.copy()
+  last_hno=None
+  hno_pop_needed=False
+
+  def pop_footers(ft):
+    s="\n\n".join(map(lambda (i,a): "  * (%d) %s" % (i+1,a[1]),enumerate(ft)))
+    del ft[:]
+    return s
+
+  # step 3: walk through pages, accumulating contents  
   # NOTE: in some books id need not be unique
-  for r in c.execute("SELECT id,nass,part,page,hno,sora,aya,na FROM b%d ORDER BY id" % bkid):
-    pg_txt=r['nass'].translate(dos2unix_tb)
+  # 
+  #for r in c.execute("SELECT id,nass,part,page,hno,sora,aya,na FROM b%d ORDER BY id" % bkid):
+  r=c.execute('SELECT rowid FROM b%d ORDER BY rowid DESC LIMIT 1' % bkid).fetchone()
+  r_max=float(r['rowid'])/100.0
+  for r in c.execute('SELECT b%d.rowid,id,nass,part,page,hno,sora,aya,na,matn,matnid FROM b%d LEFT OUTER JOIN shrooh ON shrooh.sharh=%d AND id=shrooh.sharhid ORDER BY id' % (bkid,bkid,bkid,)):
+    sh.progress("importing book [%d]" % bkid, r['rowid']/r_max, *sh.progress_args, **sh.progress_kw)
+    pg_txt=r['nass'].translate(dos2unix_tb).strip()
     pg_id=r['id']
+    hno=r['hno']
+    try:
+      matn=r['matn'] and int(r['matn'])
+      matnid=r['matnid'] and int(r['matnid'])
+    except ValueError: matn,matnid=None,None
+    except TypeError: matn,matnid=None,None
+
+    sura,aya,na=0,0,0
+    if r['sora'] and r['aya'] and r['sora']>0 and r['aya']>0:
+      sura,aya,na=r['sora'],r['aya'],r['na']
+      if not na or na<=0: na=1
+      h_tags['quran.tafseer.ref']="%03d-%03d-%03d" % (sura,aya,na)
+
+    # split pg_txt into pg_body and pg_footers_txt
+    m=shamela_footers_re.search(pg_txt)
+    if m:
+      i=m.start()
+      pg_body=pg_txt[:i].strip()
+      pg_footers_txt=pg_txt[m.end()+1:].strip()
+      # A=[(mark, offset_of_num, offset_of_text)]
+      A=[(fm.group(1),fm.start(),fm.start()+len(fm.group(1))+ft_prefix_len+ft_suffix_len) for fm in shamela_footer_re.finditer(pg_footers_txt)] # fixme it need not be +2
+      if A:
+        pg_footers_continue=pg_footers_txt[:A[0][1]].strip()
+        B=[]
+        for i,(j,k,l) in enumerate(A[:-1]):
+          # TODO: do we need to check if j is in right order
+          B.append([j,pg_footers_txt[l:A[i+1][1]].strip()])
+        j,k,l=A[-1]
+        B.append([j,pg_footers_txt[l:].strip()])
+        last_digit=0
+        for i,j in B:
+          if i.isdigit():
+            if int(i)==last_digit+1:
+              footnotes_cnd.append([i,j])
+              last_digit=int(i)
+            elif footnotes_cnd: footnotes_cnd[-1][1]+=" (%s) %s" % (i,j)
+            else: pg_footers_continue+="(%s) %s" % (i,j)
+          else: footnotes_cnd.append([i,j])
+        if pg_footers_continue:
+          # FIXME: should this be footnotes or footnotes_cnd
+          if footnotes: footnotes[-1][1]+=" "+pg_footers_continue
+          else:
+            # NOTE: an excess footnote without previous footnotes to add it to
+            print "  * warning: an excess text in footnotes in pg_id=",pg_id
+            pg_body+="\n\n==========\n\n"+pg_footers_continue+"\n\n==========\n\n"
+            # NOTE: t_tags is used since h_tags was already committed
+            t_tags["request.fix.footnote"]="shamela import warning: excess text in footnotes"
+    else: pg_body=pg_txt
+    # debug stubs
+    #if pg_id==38:
+    #  print "pg_body=[%s]\n" % pg_body
+    #  for j,k in footnotes_cnd:
+    #    print "j=[%s] k=[%s]" % (j,k)
+    #  # raise KeyError
+
+    if toc_hash.has_key(pg_id):
+      hno_pop_needed=False
+    elif hno!=None and hno!=last_hno:
+      # FIXME: make it into a new head
+      last_hno=hno
+      # commit anything not commited
+      if footnotes:
+        last+="\n\n__________\n"+pop_footers(footnotes)
+      cursor.appendNode(parents[-1], reformat(last, shorts_t, shorts_dict), t_tags)
+      t_tags=t_tags0.copy()
+      last=""
+      # create a new node
+      set_get_xref(unicode(hno), h_tags, sh, bkid, pg_id, matn, matnid)
+      h_tags[u'request.fix.head']=u'shamela import warning: automatically generated head'
+      # FIXME: handle the case of a new hno on the beginning of a chapter
+      if hno_pop_needed:
+        parents.pop(); depths.pop() # FIXME: how many time to pop ?
+      else: hno_pop_needed=True
+      parent=cursor.appendNode(parents[-1], unicode(hno), h_tags); h_tags={}
+      parents.append(parent)
+      depths.append(depths[-1]+0.5) # FIXME: does this hack work?
+
+
     # TODO: set the value of header tag to be a unique reference
     # TODO: keep part,page,hno,sora,aya,na somewhere in the imported document
     # TODO: add special handling for hadeeth number and tafseer info
     found=[]
     # step 4: for each page content try to find all headings
-    _shamelaHeadings(pg_txt, pg_id)
+    _shamelaHeadings(pg_body, pg_id)
     # now we got all headings in found
     # step 5: add the found headings and its content
-    # splitting page text pg_txt into [:f0.start] [f0.end:f1.start] [f1.end:f2.start]...[fn.end:]
+    # splitting page text pg_body into [:f0.start] [f0.end:f1.start] [f1.end:f2.start]...[fn.end:]
     # step 5.1: add [:f0.start] to the last heading contents and push it
-    if not found: last+=pg_txt; continue
-    _fixHeadBounds(pg_txt, found)
-    if started: cursor.appendNode(parents[-1], last+pg_txt[:found[0].start], {'textbody':None})
+    if not found:
+      # if no new heading in this page, add it to be committed later
+      last+=shamela_shift_footers_re.sub(footer_shift_cb, pg_body)
+      if footnotes_cnd:
+        print " * fixing stall footnotes at pg_id=",pg_id
+        last+=" ".join(map(lambda (j,k): "(%s) %s" % (j,k),footnotes_cnd))
+        del footnotes_cnd[:]
+      continue
+    # here some new headings were found
+    _fixHeadBounds(pg_body, found)
+    # commit the body of previous heading first
+    if started:
+      last+=shamela_shift_footers_re.sub(footer_shift_cb, pg_body[:found[0].start])
+      if footnotes_cnd:
+        print " ** stall footnotes at pg_id=",pg_id
+        #for j,k in footnotes_cnd:
+        #  print "j=[%s] k=[%s]" % (j,k)
+        #raise
+      if footnotes:
+        last+="\n\n__________\n"+pop_footers(footnotes)
+      cursor.appendNode(parents[-1], reformat(last, shorts_t, shorts_dict), t_tags)
+      t_tags=t_tags0.copy()
+      last=""
     # step 5.2: same for all rest segments [f0.end:f1.start],[f1.end:f2.start]...[f(n-1).end:fn.start]
     for i,f in enumerate(found[:-1]):
       while(depths[-1]>=f.depth): depths.pop(); parents.pop()
       started=True
-      h_tags={'header':None} # FIXME: replace None with a unique _aXYZ identifier
-      if f.fuzzy==0: h_tags[u'request.fix']=u'shamela import error: missing head'
-      parent=cursor.appendNode(parents[-1], f.txt+f.suffix, h_tags)
+      # FIXME: pg_id won't be unique, add a counter like "_p5", "_p5.2", ..etc
+      set_get_xref(u"_p"+unicode(pg_id), h_tags, sh, bkid, pg_id, matn, matnid)
+      if f.fuzzy==0: h_tags[u'request.fix.head']=u'shamela import error: missing head'
+      parent=cursor.appendNode(parents[-1], f.txt+f.suffix, h_tags); h_tags={}
       parents.append(parent)
       depths.append(f.depth)
-      parent=cursor.appendNode(parent, pg_txt[f.end:found[i+1].start], {'textbody':None})
+      last=shamela_shift_footers_re.sub(footer_shift_cb, pg_body[f.end:found[i+1].start])
+      if footnotes: last+="\n\n__________\n"+pop_footers(footnotes)
+      parent=cursor.appendNode(parent, reformat(last, shorts_t, shorts_dict), t_tags)
+      t_tags=t_tags0.copy()
     # step 5.3: save [fn.end:] as last heading
     f=found[-1]
     while(depths[-1]>=f.depth): depths.pop(); parents.pop()
-    h_tags={'header':None} # FIXME: replace None with a unique _aXYZ identifier
+    # FIXME: pg_id won't be unique, add a counter like "_p5", "_p5.2", ..etc
+    set_get_xref(u"_p"+unicode(pg_id), h_tags, sh, bkid, pg_id, matn, matnid)
     txt_start=f.end
-    if f.fuzzy==0: h_tags[u'request.fix']=u'shamela import error: missing header'
-    parent=cursor.appendNode(parents[-1], f.txt+f.suffix,h_tags)
+    if f.fuzzy==0: h_tags[u'request.fix.head']=u'shamela import error: missing header'
+    parent=cursor.appendNode(parents[-1], f.txt+f.suffix,h_tags); h_tags={}
     started=True
     parents.append(parent)
     depths.append(f.depth)
-    last=pg_txt[f.end:]+'\n\n'
+    #last=pg_body[f.end:]+'\n'
+    last=shamela_shift_footers_re.sub(footer_shift_cb, pg_body[f.end:]+'\n')
+    if footnotes_cnd and pg_id!=154: print " *** stall footnotes at pg_id=",pg_id; # raise
+    if footnotes_cnd:
+      last+="\n==========[\n"+pop_footers(footnotes_cnd)+"\n]==========\n"
+    
 
   if not started: raise TypeError
-  if last: cursor.appendNode(parents[-1], last, {'textbody':None})
+  if last:
+    if footnotes:
+      last+="\n\n__________\n"+pop_footers(footnotes)
+    cursor.appendNode(parents[-1], reformat(last, shorts_t, shorts_dict), t_tags)
+    t_tags=t_tags0.copy()
   # l should be empty because we have managed missing headers
   #l=filter(lambda i: i,toc_hash.values())
   #for j in l: print j
   #print "*** headings left: ",len(l)
+  sh.metaById[bkid]=meta
+  sh.progress("importing book [%d]" % bkid, 100.0, *sh.progress_args, **sh.progress_kw)
   return meta
 
 if __name__ == '__main__':

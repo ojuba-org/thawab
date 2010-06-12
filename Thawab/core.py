@@ -17,7 +17,7 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 
 """
 import sys, os, os.path, sqlite3, re
-#import threading
+import threading
 from glob import glob
 from itertools import imap,groupby
 from tempfile import mkstemp
@@ -25,14 +25,16 @@ from StringIO import StringIO
 from xml.sax.saxutils import escape, unescape, quoteattr # for xml rendering
 from dataModel import *
 from tags import *
-from meta import MCache, metaDict2Hash
+from meta import MCache, metaDict2Hash, prettyId, makeId
 
 from whooshSearchEngine import SearchEngine
 from asyncIndex import AsyncIndex
-from okasha.utils import ObjectsCache
+from othman.core import othmanCore
+from okasha.utils import ObjectsCache, fromFs, toFs
 
-th_ext='.ki'
-th_ext_glob='*.ki'
+th_ext=u'.ki'
+th_ext_glob=u'*.ki'
+othman=othmanCore()
 
 class ThawabMan (object):
   def __init__(self,user_prefix,system_prefix="", isMonolithic=True, indexerQueueSize=0):
@@ -55,6 +57,7 @@ the first thing you should do is to call loadMCache()
     except:
       raise OSError
     self.prefixes=[os.path.abspath(user_prefix)]
+    self.othman=othman
     self.__meta=None
     if system_prefix and os.path.isdir(system_prefix):
       self.prefixes.append(os.path.abspath(system_prefix))
@@ -101,7 +104,19 @@ the first thing you should do is to call loadMCache()
       if ki: self.kutubCache.append(uri, ki)
     elif not self.isMonolithic: ki.connect()
     return ki
-  
+
+  def getCachedKitabByNameV(self, kitabNameV):
+    a=kitabNameV.split(u'-')
+    l=len(a)
+    if l==1:
+      m=self.getMeta().getLatestKitab(kitabNameV)
+    elif l==2:
+      m=self.getMeta().getLatestKitabV(*a)
+    else:
+      m=self.getMeta().getLatestKitabVr(*a)
+    if m: return self.getCachedKitab(m['uri'])
+    return None
+
   def getUriByKitabName(self,kitabName):
     """
     return uri for the latest kitab with the given name
@@ -133,7 +148,7 @@ the first thing you should do is to call loadMCache()
       return self.__meta.getUriList()
     r=[]
     for i in self.prefixes:
-      p=glob(os.path.join(i,'db',th_ext_glob))
+      p=map(lambda j: fromFs(j), glob(os.path.join(i,'db',th_ext_glob)))
       r.extend(p)
     return r
 
@@ -240,34 +255,37 @@ class Kitab(object):
     
     Note: don't rely on meta having uri, mtime, flags unless th is set (use uri property instead)
     """
+    # node generators
+    self.grouped_rows_to_node = (self.grouped_rows_to_node0, self.grouped_rows_to_node1, self.grouped_rows_to_node2, self.grouped_rows_to_node3)
+    self.row_to_node = (self.row_to_node0, self.row_to_node1)
     # TODO: do we need a mode = r|w ?
-    self.uri=uri
-    self.is_tmp=is_tmp
-    self.th=th
-    self.meta=meta
+    self.uri = uri
+    self.is_tmp = is_tmp
+    self.th = th
+    self.meta = meta
     # the logic to open the uri goes here
     # check if fn exists, if not then set the flag sql_create_schema
     if is_tmp or not os.path.exists(uri): sql_create_schema=True
     else: sql_create_schema=False
-    self.cn=None
+    self.cn = None
     self.connect()
     self.cn.create_function("th_enumerate", 0, self.rowsEnumerator) # FIXME: do we really need this
     # NOTE: we have a policy, no saving of cursors in object attributes for thread safty
     c=self.cn.cursor()
-    self.toc = None # a KitabToc instance or None if not loaded
+    self.toc = KitabToc(self)
     # private
     self.__tags = {} # a hash by of tags data by tag name
     self.__tags_loaded=False
     self.__counter = 0 # used to renumber rows
     self.inc_size=1<<10
     # TODO: make a decision, should the root node be saved in SQL, if so a lower bound checks to Kitab.getSliceBoundary() and an exception into Kitab.getNodeByIdNum()
-    self.root=Node(kitab=self, idNum=0,parent=-1,depth=0,content='',tags={})
+    self.root = Node(kitab=self, idNum=0,parent=-1,depth=0,content='',tags={})
     if sql_create_schema:
       c.executescript(SQL_DATA_MODEL)
       # create standard tags
       for t in STD_TAGS_ARGS:
         c.execute(SQL_ADD_TAG,t)
-    self.loadToc()
+
   def __del__(self):
     self.disconnect()
 
@@ -275,6 +293,7 @@ class Kitab(object):
     self.cn=sqlite3.connect(self.uri, isolation_level=None)
 
   def disconnect(self):
+    # FIXME: this is not correct as .cn could be from another thread
     if self.cn: self.cn.close()
     del self.cn
 
@@ -306,12 +325,36 @@ class Kitab(object):
     self.__tags_loaded=True
 
   def getNodeByIdNum(self, idNum, load_content=False):
-    if idNum==0: return self.root
+    if idNum<=0: return self.root
     r=self.cn.execute(SQL_GET_NODE_BY_IDNUM[load_content],(idNum,)).fetchone()
     if not r: raise IndexError, "idNum not found"
-    r=list(r)
-    if len(r)<=4: return Node(kitab=self, idNum=r[0], parent=r[1], depth=r[2], globalOrder=r[3])
-    return Node(kitab=self, idNum=r[0], parent=r[1], depth=r[2], globalOrder=r[3], content=r[4])
+    return self.row_to_node[load_content](r)
+
+  def getNodesByTagValueIter(self, tagname, value, load_content=True, limit=0):
+    """an iter that retrieves all the modes tagged with tagname having value"""
+    sql=SQL_GET_NODES_BY_TAG_VALUE[load_content]
+    if type(limit)==int and limit>0: sql+" LIMIT "+str(limit)
+    it=self.cn.execute(sql, (tagname, value,))
+    return imap(self.row_to_node[load_content],it)
+
+  def nodeFromId(self, i, load_content=False):
+    """
+    get node from Id where is is one of the following:
+      * an intger (just call getNodeByIdNum)
+      * a string prefixed with "_i" followed by IdNum
+      * the value of "header" param
+    """
+    if type(i)==int:
+      j=i
+      return self.getNodeByIdNum(j, load_content)
+    elif i.startswith('_i'):
+      try: j=int(i[2:])
+      except TypeError: return None
+      return self.getNodeByIdNum(j, load_content)
+    else:
+      nodes=self.getNodesByTagValueIter("header",i,load_content, 1)
+      if nodes: return nodes[0]
+    return None
 
   def seek(self, *args, **kw):
     """
@@ -336,79 +379,108 @@ all the descendants of the given nodes have globalOrder belongs to the interval 
     else: o2=r[0]
     return o1,o2
 
+  # node generators
+  def row_to_node0(self,r):
+    return Node(kitab=self, idNum=r[0],parent=r[1],depth=r[2],globalOrder=r[3])
+
+  def row_to_node1(self,r):
+    return Node(kitab=self, idNum=r[0],parent=r[1],depth=r[2],globalOrder=r[3], content=r[4])
+
+  def grouped_rows_to_node0(self,l):
+    r=list(l[1])
+    return Node(kitab=self, idNum=r[0][0],parent=r[0][1],depth=r[0][2], globalOrder=r[0][3])
+
+  def grouped_rows_to_node1(self,l):
+    r=list(l[1])
+    return Node(kitab=self, idNum=r[0][0],parent=r[0][1],depth=r[0][2],globalOrder=r[0][3], content=r[0][4])
+
+  def grouped_rows_to_node2(self,l):
+    r=list(l[1])
+    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1], \
+      depth=r[0][2], globalOrder=r[0][3], \
+      tags=dict(map(lambda i: (i[4],i[5]),r)), tag_flags=reduce(lambda a,b: a|b[6],r,0) )
+
+  def grouped_rows_to_node3(self,l):
+    r=list(l[1])
+    return Node(kitab=self, idNum=r[0][0],parent=r[0][1],depth=r[0][2], globalOrder=r[0][3], content=r[0][4], \
+       tags=dict(map(lambda i: (i[5],i[6]),r)), tag_flags=reduce(lambda a,b: a|b[7],r, 0) )
+
+  def getChildNodesIter(self, idNum, preload=WITH_CONTENT_AND_TAGS):
+    """an iter that retrieves all direct children of a node by its IdNum, just one level deeper, content and tags will be pre-loaded by default.
+    
+where preload can be:
+  0  WITH_NONE
+  1  WITH_CONTENT
+  2  WITH_TAGS
+  3  WITH_CONTENT_AND_TAGS
+"""
+    it=self.cn.execute(SQL_GET_CHILD_NODES[preload],(idNum,))
+    # return imap(self.grouped_rows_to_node[preload], groupby(it,lambda i:i[0])) # will work but having the next "if" is faster
+    if preload & 2: return imap(self.grouped_rows_to_node[preload], groupby(it,lambda i:i[0]))
+    return imap(self.row_to_node[preload], it)
+
+  def getTaggedChildNodesIter(self, idNum, tagName, load_content=True):
+    """an iter that retrieves all direct children of a node having tagName by its IdNum, just one level deeper, content will be preloaded by default.
+"""
+    it=self.cn.execute(SQL_GET_TAGGED_CHILD_NODES[load_content],(idNum,tagName,))
+    return imap(self.row_to_node[load_content],it)
+
+
   # FIXME: do we really need this
   def rowsEnumerator(self):
     """private method used internally"""
     self.__counter+=self.inc_size
     return self.__counter
 
-  def getToc(self):
-    if self.toc: return self.toc
-    return self.loadToc()
-
-  def loadToc(self):
-    self.toc=KitabToc(self,list(self.root.descendantsWithTagNameIter('header')))
-    return self.toc
-
-
 class KitabToc(object):
-  def __init__(self, kitab, tocNodes):
-    self.tocList=[kitab.root]+tocNodes
-    self.tocHash={}
-    self.childenByParentIdNum={}
-    for i,n in enumerate(self.tocList):
-      self.tocHash[n.idNum]=i
-      h=n.getTags().get('header',None)
-      if h: self.tocHash[h]=i
-      try: self.childenByParentIdNum[n.parent].append(i)
-      except KeyError: self.childenByParentIdNum[n.parent]=[i]
+  def __init__(self, kitab):
+    self.ki=kitab
 
-  def indexFromId(self, i):
-    if type(i)==int: j=i
-    elif i.startswith('_i'):
-      try: j=int(i[2:])
-      except TypeError: return None
-    else: j=i # FIXME: should be raise
-    return self.tocHash.get(j,None)
+  def breadcrumbs(self, node):
+    l=[]
+    n=node
+    p=self.ki.getNodeByIdNum(n.parent, True)
+    while(p.idNum):
+      # TODO: do some kind of cache like this if p.idNum in cache: l=cached + l else: ...
+      l.insert(0, (p.idNum, p.getContent()))
+      p=self.ki.getNodeByIdNum(p.parent, True)
 
-  def getNodePrevUpNextChildren(self, i):
+    return l
+
+  def getNodePrevUpNextChildrenBreadcrumbs(self, i):
     """
-    an optimized way to get a tuple of node, prev, up, next, children
-    equivalent of nodeFromId(i),prev(i),up(i),next(i),children(i))
+    an optimized way to get a tuple of node, prev, up, next, children, breadcrumbs
+    where i is nodeIdNum or preferably the node it self
     """
-    # TODO: optimize this by calling indexFromId once
-    return (self.nodeFromId(i),self.prev(i),self.up(i),self.next(i),self.children(i))
-
-  def nodeFromId(self, i):
-    j=self.indexFromId(i)
-    if j==None: return None
-    return self.tocList[j]
+    if type(i)==int: n=self.ki.getNodeByIdNum(i,True)
+    elif  isinstance(i,basestring): n=self.ki.nodeFromId(i, True)
+    else: n=i
+    return (n,
+      self.prev(n), self.ki.getNodeByIdNum(n.parent, True), self.next(n),
+      self.children(n.idNum), self.breadcrumbs(n)
+      )
 
   def children(self, i):
-    j=self.indexFromId(i)
-    if j==None: return None
-    p=self.tocList[j].idNum
-    return map(lambda j: self.tocList[j], self.childenByParentIdNum.get(p,[]))
-
-  def prev(self, i):
-    j=self.indexFromId(i)
-    if j==None: return None
-    if j>0: return self.tocList[j-1]
-    return None
+    """
+    return list of Node that are direct children of i
+    where i is idNum of the node
+    """
+    return list(self.ki.getTaggedChildNodesIter(i, 'header', True))
 
   def up(self, i):
-    j=self.indexFromId(i)
-    if not j: return None # in case of None ie not found or 0 ie. root no up
-    n=self.tocList[j]
-    p=self.tocHash.get(n.parent,None)
-    if p==None: return None
-    return self.tocList[p]
+    if type(i)==int: n=self.ki.getNodeByIdNum(i,True)
+    else: n=i
+    return self.ki.getNodeByIdNum(n.parent,True)
+
+  def prev(self, i):
+    if type(i)==int: n=self.ki.getNodeByIdNum(i,True)
+    else: n=i
+    return n.getPrevTaggedNode('header')
 
   def next(self, i):
-    j=self.indexFromId(i)
-    if j==None: return None
-    if j+1<len(self.tocList): return self.tocList[j+1]
-    return None
+    if type(i)==int: n=self.ki.getNodeByIdNum(i,True)
+    else: n=i
+    return n.getNextTaggedNode('header')
 
 class Node (object):
   """A node class returned by some Kitab methods, avoid creating your own
@@ -425,13 +497,12 @@ and the following methods:
   unloadContent()	unload content to save memory
 """
   def __init__(self, **args):
-    self.kitab=args.get('kitab')
-    self.parent=args.get('parent',-1)
-    self.idNum=args.get('idNum',-1)
-    self.depth=args.get('depth',-1)
-    self.globalOrder=args.get('globalOrder',-1)
-    self.__grouped_rows_to_node=(self.__grouped_rows_to_node0, self.__grouped_rows_to_node1, self.__grouped_rows_to_node2, self.__grouped_rows_to_node3)
-    self.__row_to_node=(self.__row_to_node0, self.__row_to_node1)
+    self.kitab = args.get('kitab')
+    self.parent = args.get('parent',-1)
+    self.idNum = args.get('idNum',-1)
+    self.depth = args.get('depth',-1)
+    self.globalOrder = args.get('globalOrder',-1)
+
     # TODO: should globalOrder be a properity ?
     try:
       self.__content=args['content']
@@ -446,7 +517,7 @@ and the following methods:
       self.__tag_flags=args['tag_flags']
       self.__tag_flags_loaded=True
     except KeyError: self.__tag_flags_loaded=False
-    
+
   # tags related methods
   def getTags(self):
     """return tag dictionary applied to the node, loading it from back-end if needed"""
@@ -511,26 +582,16 @@ each tag should already be in the kitab."""
     """clear all tags applyed to this node"""
     self.kitab.cn.execute(SQL_CLEAR_TAGS_ON_NODE,(self.idNum,))
 
-  # internal node generators
-  def __row_to_node0(self,r):
-    return Node(kitab=self.kitab, idNum=r[0],parent=r[1],depth=r[2],globalOrder=r[3])
-  def __row_to_node1(self,r):
-    return Node(kitab=self.kitab, idNum=r[0],parent=r[1],depth=r[2],globalOrder=r[3], content=r[4])
-  def __grouped_rows_to_node0(self,l):
-    r=list(l[1])
-    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2], globalOrder=r[0][3])
-  def __grouped_rows_to_node1(self,l):
-    r=list(l[1])
-    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2],globalOrder=r[0][3], content=r[0][4])
-  def __grouped_rows_to_node2(self,l):
-    r=list(l[1])
-    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1], \
-      depth=r[0][2], globalOrder=r[0][3], \
-      tags=dict(map(lambda i: (i[4],i[5]),r)), tag_flags=reduce(lambda a,b: a|b[6],r,0) )
-  def __grouped_rows_to_node3(self,l):
-    r=list(l[1])
-    return Node(kitab=self.kitab, idNum=r[0][0],parent=r[0][1],depth=r[0][2], globalOrder=r[0][3], content=r[0][4], \
-       tags=dict(map(lambda i: (i[5],i[6]),r)), tag_flags=reduce(lambda a,b: a|b[7],r, 0) )
+  def getPrevTaggedNode(self, tagName, load_content=True):
+    if self.idNum<=0: return None
+    r=self.kitab.cn.execute(SQL_GET_PREV_TAGGED_NODE[load_content],(self.globalOrder, tagName)).fetchone()
+    if not r: return None
+    return self.kitab.row_to_node[load_content](r)
+
+  def getNextTaggedNode(self, tagName, load_content=True):
+    r=self.kitab.cn.execute(SQL_GET_NEXT_TAGGED_NODE[load_content],(self.globalOrder, tagName)).fetchone()
+    if not r: return None
+    return self.kitab.row_to_node[load_content](r)
 
   # methods that give nodes
   def childrenIter(self, preload=WITH_CONTENT_AND_TAGS):
@@ -542,10 +603,7 @@ where preload can be:
   2  WITH_TAGS
   3  WITH_CONTENT_AND_TAGS
 """
-    it=self.kitab.cn.execute(SQL_GET_CHILD_NODES[preload],(self.idNum,))
-    # return imap(self.__grouped_rows_to_node[preload], groupby(it,lambda i:i[0])) # will work but having the next "if" is faster
-    if preload & 2: return imap(self.__grouped_rows_to_node[preload], groupby(it,lambda i:i[0]))
-    return imap(self.__row_to_node[preload], it)
+    return self.kitab.nodeChildrenIter(self.idNum, preload)
 
   def descendantsIter(self,preload=WITH_CONTENT_AND_TAGS, upperBound=-1):
     """an iter retrieves all the children of this node, going deeper in a flat-fashion, pre-loading content and tags by default.
@@ -562,22 +620,24 @@ where preload can be:
     if o2==-1: sql=SQL_GET_UNBOUNDED_NODES_SLICE[preload] ; args=(o1,)
     else: sql=SQL_GET_NODES_SLICE[preload]; args=(o1,o2)
     it=self.kitab.cn.execute(sql, args)
-    # return imap(self.__grouped_rows_to_node[preload], groupby(it,lambda i:i[0])) # will work but having the next "if" is faster
-    if preload & 2: return imap(self.__grouped_rows_to_node[preload], groupby(it,lambda i:i[0]))
-    return imap(self.__row_to_node[preload], it)
+    # return imap(self.kitab.grouped_rows_to_node[preload], groupby(it,lambda i:i[0])) # will work but having the next "if" is faster
+    if preload & 2: return imap(self.kitab.grouped_rows_to_node[preload], groupby(it,lambda i:i[0]))
+    return imap(self.kitab.row_to_node[preload], it)
 
   def childrenWithTagNameIter(self, tagname, load_content=True):
     """an iter that retrieves all direct children taged with tagname, just one level deeper"""
     it=self.kitab.cn.execute(SQL_GET_TAGGED_CHILD_NODES[load_content], (self.idNum,tagname))
-    return imap(self.__row_to_node[load_content],it)
+    return imap(self.kitab.row_to_node[load_content],it)
 
   def descendantsWithTagNameIter(self, tagname,load_content=True):
-    """an iter that retrieves all the children idnum tagged with tagname, going deeper in a flat-fashion"""
+    """an iter that retrieves all the children tagged with tagname, going deeper in a flat-fashion"""
     o1,o2=self.kitab.getSliceBoundary(self.idNum)
     if o2==-1: sql=SQL_GET_UNBOUNDED_TAGGED_NODES_SLICE[load_content]; args=(tagname,o1,)
     else: sql=SQL_GET_TAGGED_NODES_SLICE[load_content]; args=(tagname,o1,o2)
     it=self.kitab.cn.execute(sql, args)
-    return imap(self.__row_to_node[load_content],it)
+    return imap(self.kitab.row_to_node[load_content],it)
+
+
 
 #  recursive non-optimized code
 #  def traverser_(self, nodeStart, nodeEnd,preload=WITH_CONTENT_AND_TAGS,*args):
@@ -632,11 +692,45 @@ Note: the implementation is a non-recursive optimized code with a single query""
     """export the node and its descendants into a wiki-like string"""
     return self.sTraverser( 3, lambda n: n.getTags().has_key('header') and ''.join((u'\n',((7-n.depth)*u'='),n.getContent(),((7-n.depth)*u'='),u'\n')) or n.getContent(), lambda n: u'');
 
+  def toHtml_cb(self, n):
+    # trivial implementation
+    #return n.getTags().has_key('header') and u'\n<H%d>%s</H%d>\n' % (n.depth,escape(n.getContent()),n.depth) or "<p>%s</p>" % escape(n.getContent())
+    r=u""
+    if n.getTags().has_key('header'): r=u'\n<H%d>%s</H%d>\n' % (n.depth,escape(n.getContent()),n.depth)
+    else: r=u"<p>%s</p>" % escape(n.getContent())
+    print "**", n.getTags()
+    if n.getTags().has_key('quran.tafseer.ref'):
+      sura,aya,na=n.getTags()['quran.tafseer.ref'].split('-')
+      #r+=u'<p class="quran">نص من القرآن %s:%s:%s</p>\n\n' % (sura,aya,na)
+      print "** thread=", threading.current_thread().name
+      # tanween fix u'\u064E\u064E', u'\u064E\u200C\u064E'
+      r+=u'<p class="quran">%s</p>\n\n' % "".join(map(lambda i: (i[0]+u'\u202C').replace(u' \u06dd',u' \u202D\u06dd'), othman.getAyatIter(othman.ayaIdFromSuraAya(int(sura),int(aya)),int(na))))
+    if n.kitab and n.kitab.th and n.getTags().has_key('embed.section.ref'):
+      try: matn,xref = n.getTags()['embed.section.ref'].split(u'/', 1)
+      except ValueError: pass
+      else:
+        matnKi=n.kitab.th.getCachedKitabByNameV(matn)
+        matnNode=list(matnKi.getNodesByTagValueIter("header",xref,False, 1))
+        if matnNode:
+          matnNode=matnNode[0]
+          s=u'<blockquote><p>تعليقا على:</p>'
+          nx=matnKi.toc.next(matnNode)
+          if nx: ub=nx.globalOrder
+          else: ub=-1
+          print "**********",ub
+          s+=matnNode.toHtml(upperBound=ub) # pass an option to disable embed to avoid endless recursion
+          s+=u'<p>&nbsp;&nbsp;&nbsp;&nbsp;-- من كتاب <a href="/view/%s/#%s" target="_blank">%s</a></p>' % (matnKi.meta['kitab'],"_i"+str(matnNode.idNum),prettyId(matnKi.meta['kitab']))
+          s+=u'</blockquote>'
+          r+=s
+    return r
+
   def toHtml(self, upperBound=-1):
     """export the node and its descendants into HTML string"""
     # TODO: escape special chars
     # TODO: replace ^$ with '<br/>' or '</p><p>'
-    return self.sTraverser( 3, lambda n: n.getTags().has_key('header') and u'\n<H%d>%s</H%d>\n' % (n.depth,escape(n.getContent()),n.depth) or "<p>%s</p>" % escape(n.getContent()), lambda n: u'', upperBound);
+    # trivial implementation
+    #return self.sTraverser( 3, lambda n: n.getTags().has_key('header') and u'\n<H%d>%s</H%d>\n' % (n.depth,escape(n.getContent()),n.depth) or "<p>%s</p>" % escape(n.getContent()), lambda n: u'', upperBound);
+    return self.sTraverser( 3, self.toHtml_cb, lambda n: u'', upperBound);
 
   def toText(self, upperBound=-1):
     """

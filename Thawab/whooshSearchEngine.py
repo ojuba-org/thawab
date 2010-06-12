@@ -28,8 +28,6 @@ from whoosh.fields import Schema, ID, IDLIST, TEXT
 from whoosh.lang.porter import stem
 from whoosh.analysis import StandardAnalyzer, StemFilter
 
-from whoosh.query import Term # used by getIndexedVersion
-
 from stemming import stemArabic
 
 def stemfn(word): return stemArabic(stem(word))
@@ -170,7 +168,7 @@ class SearchEngine(BaseSearchEngine):
       ki=self.th.getCachedKitab(m['uri'])
     num=int(results[i]['nodeIdNum'])
     node=ki.getNodeByIdNum(num)
-    n=ki.getToc().next(num)
+    n=ki.toc.next(node)
     if n: ub=n.globalOrder
     else: ub=-1
     txt=node.toText(ub)
@@ -220,21 +218,26 @@ class SearchEngine(BaseSearchEngine):
     """
     # FIXME: it seems that this does not work correctly without commit() just after drop, this mean that reindex needs a commit in-between
     # NOTE: because the searcher could be limited do a loop that keeps deleting till the query is empty
+    ki=self.th.getKitab(name)
+    if ki: self.th.getMeta().setIndexedFlags(ki.uri, 1)
     print "dropping index for kitab name:", name,
     #self.indexingStart()
     while(self.indexer.delete_by_term('kitab', name)):
       print "*",
     #self.__ix_writer.commit() # without this reindexKitab won't work
     print
+    if ki: self.th.getMeta().setIndexedFlags(ki.uri, 0)
 
   def dropAll(self):
     # FIXME: it would be more effeciant to delete the directory
     # NOTE: see http://groups.google.com/group/whoosh/browse_thread/thread/35b1700b4e4a3d5d
+    self.th.getMeta().setAllIndexedFlags(1)
     self.indexingStart()
     reader = self.indexer.reader() # also self.__ix_searcher.reader()
     for docnum in reader.all_stored_fields():
       self.indexer.delete_document(docnum)
     self.indexingEnd()
+    self.th.getMeta().setAllIndexedFlags(0)
 
   def reindexKitab(self,name):
     """
@@ -242,7 +245,7 @@ class SearchEngine(BaseSearchEngine):
     """
     # NOTE: this method is overridden here because we need to commit between dropping and creating a new index.
     # NOTE: can't use updateDocument because each Kitab contains many documents
-    self.dropKitabIndex(name); self.__ix_writer.commit(); self. self.indexKitab(name)
+    self.dropKitabIndex(name); self.__ix_writer.commit(); self.indexKitab(name)
 
   def addDocumentToIndex(self, name, vrr, nodeIdNum, title, content, tags):
     """

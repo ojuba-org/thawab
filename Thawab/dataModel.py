@@ -18,7 +18,7 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 """
 from tags import *
 MCACHE_BASE_FIELDS=[
-  'cache_hash','repo','lang','kitab','version', 'releaseMajor', 'releaseMinor',
+  'cache_hash','repo','lang','kitab','version', 'releaseMajor', 'releaseMinor', 'type',
   'author', 'year', 'originalAuthor', 'originalYear', 'originalKitab', 'originalVersion',
   'classification'
 ]
@@ -37,8 +37,9 @@ CREATE TABLE "meta" (
 	"lang" TEXT,
 	"kitab" TEXT,
 	"version" TEXT,
-	"releaseMajor" TEXT,
-	"releaseMinor" TEXT,
+	"releaseMajor" INTEGER,
+	"releaseMinor" INTEGER,
+	"type" INTEGER,
 	"author" TEXT,
 	"year" TEXT,
 	"originalAuthor" TEXT,
@@ -51,23 +52,35 @@ CREATE TABLE "meta" (
 SQL_MCACHE_DATA_MODEL = MCACHE_BASE[:MCACHE_BASE.find('\n)')]+""",\n\
 	"uri" TEXT UNIQUE,
 	"mtime" FLOAT,
-	"flags" INTEGER
+	"flags" INTEGER DEFAULT 0
 );
 
 CREATE INDEX MetaURIIndex on meta (uri);
 CREATE INDEX MetaRepoIndex on meta (repo);
 CREATE INDEX MetaLangIndex on meta (lang);
 CREATE INDEX MetaKitabIndex on meta (kitab);
+CREATE INDEX MetaKitabTypeIndex on meta (type);
 CREATE INDEX MetaKitabVersionIndex on meta (repo,kitab,version);
 CREATE INDEX MetaAuthorIndex on meta (author);
 CREATE INDEX MetaYearIndex on meta (year);
 CREATE INDEX MetaOriginalAuthorIndex on meta (originalAuthor);
 CREATE INDEX MetaOriginalYearIndex on meta (originalYear);
 CREATE INDEX MetaClassificationIndex on meta (classification);
+CREATE INDEX MetaFlagsIndex on meta (flags);
+
+CREATE TABLE "directories" (
+	"abspath" TEXT,
+	"mtime" FLOAT
+);
 
 """
 SQL_MCACHE_GET="""SELECT rowid,* FROM meta"""
 SQL_MCACHE_GET_BY_KITAB="""SELECT rowid,* FROM meta ORDER BY kitab"""
+SQL_MCACHE_GET_UNINDEXED="""SELECT rowid,* FROM meta WHERE flags=0"""
+SQL_MCACHE_GET_DIRTY_INDEX="""SELECT rowid,* FROM meta WHERE flags=1"""
+SQL_MCACHE_GET_INDEXED="""SELECT rowid,* FROM meta WHERE flags=2"""
+SQL_MCACHE_SET_INDEXED="""UPDATE OR IGNORE meta SET flags=? WHERE uri=?"""
+SQL_MCACHE_SET_ALL_INDEXED="""UPDATE OR IGNORE meta SET flags=? WHERE flags>0"""
 
 SQL_DATA_MODEL="""\
 %s
@@ -111,8 +124,11 @@ CREATE INDEX TagsName on tags (name);
 STD_TAGS_ARGS=( \
   # (name, comment, flags, parent, relation)
   ("header", "an anchor that marks header in TOC.",TAG_FLAGS_FLOW_BLOCK | TAG_FLAGS_HEADER),
-  ("request.fix", "a tag that marks an error in content.", 0),
+  ("request.fix.head", "a tag that marks an error in content.", 0),
+  ("request.fix.footnote", "a tag that marks an error in content footnotes.", 0),
   ("textbody", "a tag that marks a typical text.",0),
+  ("quran.tafseer.ref", 'a reference to some Ayat in tafseer (in the form of "Sura-Aya-number").', 0),
+  ("embed.section.ref", 'a reference to some section in a kitab to embed (in the form of "kitabName-version/section").', 0),
   # the following index-tags marks the header
   ("hadith.authenticity", "marks the authenticity of the hadith, param values are Sahih, Hasan, weak, fabricated", TAG_FLAGS_IX_TAG),
   # new index field for rawi
@@ -132,7 +148,7 @@ WITH_CONTENT_AND_TAGS=3
 SQL_GET_ALL_TAGS="""SELECT name,flags,comment,parent,relation FROM tags"""
 SQL_GET_NODE_CONTENT="""SELECT content from nodes WHERE idNum=? LIMIT 1"""
 
-SQL_GET_NODE_TAGS="""SELECT tags.name,nodesTags.param FROM nodesTags LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodesTags.nodeIdNum=? LIMIT 1"""
+SQL_GET_NODE_TAGS="""SELECT tags.name,nodesTags.param FROM nodesTags LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodesTags.nodeIdNum=?"""
 
 # FIXME: all sql that uses SQL_NODE_ARGS should be revised to check the shift after adding globalOrder
 
@@ -170,7 +186,7 @@ SQL_GET_UNBOUNDED_NODES_SLICE=(
   """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodes.globalOrder>? ORDER BY nodes.globalOrder""" % SQL_NODE_COLS[WITH_CONTENT_AND_TAGS]
 )
 
-# tagged chilren node
+# tagged children node
 SQL_GET_TAGGED_CHILD_NODES=( \
   """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodes.parent=? AND tags.name=? ORDER BY nodes.globalOrder""" % SQL_NODE_ARGS,
   """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodes.parent=? AND tags.name=? ORDER BY nodes.globalOrder""" % SQL_NODE_COLS[1]
@@ -183,6 +199,25 @@ SQL_GET_TAGGED_NODES_SLICE=( \
 SQL_GET_UNBOUNDED_TAGGED_NODES_SLICE=( \
   """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE tags.name=? AND nodes.globalOrder>? ORDER BY nodes.globalOrder""" % SQL_NODE_ARGS,
   """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE tags.name=? AND nodes.globalOrder>? ORDER BY nodes.globalOrder""" % SQL_NODE_COLS[1])
+
+# get tagged node slices by param value
+SQL_GET_NODES_BY_TAG_VALUE=( \
+  """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE tags.name=? AND nodesTags.param=? ORDER BY nodes.globalOrder""" % SQL_NODE_ARGS,
+  """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE tags.name=? AND nodesTags.param=? ORDER BY nodes.globalOrder""" % SQL_NODE_COLS[1])
+
+# get prev/next tagged node
+SQL_GET_PREV_TAGGED_NODE=( \
+  """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodes.globalOrder<? and tags.name=? ORDER BY nodes.globalOrder DESC LIMIT 1""" % SQL_NODE_ARGS,
+  """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodes.globalOrder<? and tags.name=? ORDER BY nodes.globalOrder DESC LIMIT 1""" % SQL_NODE_COLS[1])
+SQL_GET_NEXT_TAGGED_NODE=( \
+  """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodes.globalOrder>? and tags.name=? ORDER BY nodes.globalOrder LIMIT 1""" % SQL_NODE_ARGS,
+  """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodes.globalOrder>? and tags.name=? ORDER BY nodes.globalOrder LIMIT 1""" % SQL_NODE_COLS[1])
+
+# get tagged child nodes
+SQL_GET_TAGGED_CHILD_NODES=( \
+  """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodes.parent=? and tags.name=? ORDER BY nodes.globalOrder""" % SQL_NODE_ARGS,
+  """SELECT %s FROM nodes LEFT OUTER JOIN nodesTags ON nodes.idNum = nodesTags.nodeIdNum LEFT OUTER JOIN tags on nodesTags.tagIdNum=tags.idNum WHERE nodes.parent=? and tags.name=? ORDER BY nodes.globalOrder""" % SQL_NODE_COLS[1])
+
 
 SQL_GET_GLOBAL_ORDER="""SELECT globalOrder,depth FROM nodes WHERE idNum=? LIMIT 1"""
 SQL_GET_DESC_UPPER_BOUND="""SELECT globalOrder FROM nodes WHERE globalOrder>? AND depth<=? ORDER BY globalOrder LIMIT 1"""

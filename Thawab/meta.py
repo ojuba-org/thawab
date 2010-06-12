@@ -19,6 +19,7 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 import os
 import os.path
 import sqlite3
+import threading
 import time
 import hashlib
 from itertools import imap,groupby
@@ -36,10 +37,10 @@ def makeId(i):
   return i.strip().replace(' ','_')
 
 def metaVr(m):
-  return m[u"version"]+u"-"+m[u"releaseMajor"]
+  return m[u"version"]+u"-"+unicode(m[u"releaseMajor"])
 
 def metaVrr(m):
-  return u"-".join((m[u"version"],m[u"releaseMajor"],m[u"releaseMinor"]))
+  return u"-".join((m[u"version"],unicode(m[u"releaseMajor"]),unicode(m[u"releaseMinor"])))
 
 
 def metaDict2Hash(meta, suffix=None):
@@ -55,18 +56,30 @@ def metaDict2Hash(meta, suffix=None):
 class MCache(object):
   """a class holding metadata cache"""
   def __init__(self, mcache_db, uri_list, smart=-1):
+    self.db_fn=mcache_db
     if not os.path.exists(mcache_db): create_new=True
     else: create_new=False
-    self.__cn=sqlite3.connect(mcache_db, isolation_level=None)
-    self.__cn.row_factory=sqlite3.Row
-    self.__c=self.__cn.cursor()
+    self._cn={}
+    cn=self._getConnection()
     if create_new:
-      self.__c.executescript(SQL_MCACHE_DATA_MODEL)
+      cn.executescript(SQL_MCACHE_DATA_MODEL)
+      cn.commit()
     self.__reload()
     if self.__create_cache(uri_list, smart)>0: self.__reload()
 
+  def _getConnection(self):
+    n = threading.current_thread().name
+    if self._cn.has_key(n):
+      r = self._cn[n]
+    else:
+      r = sqlite3.connect(self.db_fn)
+      r.row_factory=sqlite3.Row
+      self._cn[n] = r
+    return r
+
+
   def __reload(self):
-    self.__meta=map(lambda i: dict(i), self.__c.execute(SQL_MCACHE_GET_BY_KITAB))
+    self.__meta=map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_BY_KITAB))
     self.__meta_by_uri=(dict(map(lambda a: (a[1]['uri'],a[0]),enumerate(self.__meta))))
     self.__meta_uri_list=self.__meta_by_uri.keys()
     self.__meta_by_kitab={}
@@ -83,14 +96,14 @@ class MCache(object):
     if not r: return None
     return dict(r)
 
-  def __cache(self, uri, meta=None):
+  def __cache(self, c, uri, meta=None):
     if not meta: meta=self.__load_from_uri(uri)
     if not meta: return 0
     #if drop_old_needed: 
     meta['uri']=uri
     meta['mtime']=os.path.getmtime(uri)
     meta['flags']=0
-    self.__c.execute(SQL_MCACHE_ADD,meta)
+    c.execute(SQL_MCACHE_ADD,meta)
     return 1
 
   def __create_cache(self, uri_list, smart=-1):
@@ -103,18 +116,21 @@ class MCache(object):
       * 2 regenerate when mtime differs
       * -1 do not update cache for exiting meta (even if the file is changed)
     """
+    cn = self._getConnection()
+    c=cn.cursor()
     r=0
-    self.__c.execute('BEGIN TRANSACTION')
+    uri_set=set(uri_list)
+    #c.execute('BEGIN TRANSACTION')
     # remove meta for kitab that no longer exists
-    deleted=filter(lambda i: i not in uri_list, self.__meta_uri_list)
+    deleted=filter(lambda i: i not in uri_set, self.__meta_uri_list)
     for uri in deleted:
-      self.__c.execute(SQL_MCACHE_DROP, (uri,))
+      c.execute(SQL_MCACHE_DROP, (uri,))
       r+=1
     # update meta for the rest (in a smart way)
     for uri in uri_list:
       if smart==0:
         # force recreation of cache, drop all, then create all
-        r+=self.__cache(uri, uri in self.__meta_uri_list)
+        r+=self.__cache(c, uri, uri in self.__meta_uri_list)
         continue
       meta=None
       drop_old_needed=False
@@ -132,9 +148,9 @@ class MCache(object):
           meta=self.__load_from_uri(uri)
           if not meta or old_meta['hash']==meta['hash']: continue
       if cache_needed:
-        r+=self.__cache(uri, meta)
-    self.__c.execute('END TRANSACTION')
-    self.__cn.commit()
+        r+=self.__cache(c, uri, meta)
+    #c.execute('END TRANSACTION')
+    cn.commit()
     return r
 
   def getKitabList(self):
@@ -184,8 +200,39 @@ class MCache(object):
     given kitab name and version and major release
     return a meta object for latest kitab (based on version)
     """
+    if type(r)!=int: r=int(r)
     a=self.__meta_by_kitab.get(kitab,None)
     ma=filter(lambda m: m[u'version']==v and m[u'releaseMajor']==r,[self.__meta[i] for i in a])
     if not ma: return None
     return self._latest(ma)
+
+  def setIndexedFlags(self, uri, flags=2):
+    cn = self._getConnection()
+    cn.execute(SQL_MCACHE_SET_INDEXED, (flags, uri,))
+    cn.commit()
+
+  def setAllIndexedFlags(self, flags=0):
+    cn = self._getConnection()
+    cn.execute(SQL_MCACHE_SET_ALL_INDEXED, (flags,))
+    cn.commit()
+
+  def getUnindexedList(self):
+    """
+    return a list of meta dicts for Kutub that are likely to be unindexed
+    """
+    
+    return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_UNINDEXED))
+
+  def getDiryIndexList(self):
+    """
+    return a list of meta dicts for Kutub that are likely to have broken index
+    """
+    return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_INDEXED))
+
+  def getIndexedList(self):
+    """
+    return a list of meta dicts for Kutub that are already in index.
+    """
+    return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_DIRTY_INDEX))
+
 

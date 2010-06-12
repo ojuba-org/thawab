@@ -112,7 +112,7 @@ class BaseSearchEngine:
     """
     index all non-indexed
     
-    no need you need to call indexingStart() indexingEnd() around this
+    no need to call indexingStart() indexingEnd() around this
     """
     self.indexingStart()
     for n in self.th.getKitabList():
@@ -124,14 +124,14 @@ class BaseSearchEngine:
     """
     drop changed then index them along with new unindexed.
     
-    no need you need to call indexingStart() indexingEnd() around this
+    no need to call indexingStart() indexingEnd() around this
     """
     self.dropChanged()
     self.indexNew()
 
   def reindexAll(self):
     """
-    no need you need to call indexingStart() indexingEnd() around this
+    no need to call indexingStart() indexingEnd() around this
     """
     self.dropAll()
     # FIXME: should be dropAll() then usual index not reindex
@@ -224,7 +224,9 @@ class BaseSearchEngine:
     """
     print "creating index for kitab with name:", name
     ki=self.th.getKitab(name)
+    self.th.getMeta().setIndexedFlags(ki.uri, 1)
     vrr=metaVrr(ki.meta)
     iix=self.__IIX()
     ki.root.traverser(3, self.__ix_nodeStart, self.__ix_nodeEnd, name, vrr, iix)
+    self.th.getMeta().setIndexedFlags(ki.uri, 2)
 

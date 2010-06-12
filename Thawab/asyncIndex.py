@@ -17,7 +17,7 @@ Copyright © 2010, Muayyad Alsadi <alsadi@ojuba.org>
 
 """
 from Queue import Queue
-from threading import Thread
+from threading import Thread, Lock
 from time import sleep
 
 class AsyncIndex():
@@ -27,10 +27,22 @@ class AsyncIndex():
     """
     self.searchEngine=searchEngine
     self.worders_n=workers
+    self.running=0
+    self.lock=Lock() # used to report running tasks correctly
     self._q = Queue(queueSize)
     self.start()
     # we enqueue jobs like this
     #for item in source(): self._q.put(item)
+
+  def queueIndexNew(self):
+    """
+    index all non-indexed
+    """
+    self.searchEngine.indexingStart()
+    for n in self.searchEngine.th.getKitabList():
+      vr=self.searchEngine.getIndexedVersion(n)
+      if not vr: self.queue("indexKitab", n)
+
 
   def queue(self, method, *args, **kw):
     """
@@ -50,11 +62,12 @@ class AsyncIndex():
     # sleep to make sure all threads are waiting for jobs (inside loop)
     while not self.started: sleep(0.25)
 
-  def jobs(self):
+  def jobs(self, with_running=True):
     """
     return number of queued jobs.
     """
-    return self._q.qsize()
+    if with_running: return self._q.qsize()+self.running
+    else: return self._q.qsize()
 
   def join(self):
     """
@@ -76,11 +89,15 @@ class AsyncIndex():
     while self.keepworking:
       self.started=True
       # get a job from queue or block sleeping till one is available
-      iterm = self._q.get(not self.end_when_done)
+      item = self._q.get(not self.end_when_done)
       if item:
+        self.lock.acquire(); self.running+=1; self.lock.release()
         method, args, kw=item
         f=getattr(self.searchEngine, method)
         f(*args,**kw)
+        self.lock.acquire(); self.running-=1; self.lock.release()
         self._q.task_done()
-      elif self._q.empty() and self.end_when_done: self.keepworking=False
+        if self._q.qsize()==0: self.searchEngine.indexingEnd()
+      elif self._q.empty():
+        if self.end_when_done: self.keepworking=False
 
