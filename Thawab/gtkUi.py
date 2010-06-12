@@ -647,8 +647,8 @@ def launchServer():
 
 def main():
   exedir=os.path.dirname(sys.argv[0])
-  ld=os.path.join(exedir, 'locale')
-  if not os.path.exists(ld): ld=os.path.join(exedir,'..','share','locale')
+  ld=os.path.join(exedir,'..','share','locale')
+  if not os.path.isdir(ld): ld=os.path.join(exedir, 'locale')
   gettext.install('thawab', ld, unicode=0)
   th, port, server=launchServer()
 
