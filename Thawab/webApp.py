@@ -1,0 +1,233 @@
+# -*- coding: UTF-8 -*-
+"""
+
+Copyright © 2009, Muayyad Alsadi <alsadi@ojuba.org>
+
+    Released under terms of Waqf Public License.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the latest version Waqf Public License as
+    published by Ojuba.org.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+    The Latest version of the license can be found on
+    "http://waqf.ojuba.org/license"
+
+"""
+
+import sys, os, os.path
+import hashlib
+import time
+import bisect
+
+from cgi import escape # for html escaping
+from meta import prettyId, makeId
+from okasha.utils import ObjectsCache
+from okasha.baseWebApp import *
+
+class webApp(baseWebApp):
+  _emptyViewResp={
+    'content':'', 'childrenLinks':'',
+    'prevUrl':'', 'prevTitle':'',
+    'upUrl':'', 'upTitle':'',
+    'nextUrl':'', 'nextTitle':'',
+    'breadcrumbs':''
+  }
+  def __init__(self, th, allowByUri=False, *args, **kw):
+    """
+    th is an instance of ThawabMan
+    allowByUri=True for desktop, False for server
+    """
+    self.th=th
+    self.isMonolithic=th.isMonolithic
+    self.meta=th.getMeta()
+    self.stringSeed="S3(uR!r7y"
+    self._allowByUri=allowByUri
+    # FIXME: move ObjectsCache of kitab to routines to core.ThawabMan
+    if not self.isMonolithic:
+      import threading
+      lock1=threading.Lock();
+    else:
+      lock1=None
+    self.searchCache=ObjectsCache(lock=lock1)
+    baseWebApp.__init__(self,*args, **kw)
+
+  def _safeHash(self,o):
+    """
+    a URL safe hash, it results a 22 byte long string hash based on md5sum
+    """
+    if isinstance(o,unicode): o=o.encode('utf8')
+    return hashlib.md5(self.stringSeed+o).digest().encode('base64').replace('+','-').replace('/','_')[:22]
+
+  def _root(self, rq, *args):
+    if args:
+      if args[0]=='favicon.ico':
+        raise redirectException(rq.script+'/_files/favicon.ico')
+      raise forbiddenException()
+    raise redirectException(rq.script+'/index/')
+
+  @expose(percentTemplate,["main.html"])
+  def index(self, rq, *args):
+    l=self.meta.getKitabList()
+    htmlLinks=[]
+    for k in l:
+      # FIXME: it currenly offers only one version for each kitab (the first one)
+      htmlLinks.append('\t<li><a href="/view/%s/">%s</a></li>' % (k,
+      prettyId(self.meta.getByKitab(k)[0]['kitab'])))
+    htmlLinks=(u"\n".join(htmlLinks))
+    return {
+      u"script":rq.script,
+      u"app":u"Thawab", u"version":u"3.0.1",
+      u"lang":u"ar", u"dir":u"rtl",
+      u"title": "Kitab Index",
+      u"kutublinks": htmlLinks,
+      "args":'/'.join(args)}
+
+  @expose(percentTemplate,["stem.html"])
+  def stem(self, rq, *args):
+    from stemming import stemArabic
+    w=rq.q.getfirst('word','').decode('utf-8')
+    s=''
+    if w:
+      s=" ".join([stemArabic(i) for i in w.split()])
+    return {u"script":rq.script, u"word":w, u"stem":s}
+
+  def _getKitabObject(self, rq, *args):
+    # FIXME: cache KitabObjects and update last access
+    if not args: raise forbiddenException() # TODO: make it a redirect to index
+    k=args[0]
+    if k=='_by_uri':
+      if self._allowByUri:
+        uri=rq.q.getfirst('uri',None)
+        if not uri: raise fileNotFoundException()
+        m=self.meta.getByUri(uri)
+      else:
+        raise forbiddenException()
+    else:
+      m=self.meta.getLatestKitab(k)
+      if not m: raise forbiddenException()
+      uri=m['uri']
+    ki=self.th.getCachedKitab(uri)
+    return ki,m
+
+  def _view(self, ki, m, i, d='#'):
+    r=self._emptyViewResp.copy()
+    node,p,u,n,c,b=ki.toc.getNodePrevUpNextChildrenBreadcrumbs(i)
+    if n: ub=n.globalOrder
+    else: ub=-1
+    if not node or i=="_i0":
+      r['content']="<h1>%s</h1>" % escape(prettyId(m['kitab']))
+    else:
+      r['content']=node.toHtml(ub).replace('\n\n','\n</p><p>\n')
+    if c:
+      cLinks=''.join(map(lambda cc: '<li><a href="%s">%s</a></li>\n' % ("#_i"+str(cc.idNum),escape(cc.getContent())) ,c))
+      cLinks="<ul>\n"+cLinks+"</ul>"
+    else: cLinks=''
+    r['childrenLinks']=cLinks
+    if n:
+      r['nextUrl']='#_i'+str(n.idNum)
+      r['nextTitle']=escape(n.getContent())
+    if p:
+      r['prevUrl']='#_i'+str(p.idNum)
+      r['prevTitle']=escape(p.getContent())
+    if u:
+      r['upUrl']='#_i'+str(u.idNum)
+      r['upTitle']=escape(u.getContent())
+    if b:
+      r['breadcrumbs']=" &gt; ".join(map(lambda (i,t): "<a href='#_i%i'>%s</a>" % (i,escape(t)),b))
+    return r
+
+  #@expose(percentTemplate,["main.html"])
+  @expose(percentTemplate,["view.html"])
+  def view(self, rq, *args):
+    ki,m=self._getKitabObject(rq, *args)
+    lang=m.get('lang','ar')
+    if lang in ('ar','fa','he'): d='rtl'
+    else: d='ltr'
+    kitabId=escape(makeId(args[0]))
+    t=escape(prettyId(args[0]))
+    r=self._emptyViewResp.copy()
+    r.update({
+      u"script":rq.script,
+      u"kitabTitle":t,
+      u"kitabId":kitabId,
+      u"headingId":u"_i0",
+      u"app":u"Thawab", u"version":u"3.0.1",
+      u"lang":lang, u"dir":d,
+      u"title": t,
+      u"content": t,
+      "args":'/'.join(args)})
+    # FIXME if len(args)==1 redirect to _i0
+    if len(args)==2:
+      r.update(self._view(ki, m, args[1]))
+    if not self.isMonolithic: ki.disconnect()
+    return r
+
+  @expose()
+  def ajax(self, rq, *args):
+    if not args: raise forbiddenException()
+    if args[0]=='copying':
+      return '<p>كلام <b>كلام </b>كلام</p>'
+    elif args[0]=='searchExcerpt' and len(args)==3:
+      h=args[1]
+      try: i=int(args[2])
+      except TypeError: raise forbiddenException()
+      R=self.searchCache.get(h)
+      if R==None: return 'انتهت صلاحية هذا البحث'
+      r=self.th.searchEngine.resultExcerpt(R,i)
+      #r=escape(self.th.searchEngine.resultExcerpt(R,i)).replace('\0','<em>').replace('\010','</em>').replace(u"\u2026",u"\u2026<br/>").encode('utf8')
+      return r
+    raise forbiddenException()
+  
+  @expose(jsonDumps)
+  def json(self, rq, *args):
+    # use rq.rhost to impose host-based limits on searching
+    if not args: raise forbiddenException()
+    ki=None
+    r={}
+    if args[0]=='_debug':
+      r={'header':"foobar",'content':"<h2>banana</h2><p>one <b>half</b></p>"}
+    elif args[0]=='view':
+      a=args[1:]
+      ki,m=self._getKitabObject(rq, *a)
+      if len(a)==2:
+        r=self._view(ki, m, a[1])
+      if ki and not self.isMonolithic: ki.disconnect()
+    elif args[0]=='search':
+      q=rq.q.getfirst('q','')
+      h=self._safeHash(q)
+      # FIXME: check to see if one already search for that before
+      q=q.decode('utf8')
+      R=self.th.searchEngine.queryIndex(q)
+      self.searchCache.append(h,R)
+      r={'t':R.runtime,'c':R.scored_length(),'h':h}
+    elif args[0]=='searchResults':
+      h=rq.q.getfirst('h','')
+      try: i=int(rq.q.getfirst('i','0'))
+      except TypeError: i=0
+      try: c=int(rq.q.getfirst('c','0'))
+      except TypeError: c=0
+      R=self.searchCache.get(h)
+      if R==None: return {'c':0}
+      C=R.scored_length()
+      if i>=C: return {'c':0}
+      c=min(c,C-i)
+      r={'c':c,'a':[]}
+      n=100.0/R.scores[0]
+      j=0
+      for j in range(i,i+c):
+        name=R[j]['kitab']
+        v=R[j]['vrr'].split('-')[0]
+        m=self.meta.getLatestKitabV(name,v)
+        if not m: continue # book is removed
+        r['a'].append({
+        'i':j,'n':'_i'+R[j]['nodeIdNum'],
+        'k':m['kitab'],
+        't':R[j]['title'], 'r':'%4.1f' % (n*R.scores[j])})
+        j+=1
+      r[c]=j;
+    else: r={}
+    return r
+
