@@ -356,7 +356,7 @@ class TabLabel (gtk.HBox):
         self.label.set_ellipsize(pango.ELLIPSIZE_MIDDLE)
         self.label.set_alignment(0.0, 0.5)
         # FIXME: use another icon
-        icon = gtk.image_new_from_stock(gtk.STOCK_ORIENTATION_PORTRAIT, gtk.ICON_SIZE_MENU)
+        icon = gtk.image_new_from_icon_name("thawab", gtk.ICON_SIZE_MENU)
         close_image = gtk.image_new_from_stock(gtk.STOCK_CLOSE, gtk.ICON_SIZE_MENU)
         close_button = gtk.Button()
         close_button.set_relief(gtk.RELIEF_NONE)
