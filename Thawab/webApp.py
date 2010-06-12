@@ -64,7 +64,7 @@ class webApp(baseWebApp):
   def _root(self, rq, *args):
     if args:
       if args[0]=='favicon.ico':
-        raise redirectException(rq.script+'/_files/favicon.ico')
+        raise redirectException(rq.script+'/_files/img/favicon.ico')
       raise forbiddenException()
     raise redirectException(rq.script+'/index/')
 
