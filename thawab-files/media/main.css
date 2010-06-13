@@ -9,6 +9,40 @@ body {
 	margin:0;padding:0;border:0;
 }
 
+#async_tips_div {
+	display:none;
+	position: absolute;
+	background-color:#ffe;
+	left:20%;
+}
+#async_tips_div .match {
+	background-color:#acf;
+}
+
+#async_tips_div .term0 {
+	background-color:#acf;
+}
+
+#async_tips_div .term1 {
+	background-color:#fca;
+}
+
+#async_tips_div .term2 {
+	background-color:#cfa;
+}
+
+#async_tips_div .term3 {
+	background-color:#fac;
+}
+
+#async_tips_div .term4 {
+	background-color:#afc;
+}
+
+#async_tips_div .term5 {
+	background-color:#caf;
+}
+
 
 .quran {
   font-family: "Simplified Naskh", "me_quran", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "Serif";

@@ -4,8 +4,8 @@
  *
  **/
 var th_hash;
-function mini_search_row_factory(bu, r) {
-  return "<tr><td><a href='#"+encodeURI(r.n)+"'>"+ html_escape(r.t)+"</a></td><td>"+html_escape(r.r)+"</td>\n";
+function mini_search_row_factory(u, bu, r) {
+  return "<tr><td><a onmouseover='asynctip(this);' onmouseout='asynctip_hide(this);' rel='"+u+r.i+"' href='#"+encodeURI(r.n)+"'>"+ html_escape(r.t)+"</a></td><td>"+html_escape(r.r)+"</td>\n";
 }
 resultsPerPage=10; // defined in main.js
 search_row_factory=mini_search_row_factory;

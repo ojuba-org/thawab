@@ -23,20 +23,20 @@ var kitabUid=encodeURI('%(kitabId)s');
 </head>
 <body dir="rtl" class="body">
 <div id="loading" class="showOnFocus"></div>
-<a id="logo" class="showOnFocus" href="/"><img src="%(script)s/_files/img/kutub.gif"/></a>
+<a id="logo" class="showOnFocus" href="/"><img src="%(script)s/_files/img/kutub.gif" alt="ثواب" /></a>
 <div id="absnav">
 الرئيسية | اتصل بنا
 </div>
 <div id="absnav2">
 
-  <a id="prevLink" class="blurOnFocus" style="float:right;" href="%(prevUrl)s" title="%(prevTitle)s"><img src="%(script)s/_files/img/go-prev.gif"/></a>
-  <a id="upLink" class="blurOnFocus" style="float:right;" href="%(upUrl)s" title="%(upTitle)s"><img src="%(script)s/_files/img/go-up.gif"/></a>
-  <a class="blurOnFocus" style="float:right;" href="#_i0" title="%(title)s"><img src="%(script)s/_files/img/go-home.gif"/></a>
-  <a id="nextLink" class="blurOnFocus" style="float:right;" href="%(nextUrl)s" title="%(nextTitle)s"><img src="%(script)s/_files/img/go-next.gif"/></a>
+  <a id="prevLink" class="blurOnFocus" style="float:right;" href="%(prevUrl)s" title="%(prevTitle)s"><img src="%(script)s/_files/img/go-prev.gif" alt="prev" /></a>
+  <a id="upLink" class="blurOnFocus" style="float:right;" href="%(upUrl)s" title="%(upTitle)s"><img src="%(script)s/_files/img/go-up.gif" alt="up" /></a>
+  <a class="blurOnFocus" style="float:right;" href="#_i0" title="%(title)s"><img src="%(script)s/_files/img/go-home.gif" alt="home" /></a>
+  <a id="nextLink" class="blurOnFocus" style="float:right;" href="%(nextUrl)s" title="%(nextTitle)s"><img src="%(script)s/_files/img/go-next.gif" alt="next" /></a>
 </div>
 <div id="absnav3">
-  <img src="%(script)s/_files/img/scrollup.png" class="blurOnFocus" style="float:right;" href="#" title="autoscroll up, click for document top" onclick="window.scroll(0,0);" onmouseover="autoscroll_dir=-1;" onmouseout="autoscroll_dir=0;" />
-  <img src="%(script)s/_files/img/scrolldn.png" class="blurOnFocus" style="float:right;" href="#" title="autoscroll down, click for document bottom" onclick="window.scroll(0,document.body.scrollHeight);" onmouseover="autoscroll_dir=1;" onmouseout="autoscroll_dir=0;" />
+  <img alt="/\" src="%(script)s/_files/img/scrollup.png" class="blurOnFocus" style="float:right;" title="autoscroll up, click for document top" onclick="window.scroll(0,0);" onmouseover="autoscroll_dir=-1;" onmouseout="autoscroll_dir=0;" />
+  <img alt="\/" src="%(script)s/_files/img/scrolldn.png" class="blurOnFocus" style="float:right;" title="autoscroll down, click for document bottom" onclick="window.scroll(0,document.body.scrollHeight);" onmouseover="autoscroll_dir=1;" onmouseout="autoscroll_dir=0;" />
 </div>
 <div id="results" onmouseover="this.style.height='300px';" onmouseout="this.style.height='8px';">
 
@@ -46,14 +46,14 @@ var kitabUid=encodeURI('%(kitabId)s');
 </div>
 <center><table style="width:90%%;">
   <tfoot><tr><td colspan="2"><div id="SearchPages">-</div></td></tr></tfoot>
-  <tbody id="SearchResults"></tbody>
+  <tbody id="SearchResults"><tr><td colspan="2">-</td></tr></tbody>
 </table></center>
   </div>
 
 </div>
 <div id="minisearch">
-<img src="%(script)s/_files/img/search.gif" style="float:right;" />
-<form name="miniSearchForm" onsubmit="doMiniSearch(document.getElementById('q').value); return false;" style="margin:0;border:0;padding:0;">
+<img src="%(script)s/_files/img/search.gif" style="float:right;" alt="search" />
+<form action="" name="miniSearchForm" onsubmit="doMiniSearch(document.getElementById('q').value); return false;" style="margin:0;border:0;padding:0;">
 <input id="q" class="search_inactive" type="text" value="نص البحث" onfocus="search_entry_focus(this);document.getElementById('results').style.height='300px';" onblur="search_entry_blur(this);"></input>
 </form>
 </div>

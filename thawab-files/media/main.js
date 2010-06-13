@@ -108,18 +108,15 @@ function getAjax(url, q, success, failure) {
 	xmlhttp.open("GET",s,true);
 	xmlhttp.send(null);
 }
-var needs_external_json=false
-try {
-	var t=JSON.parse('"t"');
-} catch(e) {
-	needs_external_json=true;
-}
-if (!needs_external_json) {
-	var jsonParse=function (t) {return JSON.parse(t);}
+var needs_external_json=false;
+
+function fromJson(t) {
+	if (needs_external_json) return eval("("+t+")");
+	return JSON.parse(t);
 }
 
 function getJson(url, q, success, failure) {
-	s=function(t){return success(jsonParse(t));};
+	s=function(t){return success(fromJson(t));};
 	getAjax(url, q, s, failure);
 }
 
@@ -161,11 +158,15 @@ if (document.getElementsByClassName == undefined) {
 }
 
 function init() {
+	try {
+		var t=JSON.parse('"t"');
+	} catch(e) {
+		needs_external_json=true;
+	}
 	init_get_by_class();
 	if (document.body.getAttribute(klass)!='body') {
 		klass="className"; /* hack for ie */
 	}
-	if (needs_external_json) import_script(script+"/_files/json.min.js");
 	setTimeout(animation_loop, 100);
 	animations["_s_up"]=[autoscroll_up_cb];
 	animations["_s_dn"]=[autoscroll_down_cb];
