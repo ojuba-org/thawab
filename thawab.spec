@@ -8,7 +8,7 @@ License: Waqf
 Group: System Environment/Base
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires: python, python-whoosh, python-okasha, islamic-menus, python-othman, pygtk2, pywebkitgtk
+Requires: python, python-whoosh, python-okasha, islamic-menus, python-othman, pygtk2, pywebkitgtk, pyparsing
 BuildRequires: gettext
 BuildRequires: python
 
