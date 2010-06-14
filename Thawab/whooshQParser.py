@@ -17,13 +17,11 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 
 """
 import sys, os, os.path, re
+try:
+  from pyparsing import printables, alphanums, ZeroOrMore, OneOrMore, Group, Combine, Suppress, Optional, FollowedBy, Literal, CharsNotIn, Word, Keyword, Regex, Empty, White, Forward, QuotedString, StringEnd, ParserElement
+except ImportError:
+  from whoosh.support.pyparsing import printables, alphanums, ZeroOrMore, OneOrMore, Group, Combine, Suppress, Optional, FollowedBy, Literal, CharsNotIn, Word, Keyword, Regex, Empty, White, Forward, QuotedString, StringEnd, ParserElement
 
-from pyparsing import printables, alphanums
-from pyparsing import ZeroOrMore, OneOrMore
-from pyparsing import Group, Combine, Suppress, Optional, FollowedBy
-from pyparsing import Literal, CharsNotIn, Word, Keyword, Regex
-from pyparsing import Empty, White, Forward, QuotedString
-from pyparsing import StringEnd, ParserElement
 def make_thawab_qparser():
     escapechar = "\\"
     
