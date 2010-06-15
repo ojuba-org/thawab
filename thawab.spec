@@ -8,7 +8,7 @@ License: Waqf
 Group: System Environment/Base
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires: python, mdbtools, python-whoosh, python-okasha, islamic-menus, python-othman, pygtk2, pywebkitgtk, pyparsing
+Requires: python, mdbtools, python-paste, python-whoosh, python-okasha, islamic-menus, python-othman, pygtk2, pywebkitgtk, pyparsing
 BuildRequires: gettext
 BuildRequires: python
 
@@ -16,13 +16,6 @@ BuildRequires: python
 
 %description
 Thawab Arabic/Islamic encyclopedia system
-
-%package -n thawab-gtk
-Group:   User Interface/Desktops
-Summary: WebkitGtk interface for Thawab the Arabic/Islamic encyclopedia system 
-Requires: %{name}, 
-%description -n thawab-gtk
-GUI interface based WebkitGtk for Thawab the Arabic/Islamic encyclopedia system 
 
 %prep
 %setup -q
