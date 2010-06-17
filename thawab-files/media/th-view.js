@@ -55,7 +55,7 @@ function th_view_init() {
 	loc=window.location.hash.slice(1);
 	if (loc=="") document.location=l+"#_i0";
 	else view_cb(loc);
-	/**/
+	/* hide mini-search if not indexed */
 	if (!is_indexed) {
 		document.getElementById("results").style.display="none";
 		document.getElementById("minisearch").style.display="none";
