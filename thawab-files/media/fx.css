@@ -65,7 +65,7 @@
 	-moz-border-radius:10px;
 	border-radius:10px;
 
-	-webkit-box-shadow:0 0 8px rgba(128,128,128,0.4);
+	/* -webkit-box-shadow:0 0 8px rgba(128,128,128,0.4); */
 	-moz-box-shadow:0 0 8px 4px rgba(128,128,128,0.4);
 }
 #absnav3 { position: fixed; }
