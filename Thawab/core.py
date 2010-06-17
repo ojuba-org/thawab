@@ -698,11 +698,9 @@ Note: the implementation is a non-recursive optimized code with a single query""
     r=u""
     if n.getTags().has_key('header'): r=u'\n<H%d>%s</H%d>\n' % (n.depth,escape(n.getContent()),n.depth)
     else: r=u"<p>%s</p>" % escape(n.getContent())
-    print "**", n.getTags()
     if n.getTags().has_key('quran.tafseer.ref'):
       sura,aya,na=n.getTags()['quran.tafseer.ref'].split('-')
       #r+=u'<p class="quran">نص من القرآن %s:%s:%s</p>\n\n' % (sura,aya,na)
-      print "** thread=", threading.current_thread().name
       # tanween fix u'\u064E\u064E', u'\u064E\u200C\u064E'
       r+=u'<p class="quran">%s</p>\n\n' % "".join(map(lambda i: (i[0]+u'\u202C').replace(u' \u06dd',u' \u202D\u06dd'), othman.getAyatIter(othman.ayaIdFromSuraAya(int(sura),int(aya)),int(na))))
     if n.kitab and n.kitab.th and n.getTags().has_key('embed.section.ref'):
@@ -717,7 +715,6 @@ Note: the implementation is a non-recursive optimized code with a single query""
           nx=matnKi.toc.next(matnNode)
           if nx: ub=nx.globalOrder
           else: ub=-1
-          print "**********",ub
           s+=matnNode.toHtml(upperBound=ub) # pass an option to disable embed to avoid endless recursion
           s+=u'<p>&nbsp;&nbsp;&nbsp;&nbsp;-- من كتاب <a href="/view/%s/#%s" target="_blank">%s</a></p>' % (matnKi.meta['kitab'],"_i"+str(matnNode.idNum),prettyId(matnKi.meta['kitab']))
           s+=u'</blockquote>'
