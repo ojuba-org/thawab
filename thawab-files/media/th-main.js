@@ -71,8 +71,8 @@ function doSearch(q) {
 
 function moveMouse(E) {
 	var e=window.event || E;
-	mouse_x=window.pageXOffset+e.clientX
-	mouse_y=window.pageYOffset+e.clientY
+	mouse_x=window.pageXOffset+e.clientX;
+	mouse_y=window.pageYOffset+e.clientY;
 }
 
 function asynctip(e) {
@@ -107,11 +107,12 @@ function async_tips_init() {
 	document.body.appendChild(d);
 	async_tips_div=d;
 
-	if (typeof document.attachEvent!='undefined') {
-		document.attachEvent('onmousemove',moveMouse);
+	if (document.addEventListener) {
+		document.addEventListener('mousemove',moveMouse,false);
 	} else {
-	document.addEventListener('mousemove',moveMouse,false);
+		document.attachEvent('onmousemove',moveMouse);
 	}
 }
 
 init_ls.push(async_tips_init);
+

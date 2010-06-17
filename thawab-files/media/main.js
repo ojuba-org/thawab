@@ -110,9 +110,8 @@ function getAjax(url, q, success, failure) {
 }
 var needs_external_json=false;
 
-function fromJson(t) {
-	if (needs_external_json) return eval("("+t+")");
-	return JSON.parse(t);
+var fromJson = function(t) {
+	return eval("("+t+")");
 }
 
 function getJson(url, q, success, failure) {
@@ -132,6 +131,7 @@ function search_entry_blur(e) {
 	e.setAttribute(klass, "search_inactive"+( e.getAttribute(klass) || "" ).replace("search_active","").replace("search_inactive",""));
 	if (e.value == "") e.value = "نص البحث";
 }
+
 function rm_class(e,c) {
   e.setAttribute(klass, ( e.getAttribute(klass) || "" ).replace(c,""));
   return false;
@@ -159,7 +159,12 @@ if (document.getElementsByClassName == undefined) {
 
 function init() {
 	try {
-		var t=JSON.parse('"t"');
+		if (JSON) {
+			var t=JSON.parse('"t"');
+			fromJson = function(t) {
+				return JSON.parse(t);
+			}
+		} else needs_external_json=true;
 	} catch(e) {
 		needs_external_json=true;
 	}

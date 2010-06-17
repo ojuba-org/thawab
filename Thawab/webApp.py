@@ -162,6 +162,8 @@ class webApp(baseWebApp):
     # FIXME if len(args)==1 redirect to _i0
     if len(args)==2:
       r.update(self._view(ki, m, args[1]))
+    if self.th.searchEngine.getIndexedVersion(m['kitab']): r['is_indexed']=1
+    else: r['is_indexed']=0
     if not self.isMonolithic: ki.disconnect()
     return r
 
