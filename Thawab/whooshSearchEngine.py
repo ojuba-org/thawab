@@ -156,7 +156,7 @@ class SearchEngine(BaseSearchEngine):
   def queryIndex(self, queryString):
     """return an interatable of fields dict"""
     # FIXME: the return should not be implementation specific
-    return self.__ix_searcher.search(self.__ix_qparser.parse(queryString))
+    return self.__ix_searcher.search(self.__ix_qparser.parse(queryString), limit=500)
 
   def resultExcerpt(self, results, i, ki=None):
     # FIXME: this should not be implementation specific
