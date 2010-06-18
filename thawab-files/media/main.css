@@ -139,6 +139,19 @@ blockquote {
 	border:2px solid #aaa;
 	border-top:0;
 }
+#nominisearch {
+	background:#000 url('img/bg-d.png') top left repeat-x;
+	color:#fff;
+	display:none;
+	position:absolute;
+	top:0px;
+	left:92px;
+	width:200px;
+	height:3em;
+	margin:0;padding:0;
+	border:2px solid #777;
+}
+
 #minisearch {
 	background:#000 url('img/bg-d.png') top left repeat-x;
 	color:#fff;

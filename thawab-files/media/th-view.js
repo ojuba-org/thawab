@@ -59,6 +59,7 @@ function th_view_init() {
 	if (!is_indexed) {
 		document.getElementById("results").style.display="none";
 		document.getElementById("minisearch").style.display="none";
+		document.getElementById("nominisearch").style.display="block";
 	}
 }
 
