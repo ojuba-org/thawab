@@ -528,7 +528,8 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
   r_max=float(r['rowid'])/100.0
   for r in c.execute('SELECT b%d.rowid,id,nass,part,page,hno,sora,aya,na,matn,matnid FROM b%d LEFT OUTER JOIN shrooh ON shrooh.sharh=%d AND id=shrooh.sharhid ORDER BY id' % (bkid,bkid,bkid,)):
     sh.progress("importing book [%d]" % bkid, r['rowid']/r_max, *sh.progress_args, **sh.progress_kw)
-    pg_txt=r['nass'].translate(dos2unix_tb).strip()
+    if r['nass']: pg_txt=r['nass'].translate(dos2unix_tb).strip()
+    else: pg_txt=u""
     pg_id=r['id']
     hno=r['hno']
     try:
