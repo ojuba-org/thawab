@@ -1,7 +1,7 @@
 Name: thawab
 Summary: Thawab Arabic/Islamic encyclopedia system
 URL: http://thawab.ojuba.org/
-Version: 3.0.3
+Version: 3.0.4
 Release: 1%{?dist}
 Source0: http://git.ojuba.org/cgit/%{name}/snapshot/%{name}-%{version}.tar.bz2
 License: Waqf
@@ -54,6 +54,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/locale/*/*/*.mo
 
 %changelog
+* Fri Jun 18 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.4-1
+- load books from /usr/share/thawab/db/
+- limit search results to 500
+- notfy user for non-indexed books
+
 * Thu Jun 17 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.3-1
 - add missing Requires
 - hide mini search if not indexed
