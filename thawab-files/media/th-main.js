@@ -16,6 +16,7 @@ function showSearchPage(hash, pg){
 	var u=script+'/ajax/searchExcerpt/'+hash+'/',bu=script+'/view/';
 	l=document.getElementById("loading");
 	l.style.display="block";
+	window.scroll(0,0);
 	getJson("/json/searchResults", {h:hash,i:i,c:resultsPerPage},
 		function (d) {
 			var c=d.c,a=d.a;

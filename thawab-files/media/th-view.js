@@ -15,6 +15,7 @@ function doMiniSearch(q) {
 
 function view_cb(h) {
 	var l,n;
+	window.scroll(0,0);
 	th_hash=h;
 	l=document.getElementById("loading");
 	l.style.display="block";
