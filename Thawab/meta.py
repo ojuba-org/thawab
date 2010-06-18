@@ -128,6 +128,7 @@ class MCache(object):
       r+=1
     # update meta for the rest (in a smart way)
     for uri in uri_list:
+      if not os.access(uri, os.R_OK): continue
       if smart==0:
         # force recreation of cache, drop all, then create all
         r+=self.__cache(c, uri, uri in self.__meta_uri_list)
