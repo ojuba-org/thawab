@@ -7,6 +7,14 @@ var klass="class";
 var animations={}, ani_c=0, init_ls=[];
 var autoscroll_dir=0, autoscroll_px=5;
 var overlay_d;
+
+// fake trim for IE
+if (!Boolean(String.prototype.trim)) {
+	String.prototype.trim = function() {
+		return this.replace(/^\s+/, '').replace(/\s+$/, '');
+	};
+}
+
 function animation_loop() {
 	var i,a,fn,r;
 	for (i in animations) {
@@ -122,6 +130,8 @@ function getJson(url, q, success, failure) {
 function html_escape(s) {
 	return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;");
 }
+
+function re_escape(s) { return s.replace(/([.*+?^${}()|[\]\/\\])/g, '\\$1') }
 
 function search_entry_focus(e) {
 	e.setAttribute(klass, "search_active"+( e.getAttribute(klass) || "" ).replace("search_active","").replace("search_inactive",""));

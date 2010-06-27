@@ -3,6 +3,7 @@
  * copyright © 2010 ojuba.org, Muayyad Saleh Alsadi
  *
  **/
+var last_highlighted="";
 var th_hash;
 function mini_search_row_factory(u, bu, r) {
   return "<tr><td><a onmouseover='asynctip(this);' onmouseout='asynctip_hide(this);' rel='"+u+r.i+"' href='#"+encodeURI(r.n)+"'>"+ html_escape(r.t)+"</a></td><td>"+html_escape(r.r)+"</td>\n";
@@ -35,6 +36,7 @@ function view_cb(h) {
 			n.setAttribute('title', d.nextTitle);
 			n.setAttribute('href', d.nextUrl);
 			l.style.display="none"; /* should be faded */
+			highlight_words(document.getElementById("maincontent"), highlighted);
 		},
 		function () {
 			l.style.display="none"; /* should show error */
@@ -64,6 +66,47 @@ function th_view_init() {
 	}
 }
 
+
+var harakat="ًٌٍَُِّْـ";
+
+function highlight_word(o, w, i) {
+	w=w.trim();
+	if (w=="") return;
+	w=re_escape(w).replace(/(\\?.)/g, "$1[\-_"+harakat+"]*");
+	w="(\>[^<>]*?)?("+w+")";
+	var re = new RegExp( w, "gi");
+	o.innerHTML=o.innerHTML.replace(re, "$1<span class='term"+i+"'>$2</span>")
+}
+
+function highlight_words(o, w) {
+	var i,a=w.split(" ");
+	highlight_words_off(o);
+	for (i in a) {
+		highlight_word(o,a[i],i);
+	}
+}
+
+function highlight_words_off(o) {
+	o.innerHTML=o.innerHTML.replace(/\<span class=["']term\d+['"]\>([^<>]*)<\/span>/gi, "$1");
+}
+
+var highlighting=false;
+
+function highlight_cb() {
+	if (highlighting) return true;
+	var q=document.getElementById('q').value;
+	if (q=="نص البحث") return true;
+	highlighting=true;
+	highlighted=q;
+	if (last_highlighted!=highlighted) {
+		last_highlighted=highlighted;
+		highlight_words(document.getElementById("maincontent"), highlighted);
+	}
+	highlighting=false;
+	return true;
+}
+
 animations["_ajax_check_hash"]=[ajax_check_hash];
+animations["_highlight"]=[highlight_cb];
 init_ls.push(th_view_init);
 
