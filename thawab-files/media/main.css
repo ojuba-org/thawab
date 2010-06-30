@@ -3,6 +3,12 @@ a img { border: none; }
 a { text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+.external {
+background:transparent url('img/external.gif') center left no-repeat;
+padding-left:16px;
+}
+
+
 body {
   font-family: "Liberation Sans", "KacstOne", "Simplified Naskh", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "sans", "Sans";
 	background:#000;
@@ -117,22 +123,16 @@ blockquote {
 	top:4px;
 	left:64px;
 	width:500px;
-	height:8px;
+	height:22px;
 	margin:0;padding:0;
 	border:2px solid #aaa;
 	border-top:0;
 }
 #nominisearch {
-	background:#000 url('img/bg-d.png') top left repeat-x;
-	color:#fff;
 	display:none;
-	position:absolute;
-	top:0px;
-	left:92px;
+	text-align:right;
 	width:200px;
-	height:3em;
 	margin:0;padding:0;
-	border:2px solid #777;
 }
 
 #minisearch {
@@ -287,12 +287,6 @@ tbody tr:nth-child(odd) td	{ background-color:#eee; color:#222}
 
 tfoot td, tfoot th	{border:none; font-size:130%}
 
-.external {
-background:transparent url('img/external.gif') center left no-repeat;
-padding-left:16px;
-}
-
-
 #SearchPages span {
 	float:right;
 	margin:1px;
@@ -307,4 +301,21 @@ padding-left:16px;
 #SearchPages a.current{
 	background: #acf;
 	color:#000;
+}
+
+.mini table, .mini th, .mini td, .mini a{
+	padding:0;
+}
+
+#SearchContainer.mini {
+	padding:36px 0 0 0;
+	overflow:hidden;
+}
+#rollup {
+	background: transparent url('img/close.gif')  0 0 no-repeat;
+	position:absolute;
+	width:22px;
+	height:22px;
+	left:0;
+	bottom:0;
 }

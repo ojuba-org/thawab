@@ -47,8 +47,9 @@ function view_cb(h) {
 }
 
 function ajax_check_hash() {
-	if (window.location.hash==("#"+th_hash)) return true;
-	view_cb(window.location.hash.slice(1));
+	var h=window.location.hash;
+	if (h==("#"+th_hash)) return true;
+	view_cb(h.slice(1));
 	return true;
 }
 
@@ -60,10 +61,12 @@ function th_view_init() {
 	else view_cb(loc);
 	/* hide mini-search if not indexed */
 	if (!is_indexed) {
-		document.getElementById("results").style.display="none";
-		document.getElementById("minisearch").style.display="none";
+		document.getElementById("SearchTable").style.display="none";
 		document.getElementById("nominisearch").style.display="block";
 	}
+	highlighted=get_url_vars()["highlight"] || "";
+	highlight_words(document.getElementById("maincontent"), highlighted);
+	last_highlighted=highlighted;
 }
 
 

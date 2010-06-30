@@ -15,6 +15,18 @@ if (!Boolean(String.prototype.trim)) {
 	};
 }
 
+function get_url_vars() {
+	var vars = {}, i,j, e;
+	var s= document.location.search;
+	if (!s || s.length[0]==0 || s[0]!="?" ) return vars;
+	var a = s.slice(1).split('&');
+	for(i = 0; i < a.length; ++i) {
+		e = a[i].split("=",2);
+		if (e && e.length==2) vars[decodeURI(e[0])] = decodeURI(e[1]);
+	}
+	return vars;
+}
+
 function animation_loop() {
 	var i,a,fn,r;
 	for (i in animations) {
