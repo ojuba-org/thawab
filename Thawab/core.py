@@ -102,7 +102,7 @@ the first thing you should do is to call loadMCache()
     if not ki:
       ki=self.getKitabByUri(uri)
       if ki: self.kutubCache.append(uri, ki)
-    elif not self.isMonolithic: ki.connect()
+    #elif not self.isMonolithic: ki.connect() # FIXME: no longer needed, kept to trace other usage of isMonolithic
     return ki
 
   def getCachedKitabByNameV(self, kitabNameV):
@@ -198,7 +198,7 @@ plush()
     self.__is_tmp=False
     self.__tmp_str=''
     self.__parents=[]
-    self.__c=self.ki.cn.cursor()
+    self.__c=self.ki.cn().cursor()
     self.__c.execute('BEGIN TRANSACTION')
     if parentNodeIdNum!=-1:
       self.dropDescendants(parentNodeIdNum)
@@ -220,7 +220,7 @@ plush()
       raise IndexError, "not implented"
     self.__c.execute('END TRANSACTION')
     #self.__c.execute('COMMIT')
-    self.ki.cn.commit() # is this needed ?
+    #self.ki.cn.commit() # FIXME: is this needed ?
     self.__unlock()
 
   def appendNode(self, parentNode, content, tags):
@@ -238,7 +238,7 @@ plush()
     """remove all child nodes going deep at any depth, and optionally with their parent"""
     o1,o2=self.ki.getSliceBoundary(parentNodeIdNum)
     c=self.__c
-    if not c: c=self.ki.cn.cursor()
+    if not c: c=self.ki.cn().cursor()
     if o2==-1:
       c.execute(SQL_DROP_TAIL_NODES[withParent],(o1,))
     else:
@@ -255,6 +255,7 @@ class Kitab(object):
     
     Note: don't rely on meta having uri, mtime, flags unless th is set (use uri property instead)
     """
+    self._cn_h={} # per-thread sqlite connection
     # node generators
     self.grouped_rows_to_node = (self.grouped_rows_to_node0, self.grouped_rows_to_node1, self.grouped_rows_to_node2, self.grouped_rows_to_node3)
     self.row_to_node = (self.row_to_node0, self.row_to_node1)
@@ -267,11 +268,10 @@ class Kitab(object):
     # check if fn exists, if not then set the flag sql_create_schema
     if is_tmp or not os.path.exists(uri): sql_create_schema=True
     else: sql_create_schema=False
-    self.cn = None
-    self.connect()
-    self.cn.create_function("th_enumerate", 0, self.rowsEnumerator) # FIXME: do we really need this
+    cn = self.cn()
+    cn.create_function("th_enumerate", 0, self.rowsEnumerator) # FIXME: do we really need this
     # NOTE: we have a policy, no saving of cursors in object attributes for thread safty
-    c=self.cn.cursor()
+    c=cn.cursor()
     self.toc = KitabToc(self)
     # private
     self.__tags = {} # a hash by of tags data by tag name
@@ -286,16 +286,17 @@ class Kitab(object):
       for t in STD_TAGS_ARGS:
         c.execute(SQL_ADD_TAG,t)
 
-  def __del__(self):
-    self.disconnect()
-
-  def connect(self):
-    self.cn=sqlite3.connect(self.uri, isolation_level=None)
-
-  def disconnect(self):
-    # FIXME: this is not correct as .cn could be from another thread
-    if self.cn: self.cn.close()
-    del self.cn
+  def cn(self):
+    """
+    return an sqlite connection for the current thread
+    """
+    n = threading.current_thread().name
+    if self._cn_h.has_key(n):
+      r = self._cn_h[n]
+    else:
+      r=sqlite3.connect(self.uri, isolation_level=None)
+      self._cn_h[n] = r
+    return r
 
   def setMCache(self, meta):
     # TODO: add more checks
@@ -312,7 +313,7 @@ class Kitab(object):
     print SQL_MCACHE_SET
     print meta
     self.meta=meta
-    self.cn.execute(SQL_MCACHE_SET,meta)
+    self.cn().execute(SQL_MCACHE_SET,meta)
 
   ###################################
   # retrieving data from the Kitab
@@ -321,12 +322,12 @@ class Kitab(object):
     if not self.__tags_loaded: self.reloadTags()
     return self.__tags
   def reloadTags(self):
-    self.__tags = dict(map(lambda r: (r[0],r[1:]),self.cn.execute(SQL_GET_ALL_TAGS).fetchall()))
+    self.__tags = dict(map(lambda r: (r[0],r[1:]),self.cn().execute(SQL_GET_ALL_TAGS).fetchall()))
     self.__tags_loaded=True
 
   def getNodeByIdNum(self, idNum, load_content=False):
     if idNum<=0: return self.root
-    r=self.cn.execute(SQL_GET_NODE_BY_IDNUM[load_content],(idNum,)).fetchone()
+    r=self.cn().execute(SQL_GET_NODE_BY_IDNUM[load_content],(idNum,)).fetchone()
     if not r: raise IndexError, "idNum not found"
     return self.row_to_node[load_content](r)
 
@@ -334,7 +335,7 @@ class Kitab(object):
     """an iter that retrieves all the modes tagged with tagname having value"""
     sql=SQL_GET_NODES_BY_TAG_VALUE[load_content]
     if type(limit)==int and limit>0: sql+" LIMIT "+str(limit)
-    it=self.cn.execute(sql, (tagname, value,))
+    it=self.cn().execute(sql, (tagname, value,))
     return imap(self.row_to_node[load_content],it)
 
   def nodeFromId(self, i, load_content=False):
@@ -370,11 +371,12 @@ all the descendants of the given nodes have globalOrder belongs to the interval 
     """
     # this is a private method used by dropDescendants
     if nodeIdNum==0: return 0,-1
-    r=self.cn.execute(SQL_GET_GLOBAL_ORDER,(nodeIdNum,)).fetchone()
+    cn=self.cn()
+    r=cn.execute(SQL_GET_GLOBAL_ORDER,(nodeIdNum,)).fetchone()
     if not r: raise IndexError
     o1=r[0]
     depth=r[1]
-    r=self.cn.execute(SQL_GET_DESC_UPPER_BOUND,(o1,depth)).fetchone()
+    r=cn.execute(SQL_GET_DESC_UPPER_BOUND,(o1,depth)).fetchone()
     if not r: o2=-1
     else: o2=r[0]
     return o1,o2
@@ -414,7 +416,7 @@ where preload can be:
   2  WITH_TAGS
   3  WITH_CONTENT_AND_TAGS
 """
-    it=self.cn.execute(SQL_GET_CHILD_NODES[preload],(idNum,))
+    it=self.cn().execute(SQL_GET_CHILD_NODES[preload],(idNum,))
     # return imap(self.grouped_rows_to_node[preload], groupby(it,lambda i:i[0])) # will work but having the next "if" is faster
     if preload & 2: return imap(self.grouped_rows_to_node[preload], groupby(it,lambda i:i[0]))
     return imap(self.row_to_node[preload], it)
@@ -422,7 +424,7 @@ where preload can be:
   def getTaggedChildNodesIter(self, idNum, tagName, load_content=True):
     """an iter that retrieves all direct children of a node having tagName by its IdNum, just one level deeper, content will be preloaded by default.
 """
-    it=self.cn.execute(SQL_GET_TAGGED_CHILD_NODES[load_content],(idNum,tagName,))
+    it=self.cn().execute(SQL_GET_TAGGED_CHILD_NODES[load_content],(idNum,tagName,))
     return imap(self.row_to_node[load_content],it)
 
 
@@ -534,7 +536,7 @@ and the following methods:
     return filter(lambda t: self.kitab.getTags()[t][0]&mask, self.getTags())
   def reloadTags(self):
     """force reloading of Tags"""
-    self.__tags=dict(self.kitab.cn.execute(SQL_GET_NODE_TAGS,(self.idNum,)).fetchall())
+    self.__tags=dict(self.kitab.cn().execute(SQL_GET_NODE_TAGS,(self.idNum,)).fetchall())
     self.__tags_loaded=True
     T=map(lambda t: self.kitab.getTags()[t][0], self.__tags.keys())
     self.__tag_flags=reduce(lambda a,b: a|b,T, 0)
@@ -553,7 +555,7 @@ and the following methods:
     return self.__content
   def reloadContent(self):
     """force reloading content"""
-    r=self.kitab.cn.execute(SQL_GET_NODE_CONTENT,(self.idNum,)).fetchone()
+    r=self.kitab.cn().execute(SQL_GET_NODE_CONTENT,(self.idNum,)).fetchone()
     if not r:
       self.__content=None
       self.__content_loaded=False
@@ -569,7 +571,7 @@ and the following methods:
     """apply a single tag to this node,
 if node is already taged with it, just update the param
 the tag should already be in the kitab."""
-    r=self.kitab.cn.execute(SQL_TAG,(self.idNum,param,tag)).rowcount
+    r=self.kitab.cn().execute(SQL_TAG,(self.idNum,param,tag)).rowcount
     if not r: raise IndexError, "tag not found"
 
   def applyTags(self,tags):
@@ -580,16 +582,16 @@ each tag should already be in the kitab."""
       self.tagWith(k,tags[k])
   def clearTags(self):
     """clear all tags applyed to this node"""
-    self.kitab.cn.execute(SQL_CLEAR_TAGS_ON_NODE,(self.idNum,))
+    self.kitab.cn().execute(SQL_CLEAR_TAGS_ON_NODE,(self.idNum,))
 
   def getPrevTaggedNode(self, tagName, load_content=True):
     if self.idNum<=0: return None
-    r=self.kitab.cn.execute(SQL_GET_PREV_TAGGED_NODE[load_content],(self.globalOrder, tagName)).fetchone()
+    r=self.kitab.cn().execute(SQL_GET_PREV_TAGGED_NODE[load_content],(self.globalOrder, tagName)).fetchone()
     if not r: return None
     return self.kitab.row_to_node[load_content](r)
 
   def getNextTaggedNode(self, tagName, load_content=True):
-    r=self.kitab.cn.execute(SQL_GET_NEXT_TAGGED_NODE[load_content],(self.globalOrder, tagName)).fetchone()
+    r=self.kitab.cn().execute(SQL_GET_NEXT_TAGGED_NODE[load_content],(self.globalOrder, tagName)).fetchone()
     if not r: return None
     return self.kitab.row_to_node[load_content](r)
 
@@ -619,14 +621,14 @@ where preload can be:
       o2=upperBound
     if o2==-1: sql=SQL_GET_UNBOUNDED_NODES_SLICE[preload] ; args=(o1,)
     else: sql=SQL_GET_NODES_SLICE[preload]; args=(o1,o2)
-    it=self.kitab.cn.execute(sql, args)
+    it=self.kitab.cn().execute(sql, args)
     # return imap(self.kitab.grouped_rows_to_node[preload], groupby(it,lambda i:i[0])) # will work but having the next "if" is faster
     if preload & 2: return imap(self.kitab.grouped_rows_to_node[preload], groupby(it,lambda i:i[0]))
     return imap(self.kitab.row_to_node[preload], it)
 
   def childrenWithTagNameIter(self, tagname, load_content=True):
     """an iter that retrieves all direct children taged with tagname, just one level deeper"""
-    it=self.kitab.cn.execute(SQL_GET_TAGGED_CHILD_NODES[load_content], (self.idNum,tagname))
+    it=self.kitab.cn().execute(SQL_GET_TAGGED_CHILD_NODES[load_content], (self.idNum,tagname))
     return imap(self.kitab.row_to_node[load_content],it)
 
   def descendantsWithTagNameIter(self, tagname,load_content=True):
@@ -634,7 +636,7 @@ where preload can be:
     o1,o2=self.kitab.getSliceBoundary(self.idNum)
     if o2==-1: sql=SQL_GET_UNBOUNDED_TAGGED_NODES_SLICE[load_content]; args=(tagname,o1,)
     else: sql=SQL_GET_TAGGED_NODES_SLICE[load_content]; args=(tagname,o1,o2)
-    it=self.kitab.cn.execute(sql, args)
+    it=self.kitab.cn().execute(sql, args)
     return imap(self.kitab.row_to_node[load_content],it)
 
 

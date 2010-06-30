@@ -174,7 +174,6 @@ class webApp(baseWebApp):
     r.update(self._view(ki, m, h, './', ".html"))
     if self.th.searchEngine.getIndexedVersion(m['kitab']): r['is_indexed']=1
     else: r['is_indexed']=0
-    if not self.isMonolithic: ki.disconnect()
     r['is_static']=1
     r['d']='./'
     r['s']='.html'
@@ -187,7 +186,6 @@ class webApp(baseWebApp):
     if not ki: raise fileNotFoundException()
     if self.th.searchEngine.getIndexedVersion(m['kitab']): r['is_indexed']=1
     else: r['is_indexed']=0
-    if not self.isMonolithic: ki.disconnect()
     r['is_static']=0
     r['d']='#'
     r['s']=''
@@ -222,7 +220,6 @@ class webApp(baseWebApp):
       ki,m=self._getKitabObject(rq, *a)
       if len(a)==2:
         r=self._view(ki, m, a[1])
-      if ki and not self.isMonolithic: ki.disconnect()
     elif args[0]=='search':
       q=rq.q.getfirst('q','')
       h=self._safeHash(q)
