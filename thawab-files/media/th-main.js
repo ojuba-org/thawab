@@ -114,6 +114,5 @@ function async_tips_init() {
 		document.attachEvent('onmousemove',moveMouse);
 	}
 }
-
 init_ls.push(async_tips_init);
 

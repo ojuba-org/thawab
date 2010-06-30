@@ -8,8 +8,12 @@ var th_hash;
 function mini_search_row_factory(u, bu, r) {
   return "<tr><td><a onmouseover='asynctip(this);' onmouseout='asynctip_hide(this);' rel='"+u+r.i+"' href='#"+encodeURI(r.n)+"'>"+ html_escape(r.t)+"</a></td><td>"+html_escape(r.r)+"</td>\n";
 }
+function mini_search_row_factory_st(u, bu, r) {
+  return "<tr><td><a onmouseover='asynctip(this);' onmouseout='asynctip_hide(this);' rel='"+u+r.i+"' href='./"+encodeURI(r.n)+".html'>"+ html_escape(r.t)+"</a></td><td>"+html_escape(r.r)+"</td>\n";
+}
+
 resultsPerPage=10; // defined in main.js
-search_row_factory=mini_search_row_factory;
+search_row_factory=(is_static)?mini_search_row_factory_st:mini_search_row_factory;
 function doMiniSearch(q) {
   doSearch(q+" كتاب:"+kitabId);
 }
@@ -53,23 +57,6 @@ function ajax_check_hash() {
 	return true;
 }
 
-function th_view_init() {
-	var l;
-	l=document.location.toString();
-	loc=window.location.hash.slice(1);
-	if (loc=="") document.location=l+"#_i0";
-	else view_cb(loc);
-	/* hide mini-search if not indexed */
-	if (!is_indexed) {
-		document.getElementById("SearchTable").style.display="none";
-		document.getElementById("nominisearch").style.display="block";
-	}
-	highlighted=get_url_vars()["highlight"] || "";
-	highlight_words(document.getElementById("maincontent"), highlighted);
-	last_highlighted=highlighted;
-}
-
-
 var harakat="ًٌٍَُِّْـ";
 
 function highlight_word(o, w, i) {
@@ -109,7 +96,25 @@ function highlight_cb() {
 	return true;
 }
 
-animations["_ajax_check_hash"]=[ajax_check_hash];
-animations["_highlight"]=[highlight_cb];
-init_ls.push(th_view_init);
 
+function th_view_init() {
+	var l;
+	if (!is_static) {
+		l=document.location.toString();
+		loc=window.location.hash.slice(1);
+		if (loc=="") document.location=l+"#_i0";
+		else view_cb(loc);
+	}
+	/* hide mini-search if not indexed */
+	if (!is_indexed) {
+		document.getElementById("SearchTable").style.display="none";
+		document.getElementById("nominisearch").style.display="block";
+	}
+	highlighted=get_url_vars()["highlight"] || "";
+	highlight_words(document.getElementById("maincontent"), highlighted);
+	last_highlighted=highlighted;
+}
+
+animations["_highlight"]=[highlight_cb];
+if (!is_static) animations["_ajax_check_hash"]=[ajax_check_hash];
+init_ls.push(th_view_init);

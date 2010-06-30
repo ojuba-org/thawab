@@ -112,7 +112,7 @@ class webApp(baseWebApp):
     ki=self.th.getCachedKitab(uri)
     return ki,m
 
-  def _view(self, ki, m, i, d='#'):
+  def _view(self, ki, m, i, d='#', s=""):
     r=self._emptyViewResp.copy()
     node,p,u,n,c,b=ki.toc.getNodePrevUpNextChildrenBreadcrumbs(i)
     if n: ub=n.globalOrder
@@ -122,32 +122,31 @@ class webApp(baseWebApp):
     else:
       r['content']=node.toHtml(ub).replace('\n\n','\n</p><p>\n')
     if c:
-      cLinks=''.join(map(lambda cc: '<li><a href="%s">%s</a></li>\n' % ("#_i"+str(cc.idNum),escape(cc.getContent())) ,c))
+      cLinks=''.join(map(lambda cc: '<li><a href="%s">%s</a></li>\n' % (d+"_i"+str(cc.idNum)+s,escape(cc.getContent())) ,c))
       cLinks="<ul>\n"+cLinks+"</ul>"
     else: cLinks=''
     r['childrenLinks']=cLinks
     if n:
-      r['nextUrl']='#_i'+str(n.idNum)
+      r['nextUrl']=d+'_i'+str(n.idNum)+s
       r['nextTitle']=escape(n.getContent())
     if p:
-      r['prevUrl']='#_i'+str(p.idNum)
+      r['prevUrl']=d+'_i'+str(p.idNum)+s
       r['prevTitle']=escape(p.getContent())
     if u:
-      r['upUrl']='#_i'+str(u.idNum)
+      r['upUrl']=d+'_i'+str(u.idNum)+s
       r['upTitle']=escape(u.getContent())
     if b:
-      r['breadcrumbs']=" &gt; ".join(map(lambda (i,t): "<a href='#_i%i'>%s</a>" % (i,escape(t)),b))
+      r['breadcrumbs']=" &gt; ".join(map(lambda (i,t): ("<a href='"+d+"_i%i"+s+"'>%s</a>") % (i,escape(t)),b))
     return r
 
-  #@expose(percentTemplate,["main.html"])
-  @expose(percentTemplate,["view.html"])
-  def view(self, rq, *args):
+  def _get_kitab_details(self, rq, *args):
     ki,m=self._getKitabObject(rq, *args)
+    if not ki or not m: return None,None, {}
     lang=m.get('lang','ar')
     if lang in ('ar','fa','he'): d='rtl'
     else: d='ltr'
-    kitabId=escape(makeId(args[0]))
-    t=escape(prettyId(args[0]))
+    kitabId=escape(makeId(m['kitab']))
+    t=escape(prettyId(m['kitab']))
     r=self._emptyViewResp.copy()
     r.update({
       u"script":rq.script,
@@ -159,12 +158,39 @@ class webApp(baseWebApp):
       u"title": t,
       u"content": t,
       "args":'/'.join(args)})
-    # FIXME if len(args)==1 redirect to _i0
-    if len(args)==2:
-      r.update(self._view(ki, m, args[1]))
+    return ki,m,r
+
+
+  @expose(percentTemplate,["view.html"])
+  def static(self, rq, *args):
+    l=len(args)
+    if l<1: raise forbiddenException() # TODO: make it show a list of books
+    elif l==1: raise redirectException(rq.script+'/static/'+args[0]+"/_i0.html")
+    elif l!=2: raise forbiddenException()
+    ki,m,r=self._get_kitab_details(rq, *args)
+    if not ki: raise fileNotFoundException()
+    h=args[1]
+    if h.endswith(".html"): h=h[:-5]
+    r.update(self._view(ki, m, h, './', ".html"))
     if self.th.searchEngine.getIndexedVersion(m['kitab']): r['is_indexed']=1
     else: r['is_indexed']=0
     if not self.isMonolithic: ki.disconnect()
+    r['is_static']=1
+    r['d']='./'
+    r['s']='.html'
+    return r
+
+  @expose(percentTemplate,["view.html"])
+  def view(self, rq, *args):
+    if len(args)!=1: raise forbiddenException()
+    ki,m,r=self._get_kitab_details(rq, *args)
+    if not ki: raise fileNotFoundException()
+    if self.th.searchEngine.getIndexedVersion(m['kitab']): r['is_indexed']=1
+    else: r['is_indexed']=0
+    if not self.isMonolithic: ki.disconnect()
+    r['is_static']=0
+    r['d']='#'
+    r['s']=''
     return r
 
   @expose()
