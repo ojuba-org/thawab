@@ -21,10 +21,7 @@ body {
 	background-color:#ffe;
 	left:20%;
 }
-#async_tips_div .match {
-	background-color:#acf;
-}
-
+.match { background-color:#acf; }
 .term0 { background-color:#acf; }
 .term1 { background-color:#fca; }
 .term2 { background-color:#cfa; }
