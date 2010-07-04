@@ -157,6 +157,7 @@ the first thing you should do is to call loadMCache()
     return self.__meta
 
   def loadMeta(self):
+    self.__meta=None
     p=os.path.join(self.prefixes[0],'cache','meta.db')
     self.__meta=MCache(p, self.getManagedUriList())
 

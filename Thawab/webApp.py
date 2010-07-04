@@ -42,7 +42,6 @@ class webApp(baseWebApp):
     """
     self.th=th
     self.isMonolithic=th.isMonolithic
-    self.meta=th.getMeta()
     self.stringSeed="S3(uR!r7y"
     self._allowByUri=allowByUri
     # FIXME: move ObjectsCache of kitab to routines to core.ThawabMan
@@ -70,12 +69,12 @@ class webApp(baseWebApp):
 
   @expose(percentTemplate,["main.html"])
   def index(self, rq, *args):
-    l=self.meta.getKitabList()
+    l=self.th.getMeta().getKitabList()
     htmlLinks=[]
     for k in l:
       # FIXME: it currenly offers only one version for each kitab (the first one)
       htmlLinks.append('\t<li><a href="/view/%s/">%s</a></li>' % (k,
-      prettyId(self.meta.getByKitab(k)[0]['kitab'])))
+      prettyId(self.th.getMeta().getByKitab(k)[0]['kitab'])))
     htmlLinks=(u"\n".join(htmlLinks))
     return {
       u"script":rq.script,
@@ -102,11 +101,11 @@ class webApp(baseWebApp):
       if self._allowByUri:
         uri=rq.q.getfirst('uri',None)
         if not uri: raise fileNotFoundException()
-        m=self.meta.getByUri(uri)
+        m=self.th.getMeta().getByUri(uri)
       else:
         raise forbiddenException()
     else:
-      m=self.meta.getLatestKitab(k)
+      m=self.th.getMeta().getLatestKitab(k)
       if not m: raise forbiddenException()
       uri=m['uri']
     ki=self.th.getCachedKitab(uri)
@@ -245,7 +244,7 @@ class webApp(baseWebApp):
       for j in range(i,i+c):
         name=R[j]['kitab']
         v=R[j]['vrr'].split('-')[0]
-        m=self.meta.getLatestKitabV(name,v)
+        m=self.th.getMeta().getLatestKitabV(name,v)
         if not m: continue # book is removed
         r['a'].append({
         'i':j,'n':'_i'+R[j]['nodeIdNum'],

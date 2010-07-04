@@ -294,6 +294,7 @@ class ThImportWindow(gtk.Window):
       except OSError: pass
     #self.element_progress_cb(0, 25.0, "testing")
     self.tool.set_sensitive(True)
+    self.main.th.loadMeta()
 
   def stop(self, b):
     self.tool.set_sensitive(True)
