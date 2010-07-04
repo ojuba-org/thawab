@@ -1,7 +1,7 @@
 Name: thawab
 Summary: Thawab Arabic/Islamic encyclopedia system
 URL: http://thawab.ojuba.org/
-Version: 3.0.4
+Version: 3.0.5
 Release: 1%{?dist}
 Source0: http://git.ojuba.org/cgit/%{name}/snapshot/%{name}-%{version}.tar.bz2
 License: Waqf
@@ -54,6 +54,13 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/locale/*/*/*.mo
 
 %changelog
+* Sun Jul 4 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.5-1
+- highlight minisearch text
+- reload meta after import
+- fix some importing bugs
+- use connection-per-thread in core.py
+- static-like pages
+
 * Fri Jun 18 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.4-1
 - load books from /usr/share/thawab/db/
 - limit search results to 500
