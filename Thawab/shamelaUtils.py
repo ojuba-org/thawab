@@ -266,9 +266,9 @@ class ShamelaSqlite(object):
     # TODO: use authno to search shamela specific database
     a,y='_unset',0
     if main_tb:
-      a=makeId(main_tb.get('auth',''))
-      y=main_tb.get('higrid',0)
-      if not y: y=main_tb.get('ad',0)
+      a=makeId(main_tb.get('auth','') or '')
+      y=main_tb.get('higrid',0) or 0
+      if not y: y=main_tb.get('ad',0) or 0
       if isinstance(y,basestring) and y.isdigit():
         y=int(y)
       else:
