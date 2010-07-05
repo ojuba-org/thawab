@@ -64,8 +64,40 @@ class webApp(baseWebApp):
     if args:
       if args[0]=='favicon.ico':
         raise redirectException(rq.script+'/_files/img/favicon.ico')
+      elif args[0]=='robots.txt':
+        return self._robots(rq, *args)
+      elif args[0]=='sitemap.xml':
+        return self._sitemap(rq, *args)
       raise forbiddenException()
     raise redirectException(rq.script+'/index/')
+
+  @expose(contentType='text/plain; charset=utf-8')
+  def _robots(self, rq, *args):
+    return """Sitemap: http://%s/sitemap.xml
+User-agent: *
+Allow: /
+""" % (rq.environ['HTTP_HOST']+rq.script)
+
+  @expose(contentType='text/xml; charset=utf-8')
+  def _sitemap(self, rq, *args):
+    t=time.gmtime() # FIXME: use meta to get mime of meta.db
+    d=time.strftime("%Y-%m-%dT%H:%M:%S+00:00", t)
+    tmp="\t<url>\n\t\t<loc>http://"+rq.environ['HTTP_HOST']+rq.script+"/static/%s/_0.html</loc>\n\t\t<lastmod>"+d+"</lastmod>\n\t\t<changefreq>daily</changefreq>\n\t\t<priority>0.5</priority>\n\t</url>"
+    l=self.th.getMeta().getKitabList()
+    urls=[]
+    for k in l:
+      urls.append(tmp % (k))
+    return """<?xml version='1.0' encoding='UTF-8'?>
+<urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<url>
+		<loc>http://thawab.ojuba.org/index/</loc>
+		<lastmod>%s</lastmod>
+		<changefreq>daily</changefreq>
+		<priority>0.8</priority>
+	</url>
+	%s
+</urlset>""" % (d,"\n".join(urls))
+
 
   @expose(percentTemplate,["main.html"])
   def index(self, rq, *args):
