@@ -24,7 +24,7 @@ import time
 import hashlib
 from itertools import imap,groupby
 from dataModel import *
-from okasha.utils import strverscmp
+from okasha.utils import fromFs, toFs, strverscmp
 import re
 
 def prettyId(i, empty_for_special=True):
@@ -101,7 +101,7 @@ class MCache(object):
     if not meta: return 0
     #if drop_old_needed: 
     meta['uri']=uri
-    meta['mtime']=os.path.getmtime(uri)
+    meta['mtime']=os.path.getmtime(toFs(uri))
     meta['flags']=0
     c.execute(SQL_MCACHE_ADD,meta)
     return 1
@@ -128,7 +128,7 @@ class MCache(object):
       r+=1
     # update meta for the rest (in a smart way)
     for uri in uri_list:
-      if not os.access(uri, os.R_OK): continue
+      if not os.access(toFs(uri), os.R_OK): continue
       if smart==0:
         # force recreation of cache, drop all, then create all
         r+=self.__cache(c, uri, uri in self.__meta_uri_list)
@@ -143,7 +143,7 @@ class MCache(object):
         cache_needed=True
         if smart==-1: continue # don't replace existing cache
         elif smart==2: # rely of mtime
-          if abs(os.path.getmtime(uri)-self.getByUri(uri)['mtime'])<1e-5: continue
+          if abs(os.path.getmtime(toFs(uri))-self.getByUri(uri)['mtime'])<1e-5: continue
         elif smart==1: # rely on a hash saved inside the database
           old_meta=self.getByUri(uri)
           meta=self.__load_from_uri(uri)

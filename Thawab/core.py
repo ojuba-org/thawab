@@ -148,7 +148,8 @@ the first thing you should do is to call loadMCache()
       return self.__meta.getUriList()
     r=[]
     for i in self.prefixes:
-      p=map(lambda j: fromFs(j), glob(os.path.join(i,'db',th_ext_glob)))
+      a=glob(toFs(os.path.join(fromFs(i),u'db',th_ext_glob)))
+      p=map(lambda j: fromFs(j), a)
       r.extend(p)
     return r
 
@@ -267,7 +268,7 @@ class Kitab(object):
     self.meta = meta
     # the logic to open the uri goes here
     # check if fn exists, if not then set the flag sql_create_schema
-    if is_tmp or not os.path.exists(uri): sql_create_schema=True
+    if is_tmp or not os.path.exists(toFs(uri)): sql_create_schema=True
     else: sql_create_schema=False
     cn = self.cn()
     cn.create_function("th_enumerate", 0, self.rowsEnumerator) # FIXME: do we really need this
