@@ -82,7 +82,7 @@ Allow: /
   def _sitemap(self, rq, *args):
     t=time.gmtime() # FIXME: use meta to get mime of meta.db
     d=time.strftime("%Y-%m-%dT%H:%M:%S+00:00", t)
-    tmp="\t<url>\n\t\t<loc>http://"+rq.environ['HTTP_HOST']+rq.script+"/static/%s/_0.html</loc>\n\t\t<lastmod>"+d+"</lastmod>\n\t\t<changefreq>daily</changefreq>\n\t\t<priority>0.5</priority>\n\t</url>"
+    tmp="\t<url>\n\t\t<loc>http://"+rq.environ['HTTP_HOST']+rq.script+"/static/%s/_i0.html</loc>\n\t\t<lastmod>"+d+"</lastmod>\n\t\t<changefreq>daily</changefreq>\n\t\t<priority>0.5</priority>\n\t</url>"
     l=self.th.getMeta().getKitabList()
     urls=[]
     for k in l:
