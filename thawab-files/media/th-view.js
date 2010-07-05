@@ -63,9 +63,16 @@ function highlight_word(o, w, i) {
 	w=w.trim();
 	if (w=="") return;
 	w=re_escape(w).replace(/(\\?.)/g, "$1[\-_"+harakat+"]*");
-	w="(\>[^<>]*?)?("+w+")";
+	w="("+w+")";
 	var re = new RegExp( w, "gi");
-	o.innerHTML=o.innerHTML.replace(re, "$1<span class='term"+i+"'>$2</span>")
+	a=o.innerHTML.split(/(<\/?[^>]*>)/);
+	for (j in a) {
+		s=a[j];
+		if (s && s[0]!="<") {
+			a[j]=s.replace(re, "<span class='term"+i+"'>$1</span>");
+		}
+	}
+	o.innerHTML=a.join("");
 }
 
 function highlight_words(o, w) {
