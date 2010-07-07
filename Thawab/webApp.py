@@ -27,6 +27,13 @@ from meta import prettyId, makeId
 from okasha.utils import ObjectsCache
 from okasha.baseWebApp import *
 
+# fixme move this to okasha.utils
+def tryInt(s,d=0):
+  try: return int(s)
+  except ValueError: pass
+  except TypeError: pass
+  return d
+
 class webApp(baseWebApp):
   _emptyViewResp={
     'content':'', 'childrenLinks':'',
@@ -280,7 +287,7 @@ Allow: /
         if not m: continue # book is removed
         r['a'].append({
         'i':j,'n':'_i'+R[j]['nodeIdNum'],
-        'k':m['kitab'],
+        'k':m['kitab'], 'a':prettyId(m['author']), 'y':tryInt(m['year']),
         't':R[j]['title'], 'r':'%4.1f' % (n*R.scores[j])})
         j+=1
       r[c]=j;

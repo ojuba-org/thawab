@@ -41,9 +41,9 @@ CREATE TABLE "meta" (
 	"releaseMinor" INTEGER,
 	"type" INTEGER,
 	"author" TEXT,
-	"year" TEXT,
+	"year" INTEGER,
 	"originalAuthor" TEXT,
-	"originalYear" TEXT,
+	"originalYear" INTEGER,
 	"originalKitab" TEXT,
 	"originalVersion" TEXT,
 	"classification" TEXT
