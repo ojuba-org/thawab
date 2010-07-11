@@ -45,7 +45,7 @@ function view_cb(h) {
 		},
 		function () {
 			l.style.display="none"; /* should show error */
-			th_hash=h;
+			th_hash="";
 		}
 	);
 
