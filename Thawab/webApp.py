@@ -251,8 +251,6 @@ Allow: /
     if not args: raise forbiddenException()
     ki=None
     r={}
-    if args[0]=='_debug':
-      r={'header':"foobar",'content':"<h2>banana</h2><p>one <b>half</b></p>"}
     elif args[0]=='view':
       a=args[1:]
       ki,m=self._getKitabObject(rq, *a)
