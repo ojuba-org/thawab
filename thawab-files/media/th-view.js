@@ -23,6 +23,7 @@ function view_cb(h) {
 	l=document.getElementById("loading");
 	l.style.display="block";
 	if (! h) h="_i0";
+	th_hash=h;
 	getJson(script+"/json/view/"+kitabUid+"/"+h, {}, 
 		function (d) {
 			document.getElementById("maincontent").innerHTML=d.content;
@@ -39,11 +40,9 @@ function view_cb(h) {
 			n.setAttribute('href', d.nextUrl);
 			l.style.display="none"; /* should be faded */
 			highlight_words(document.getElementById("maincontent"), highlighted, true);
-			th_hash=h;
 		},
 		function () {
 			l.style.display="none"; /* should show error */
-			th_hash="";
 		}
 	);
 
