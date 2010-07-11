@@ -249,7 +249,7 @@ Allow: /
     if not args: raise forbiddenException()
     ki=None
     r={}
-    elif args[0]=='view':
+    if args[0]=='view':
       a=args[1:]
       ki,m=self._getKitabObject(rq, *a)
       if len(a)==2:
