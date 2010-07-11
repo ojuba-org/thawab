@@ -400,7 +400,7 @@ class ContentPane (gtk.Notebook):
                                  (gobject.TYPE_OBJECT,))
         }
 
-    def __init__ (self, default_url, default_title=None, hp=gtk.POLICY_NEVER, vp=gtk.POLICY_ALWAYS):
+    def __init__ (self, default_url=None, default_title=None, hp=gtk.POLICY_NEVER, vp=gtk.POLICY_ALWAYS):
         """initialize the content pane"""
         gtk.Notebook.__init__(self)
         self.set_scrollable(True)
@@ -442,7 +442,7 @@ class ContentPane (gtk.Notebook):
         # load the content
         self._hovered_uri = None
         if not url: url=self.default_url
-        wv.open(url)
+        if url: wv.open(url)
 
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.props.hscrollbar_policy = self.hp
@@ -549,7 +549,6 @@ class ThIndexerWindow(gtk.Window):
       self.progress.set_text (_("no indexing jobs left"))
     return True
 
-
 class ThMainWindow(gtk.Window):
   def __init__(self, th, port, server):
     self.th = th
@@ -598,9 +597,9 @@ class ThMainWindow(gtk.Window):
     #b.connect('clicked', self.import_cb)
     tools.insert(b, -1)
     
-    
     self._content= ContentPane("http://127.0.0.1:%d/" % port, _("Thawab"))
     vb.pack_start(self._content,True, True, 2)
+
     self._content.new_tab()
 
     self.connect("delete_event", self.quit)
@@ -608,6 +607,7 @@ class ThMainWindow(gtk.Window):
     self.connect('drag-data-received', self.drop_data_cb)
     
     self.show_all()
+
 
   def drop_data_cb(self, widget, dc, x, y, selection_data, info, t):
     if not self.import_w: self.import_w=ThImportWindow(self)
