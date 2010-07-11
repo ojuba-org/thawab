@@ -232,9 +232,7 @@ Allow: /
   @expose()
   def ajax(self, rq, *args):
     if not args: raise forbiddenException()
-    if args[0]=='copying':
-      return '<p>كلام <b>كلام </b>كلام</p>'
-    elif args[0]=='searchExcerpt' and len(args)==3:
+    if args[0]=='searchExcerpt' and len(args)==3:
       h=args[1]
       try: i=int(args[2])
       except TypeError: raise forbiddenException()
