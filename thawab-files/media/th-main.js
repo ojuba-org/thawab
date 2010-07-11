@@ -10,6 +10,7 @@ function main_search_row_factory(u, bu, r) {
   return "<tr><td>"+html_escape(r.k)+"</td><td>"+html_escape(r.a)+"</td><td>"+(r.y || "-")+"</td><td><a onmouseover='asynctip(this);' onmouseout='asynctip_hide(this);' class='external' target='_blank' rel='"+u+r.i+"' href='"+bu+encodeURI(r.k)+"#"+encodeURI(r.n)+"'>"+ html_escape(r.t)+"</a></td><td>"+html_escape(r.r)+"</td>\n";
 }
 var search_row_factory=main_search_row_factory;
+var search_done=function() {};
 
 function showSearchPage(hash, pg){
 	var j,i=(pg-1)*resultsPerPage,o,h,l;
@@ -61,9 +62,11 @@ function doSearch(q) {
 			showSearchPage(d.h,1);
 			}
 			l.style.display="none"; /* should be faded */
+			search_done();
 		},
 		function () {
 			l.style.display="none"; /* should show error */
+			search_done();
 		}
 	);
 	return false;
