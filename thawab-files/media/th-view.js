@@ -21,12 +21,12 @@ function doMiniSearch(q) {
 function view_cb(h) {
 	var l,n;
 	window.scroll(0,0);
-	th_hash=h;
 	l=document.getElementById("loading");
 	l.style.display="block";
 	if (! h) h="_i0";
 	getJson(script+"/json/view/"+kitabUid+"/"+h, {}, 
 		function (d) {
+			document.getElementById("addthis").setAttribute('addthis:url',d.static_link);
 			document.getElementById("maincontent").innerHTML=d.content;
 			document.getElementById("subtoc").innerHTML=d.childrenLinks;
 			document.getElementById("breadcrumbs").innerHTML=d.breadcrumbs;
@@ -41,9 +41,11 @@ function view_cb(h) {
 			n.setAttribute('href', d.nextUrl);
 			l.style.display="none"; /* should be faded */
 			highlight_words(document.getElementById("maincontent"), highlighted);
+			th_hash=h;
 		},
 		function () {
 			l.style.display="none"; /* should show error */
+			th_hash=h;
 		}
 	);
 
