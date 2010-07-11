@@ -26,7 +26,6 @@ function view_cb(h) {
 	if (! h) h="_i0";
 	getJson(script+"/json/view/"+kitabUid+"/"+h, {}, 
 		function (d) {
-			document.getElementById("addthis").setAttribute('addthis:url',d.static_link);
 			document.getElementById("maincontent").innerHTML=d.content;
 			document.getElementById("subtoc").innerHTML=d.childrenLinks;
 			document.getElementById("breadcrumbs").innerHTML=d.breadcrumbs;
