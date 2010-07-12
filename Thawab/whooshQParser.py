@@ -30,7 +30,7 @@ def make_thawab_qparser():
     #    wordchars = wordchars.replace(specialchar, "")
     #wordtext = Word(wordchars)
     
-    wordtext = CharsNotIn('\\*?^():"{}[]!&| ')
+    wordtext = CharsNotIn(u'\\*؟?^():"{}[]!&| ')
     escape = Suppress(escapechar) + (Word(printables, exact=1) | White(exact=1))
     wordtoken = Combine(OneOrMore(wordtext | escape))
     
@@ -38,7 +38,7 @@ def make_thawab_qparser():
     plainWord = Group(wordtoken).setResultsName("Word")
     
     # A wildcard word containing * or ?.
-    wildchars = Word("?*")
+    wildchars = Word(u"؟?*")
     # Start with word chars and then have wild chars mixed in
     wildmixed = wordtoken + OneOrMore(wildchars + Optional(wordtoken))
     # Or, start with wildchars, and then either a mixture of word and wild chars, or the next token

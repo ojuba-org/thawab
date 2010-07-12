@@ -86,6 +86,10 @@ class ThMultifieldParser(MultifieldParser):
       text=makeId(text)
     return fieldname, text
 
+  def _Wildcard(self, node, fieldname):
+    return self.make_wildcard(fieldname, node[0].replace(u'؟',u'?'))
+
+
   def make_term(self, fieldname, text):
     fieldname, text=self._trField(fieldname, text)
     return MultifieldParser.make_term(self, fieldname, text)
