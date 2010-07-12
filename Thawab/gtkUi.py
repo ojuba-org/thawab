@@ -47,13 +47,13 @@ class ThWV(webkit.WebView):
   def populate_popup(self, view, menu):
     menu.append(gtk.SeparatorMenuItem())
     i = gtk.ImageMenuItem(gtk.STOCK_ZOOM_IN)
-    i.connect('activate', lambda *a,**k: self.zoom_in())
+    i.connect('activate', lambda m,v,*a,**k: v.zoom_in(), view)
     menu.append(i)
     i = gtk.ImageMenuItem(gtk.STOCK_ZOOM_OUT)
-    i.connect('activate', lambda *a,**k: self.zoom_out())
+    i.connect('activate', lambda m,v,**k: v.zoom_out(), view)
     menu.append(i)
     i = gtk.ImageMenuItem(gtk.STOCK_ZOOM_100)
-    i.connect('activate', lambda *a,**k: web_view.get_zoom_level() == 1.0 or self.set_zoom_level(1.0))
+    i.connect('activate', lambda m,v,*a,**k: v.get_zoom_level() == 1.0 or v.set_zoom_level(1.0), view)
     menu.append(i)
 
     menu.show_all()
