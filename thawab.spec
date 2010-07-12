@@ -10,7 +10,7 @@ BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: python, mdbtools, python-paste, python-whoosh, python-okasha, islamic-menus, python-othman, pygtk2, pywebkitgtk, pyparsing
 BuildRequires: gettext
-BuildRequires: python
+BuildRequires: python, perl
 
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print get_python_lib(1)")}
 
@@ -20,6 +20,7 @@ Thawab Arabic/Islamic encyclopedia system
 %prep
 %setup -q
 %build
+bash update-manual-from-site.sh
 make %{?_smp_mflags}
 
 %install
