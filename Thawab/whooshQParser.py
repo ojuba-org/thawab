@@ -18,9 +18,9 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 """
 import sys, os, os.path, re
 try:
-  from pyparsing import printables, alphanums, ZeroOrMore, OneOrMore, Group, Combine, Suppress, Optional, FollowedBy, Literal, CharsNotIn, Word, Keyword, Regex, Empty, White, Forward, QuotedString, StringEnd, ParserElement
+  from pyparsing import ParseBaseException, printables, alphanums, ZeroOrMore, OneOrMore, Group, Combine, Suppress, Optional, FollowedBy, Literal, CharsNotIn, Word, Keyword, Regex, Empty, White, Forward, QuotedString, StringEnd, ParserElement
 except ImportError:
-  from whoosh.support.pyparsing import printables, alphanums, ZeroOrMore, OneOrMore, Group, Combine, Suppress, Optional, FollowedBy, Literal, CharsNotIn, Word, Keyword, Regex, Empty, White, Forward, QuotedString, StringEnd, ParserElement
+  from whoosh.support.pyparsing import ParseBaseException, printables, alphanums, ZeroOrMore, OneOrMore, Group, Combine, Suppress, Optional, FollowedBy, Literal, CharsNotIn, Word, Keyword, Regex, Empty, White, Forward, QuotedString, StringEnd, ParserElement
 
 def make_thawab_qparser():
     escapechar = "\\"
@@ -30,7 +30,7 @@ def make_thawab_qparser():
     #    wordchars = wordchars.replace(specialchar, "")
     #wordtext = Word(wordchars)
     
-    wordtext = CharsNotIn('\\*?^():"{}[] ')
+    wordtext = CharsNotIn('\\*?^():"{}[]!&| ')
     escape = Suppress(escapechar) + (Word(printables, exact=1) | White(exact=1))
     wordtoken = Combine(OneOrMore(wordtext | escape))
     
@@ -86,16 +86,16 @@ def make_thawab_qparser():
 
     # TODO: add translation support for NOT and for ANDNOT
     # A unit may be "not"-ed.
-    operatorNot = Group(Suppress(Keyword("not", caseless=True)) +  Suppress(White()) + unit).setResultsName("Not")
+    operatorNot = Group(Suppress('!') +  Suppress(ZeroOrMore(White())) + unit).setResultsName("Not")
     generalUnit = operatorNot | unit
 
-    andToken = Keyword("AND", caseless=False) | Keyword(u"و", caseless=False)
-    orToken = Keyword("OR", caseless=False)| Keyword(u"أو", caseless=False)
-    andNotToken = Keyword("ANDNOT", caseless=False)
+    andToken = Literal('&')
+    orToken = Literal("|")
+    andNotToken = Literal("&!")
     
-    operatorAnd = Group(generalUnit +  Suppress(White()) + Suppress(andToken) +  Suppress(White()) + expression).setResultsName("And")
-    operatorOr = Group(generalUnit +  Suppress(White()) + Suppress(orToken) +  Suppress(White()) + expression).setResultsName("Or")
-    operatorAndNot = Group(unit + Suppress(White()) + Suppress(andNotToken) + Suppress(White()) + unit).setResultsName("AndNot")
+    operatorAnd = Group(generalUnit +  Suppress(ZeroOrMore(White())) + Suppress(andToken) +  Suppress(ZeroOrMore(White())) + expression).setResultsName("And")
+    operatorOr = Group(generalUnit +  Suppress(ZeroOrMore(White())) + Suppress(orToken) +  Suppress(ZeroOrMore(White())) + expression).setResultsName("Or")
+    operatorAndNot = Group(unit + Suppress(ZeroOrMore(White())) + Suppress(andNotToken) + Suppress(ZeroOrMore(White())) + unit).setResultsName("AndNot")
 
     expression << (OneOrMore(operatorAnd | operatorOr | operatorAndNot | generalUnit | Suppress(White())) | Empty())
     

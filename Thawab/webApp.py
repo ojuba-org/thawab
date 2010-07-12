@@ -260,6 +260,7 @@ Allow: /
       # FIXME: check to see if one already search for that before
       q=q.decode('utf8')
       R=self.th.searchEngine.queryIndex(q)
+      if not R: return {'t':0,'c':0,'h':''}
       self.searchCache.append(h,R)
       r={'t':R.runtime,'c':R.scored_length(),'h':h}
     elif args[0]=='searchResults':

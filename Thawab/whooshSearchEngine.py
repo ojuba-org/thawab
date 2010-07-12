@@ -63,7 +63,7 @@ analyzer=StandardAnalyzer(expression=ur"[\w\u064e\u064b\u064f\u064c\u0650\u064d\
 #        self.unique = unique
 
 from whoosh.qparser import MultifieldParser
-from whooshQParser import make_thawab_qparser
+from whooshQParser import make_thawab_qparser, ParseBaseException
 
 TH_Q_PARSER=make_thawab_qparser()
 
@@ -156,7 +156,9 @@ class SearchEngine(BaseSearchEngine):
   def queryIndex(self, queryString):
     """return an interatable of fields dict"""
     # FIXME: the return should not be implementation specific
-    return self.__ix_searcher.search(self.__ix_qparser.parse(queryString), limit=500)
+    try: r=self.__ix_searcher.search(self.__ix_qparser.parse(queryString), limit=500)
+    except ParseBaseException: return None
+    return r
 
   def resultExcerpt(self, results, i, ki=None):
     # FIXME: this should not be implementation specific

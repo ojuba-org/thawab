@@ -123,7 +123,7 @@ function getAjax(url, q, success, failure) {
 		}
 	}
 	s="";
-	for (var i in q) { s+="&"+i+"="+encodeURI(q[i]); }
+	for (var i in q) { s+="&"+i+"="+encodeURIComponent(q[i]); }
 	s=url+"?"+s.slice(1);
 	xmlhttp.open("GET",s,true);
 	xmlhttp.send(null);
