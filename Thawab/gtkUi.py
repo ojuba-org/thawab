@@ -637,8 +637,9 @@ class ThMainWindow(gtk.Window):
     b.connect('clicked', lambda bb: self._content.new_tab())
     b.set_tooltip_text(_("Open a new tab"))
     tools.insert(b, -1)
-    
+
     # TODO: add navigation buttons (back, forward ..etc.) and zoom buttons
+    tools.insert(gtk.SeparatorToolItem(), -1)
 
     img=gtk.Image()
     img.set_from_stock(gtk.STOCK_CONVERT, gtk.ICON_SIZE_BUTTON)
@@ -655,6 +656,32 @@ class ThMainWindow(gtk.Window):
     b.connect('clicked', lambda *a: self.ix_w.show_all())
     tools.insert(b, -1)
 
+    tools.insert(gtk.SeparatorToolItem(), -1)
+
+    img=gtk.Image()
+    img.set_from_stock(gtk.STOCK_ZOOM_IN, gtk.ICON_SIZE_BUTTON)
+    b=gtk.ToolButton(icon_widget=img, label=_("Zoom in"))
+    b.set_is_important(True)
+    b.set_tooltip_text(_("Makes things appear bigger"))
+    b.connect('clicked', lambda a: self._do_in_current_view("zoom_in"))
+    tools.insert(b, -1)
+
+    img=gtk.Image()
+    img.set_from_stock(gtk.STOCK_ZOOM_OUT, gtk.ICON_SIZE_BUTTON)
+    b=gtk.ToolButton(icon_widget=img, label=_("Zoom out"))
+    b.set_tooltip_text(_("Makes things appear smaller"))
+    b.connect('clicked', lambda a: self._do_in_current_view("zoom_out"))
+    tools.insert(b, -1)
+
+    img=gtk.Image()
+    img.set_from_stock(gtk.STOCK_ZOOM_100, gtk.ICON_SIZE_BUTTON)
+    b=gtk.ToolButton(icon_widget=img, label=_("1:1 Zoom"))
+    b.set_tooltip_text(_("restore original zoom factor"))
+    b.connect('clicked', lambda a: self._do_in_current_view("set_zoom_level",1.0))
+    tools.insert(b, -1)
+
+    tools.insert(gtk.SeparatorToolItem(), -1)
+
     img=gtk.Image()
     img.set_from_stock(gtk.STOCK_PREFERENCES, gtk.ICON_SIZE_BUTTON)
     b=gtk.ToolButton(icon_widget=img, label=_("Fixes"))
@@ -662,6 +689,8 @@ class ThMainWindow(gtk.Window):
     b.set_tooltip_text(_("Misc Fixes"))
     b.connect('clicked', self.fixes_cb)
     tools.insert(b, -1)
+
+    tools.insert(gtk.SeparatorToolItem(), -1)
 
     img=gtk.Image()
     img.set_from_stock(gtk.STOCK_HELP, gtk.ICON_SIZE_BUTTON)
@@ -677,6 +706,12 @@ class ThMainWindow(gtk.Window):
     self.connect('drag-data-received', self.drop_data_cb)
     
     self.show_all()
+
+  def _do_in_current_view (self, action, *a, **kw):
+     n = self._content.get_current_page()
+     if n<0: return
+     view=self._content.get_nth_page(n).get_child()
+     getattr(view, action)(*a,**kw)
 
   def fixes_cb(self, b):
     if not self.fixes_w: self.fixes_w=ThFixesWindow(self)
