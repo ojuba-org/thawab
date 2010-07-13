@@ -60,9 +60,6 @@ class ThWV(webkit.WebView):
     self.connect_after("populate-popup", self.populate_popup)
     #self.connect("resource-request-starting", self.test)
 
-  #def test(self, *args,**kw):
-  #  print "*"
-
   def populate_popup(self, view, menu):
     menu.append(gtk.SeparatorMenuItem())
     i = gtk.ImageMenuItem(gtk.STOCK_ZOOM_IN)
