@@ -604,7 +604,7 @@ for example to recover power failure.</span>"""))
     else: info(_("Done"), self)
 
   def rm_mcache_cb(self, b):
-    if not sure(_("Are you sure you want to remove search meta data cache ?"),self): return
+    if not sure(_("Are you sure you want to remove search meta data cache?"),self): return
     p=os.path.join(self.main.th.prefixes[0], 'cache', 'meta.db')
     try: os.unlink(p)
     except OSError: error(_("unable to remove file [%s]" % p), self)
