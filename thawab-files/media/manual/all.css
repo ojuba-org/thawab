@@ -7,7 +7,7 @@ a:hover { text-decoration: underline; }
 body {
 	font-family: "Liberation Sans", "KacstOne", "Simplified Naskh", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "sans", "Sans";
 	background:#999;
-	margin:3em;padding:0;border:0;
+	margin:0;padding:3em;border:0;
 }
 .export {
 	background:#fff;
@@ -22,7 +22,7 @@ h1, h2, h3, h4 {
 div.toc {
   width:30%; float:left;
   background: #cda;
-  padding:20px;
+  padding:20px;margin:10px;
   border: #999 solid 2px;
   }
 pre {
