@@ -34,6 +34,25 @@ from Thawab.webApp import webApp
 from Thawab.shamelaUtils import ShamelaSqlite, shamelaImport
 from paste import httpserver
 
+def sure(msg, w=None):
+  dlg=gtk.MessageDialog(w, gtk.DIALOG_MODAL,gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO, msg)
+  dlg.connect("response", lambda *args: dlg.hide())
+  r=dlg.run()
+  dlg.destroy()
+  return r==gtk.RESPONSE_YES
+
+def info(msg, w=None):
+  dlg=gtk.MessageDialog(w, gtk.DIALOG_MODAL,gtk.MESSAGE_INFO, gtk.BUTTONS_OK, msg)
+  dlg.connect("response", lambda *args: dlg.hide())
+  r=dlg.run()
+  dlg.destroy()
+
+def error(msg, w=None):
+  dlg=gtk.MessageDialog(w, gtk.DIALOG_MODAL,gtk.MESSAGE_ERROR, gtk.BUTTONS_OK, msg)
+  dlg.connect("response", lambda *args: dlg.hide())
+  r=dlg.run()
+  dlg.destroy()
+
 class ThWV(webkit.WebView):
   def __init__(self):
     webkit.WebView.__init__(self)
@@ -549,6 +568,51 @@ class ThIndexerWindow(gtk.Window):
       self.progress.set_text (_("no indexing jobs left"))
     return True
 
+class ThFixesWindow(gtk.Window):
+  def __init__(self, main):
+    gtk.Window.__init__(self)
+    self.set_title(_('Misc. Fixes'))
+    self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
+    self.set_modal(True)
+    self.set_transient_for(main)
+    self.main=main
+    self.connect('delete-event', lambda w,*a: w.hide() or True)
+
+    vb=gtk.VBox(False,2); self.add(vb)
+    hb=gtk.HBox(False,2); vb.pack_start(hb, False, False, 0)
+    l=gtk.Label()
+    l.set_markup(_("""<span size="large">Those procedures are to be used in case of <b>emergency</b> only,
+for example to recover power failure.</span>"""))
+    hb.pack_start(l , False, False, 0)
+
+    hb=gtk.HBox(False,2); vb.pack_start(hb, False, False, 0)
+    b=gtk.Button(_('remove search index'))
+    b.set_tooltip_text(_('you will need to re-index all books'))
+    hb.pack_start(b , False, False, 0)
+    b.connect('clicked', self.rm_index_cb)
+    
+    hb=gtk.HBox(False,2); vb.pack_start(hb, False, False, 0)
+    b=gtk.Button(_('remove meta data cache to generate a fresh one'))
+    b.set_tooltip_text(_('instead of incremental meta data gathering'))
+    hb.pack_start(b , False, False, 0)
+    b.connect('clicked', self.rm_mcache_cb)
+
+    self.show_all()
+
+  def rm_index_cb(self, b):
+    if not sure(_("You will need to recreate search index in-order to search again.\nAre you sure you want to remove search index?"),self): return
+    p=os.path.join(self.main.th.prefixes[0], 'index')
+    try: shutil.rmtree(p)
+    except OSError: error(_("unable to remove folder [%s]" % p), self)
+    else: info(_("Done"), self)
+
+  def rm_mcache_cb(self, b):
+    if not sure(_("Are you sure you want to remove search meta data cache ?"),self): return
+    p=os.path.join(self.main.th.prefixes[0], 'cache', 'meta.db')
+    try: os.unlink(p)
+    except OSError: error(_("unable to remove file [%s]" % p), self)
+    else: info(_("Done"), self)
+
 class ThMainWindow(gtk.Window):
   def __init__(self, th, port, server):
     self.th = th
@@ -560,12 +624,17 @@ class ThMainWindow(gtk.Window):
     self.set_default_size(600, 480)
     
     self.import_w=None
+    self.fixes_w=None
     self.ix_w=ThIndexerWindow(self)
     
     vb=gtk.VBox(False,0); self.add(vb)
 
     tools=gtk.Toolbar()
     vb.pack_start(tools, False, False, 2)
+
+    self._content= ContentPane("http://127.0.0.1:%d/" % port, _("Thawab"))
+    vb.pack_start(self._content,True, True, 2)
+
 
     b=gtk.ToolButton(gtk.STOCK_NEW)
     b.connect('clicked', lambda bb: self._content.new_tab())
@@ -594,11 +663,15 @@ class ThMainWindow(gtk.Window):
     b=gtk.ToolButton(icon_widget=img, label=_("Fixes"))
     b.set_is_important(True)
     b.set_tooltip_text(_("Misc Fixes"))
-    #b.connect('clicked', self.import_cb)
+    b.connect('clicked', self.fixes_cb)
     tools.insert(b, -1)
-    
-    self._content= ContentPane("http://127.0.0.1:%d/" % port, _("Thawab"))
-    vb.pack_start(self._content,True, True, 2)
+
+    img=gtk.Image()
+    img.set_from_stock(gtk.STOCK_HELP, gtk.ICON_SIZE_BUTTON)
+    b=gtk.ToolButton(icon_widget=img, label=_("Help"))
+    b.set_tooltip_text(_("Show user manual"))
+    b.connect('clicked', lambda a: self._content.new_tab ("http://127.0.0.1:%d/_files/manual/manual.html" % port))
+    tools.insert(b, -1)
 
     self._content.new_tab()
 
@@ -608,6 +681,9 @@ class ThMainWindow(gtk.Window):
     
     self.show_all()
 
+  def fixes_cb(self, b):
+    if not self.fixes_w: self.fixes_w=ThFixesWindow(self)
+    self.fixes_w.show()
 
   def drop_data_cb(self, widget, dc, x, y, selection_data, info, t):
     if not self.import_w: self.import_w=ThImportWindow(self)
