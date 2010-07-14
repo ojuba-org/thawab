@@ -46,6 +46,19 @@ def run_in_bg(cmd):
   _ps=filter(lambda x: x.poll()!=None,_ps) # remove terminated processes from _ps list
   _ps.append(Popen(cmd,0,'/bin/sh',shell=True, preexec_fn=setsid))
 
+def get_exec_full_path(fn):
+  a=filter(lambda p: os.access(p, os.X_OK), map(lambda p: os.path.join(p, fn), os.environ['PATH'].split(os.pathsep)))
+  if a: return a[0]
+  return None
+
+def guess_browser():
+  e=get_exec_full_path("xdg-open")
+  if not e: e=get_exec_full_path("firefox")
+  if not e: e="start"
+  return e
+
+broswer=guess_browser()
+
 def sure(msg, w=None):
   dlg=gtk.MessageDialog(w, gtk.DIALOG_MODAL,gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO, msg)
   dlg.connect("response", lambda *args: dlg.hide())
@@ -75,7 +88,7 @@ class ThWV(webkit.WebView):
   def _navigation_requested_cb(self, view, frame, networkRequest):
     uri=networkRequest.get_uri()
     if not uri.startswith('http://127.0.0.1') and not uri.startswith('http://localhost'):
-      run_in_bg("xdg-open '%s'" % uri)
+      run_in_bg("%s '%s'" % (broswer ,uri))
       return 1
     return 0
 
