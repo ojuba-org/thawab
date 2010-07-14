@@ -86,7 +86,7 @@ the first thing you should do is to call loadMCache()
      # conf	application configuration
      # cache	contains the metadata cache for all containers"""
      P=self.prefixes[0]
-     for i in ['db','index','conf','cache','tmp']:
+     for i in ['db','index','conf','cache', 'user','tmp']:
        p=os.path.join(P,i)
        if not os.path.isdir(p): os.makedirs(p)
   def mktemp(self):

@@ -120,6 +120,42 @@ CREATE INDEX TagsName on tags (name);
 
 """ % MCACHE_BASE
 #################################################
+USER_SCHEMA="""\
+CREATE TABLE "starred" ( "kitab" TEXT PRIMARY KEY );
+
+CREATE TABLE "bookmarks" (
+	"kitab" TEXT,
+	"version" TEXT,
+	"nodeId" TEXT,
+	"title" TEXT,
+	PRIMARY KEY ("kitab", "version", nodeId);
+);
+
+CREATE INDEX BookmarkKitabIndex on bookmarks(kitab);
+
+CREATE TABLE "comments" (
+	"kitab" TEXT,
+	"version" TEXT,
+	"nodeId" TEXT,
+	"title" TEXT,
+	"comment" TEXT,
+	PRIMARY KEY ("kitab", "version", nodeId);
+);
+
+CREATE INDEX CommentsKitabIndex on comments(kitab);
+
+"""
+SQL_GET_ALL_STARRED="""SELECT kitab FROM starred"""
+SQL_SET_STARRED='INSERT OR REPLACE INTO starred (kitab) VALUES (?)'
+SQL_UNSET_STARRED='DELETE OR IGNORE FROM starred WHERE kitab=?'
+SQL_GET_ALL_BOOKMARKS="""SELECT * FROM bookmarks"""
+SQL_GET_KITAB_BOOKMARKS="""SELECT * FROM bookmarks WHERE kitab=?"""
+SQL_GET_ALL_COMMENTS="""SELECT * FROM comments"""
+SQL_GET_KITAB_COMMENTS="""SELECT * FROM comments WHERE kitab=?"""
+SQL_SET_BOOKMARK='INSERT OR REPLACE INTO bookmarks (kitab,version,nodeId,title) VALUES (?,?,?,?)'
+SQL_SET_COMMENT='INSERT OR REPLACE INTO comments (kitab,version,nodeId,title,comment) VALUES (?,?,?,?,?)'
+
+#################################################
 # arguments to make the built-in tags
 STD_TAGS_ARGS=( \
   # (name, comment, flags, parent, relation)
