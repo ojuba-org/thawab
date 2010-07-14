@@ -26,6 +26,7 @@ import gobject
 import glib, gtk, pango
 import webkit
 
+from subprocess import Popen, PIPE
 from urllib import unquote
 
 import Thawab.core
@@ -33,6 +34,17 @@ import Thawab.core
 from Thawab.webApp import webApp
 from Thawab.shamelaUtils import ShamelaSqlite, shamelaImport
 from paste import httpserver
+
+setsid = getattr(os, 'setsid', None)
+if not setsid: setsid = getattr(os, 'setpgrp', None)
+_ps=[]
+
+def run_in_bg(cmd):
+  global _ps
+  setsid = getattr(os, 'setsid', None)
+  if not setsid: setsid = getattr(os, 'setpgrp', None)
+  _ps=filter(lambda x: x.poll()!=None,_ps) # remove terminated processes from _ps list
+  _ps.append(Popen(cmd,0,'/bin/sh',shell=True, preexec_fn=setsid))
 
 def sure(msg, w=None):
   dlg=gtk.MessageDialog(w, gtk.DIALOG_MODAL,gtk.MESSAGE_QUESTION, gtk.BUTTONS_YES_NO, msg)
@@ -58,7 +70,15 @@ class ThWV(webkit.WebView):
     webkit.WebView.__init__(self)
     self.set_full_content_zoom(True)
     self.connect_after("populate-popup", self.populate_popup)
-    #self.connect("resource-request-starting", self.test)
+    self.connect("navigation-requested", self._navigation_requested_cb)
+
+  def _navigation_requested_cb(self, view, frame, networkRequest):
+    uri=networkRequest.get_uri()
+    if not uri.startswith('http://127.0.0.1') and not uri.startswith('http://localhost'):
+      run_in_bg("xdg-open '%s'" % uri)
+      return 1
+    return 0
+
 
   def populate_popup(self, view, menu):
     menu.append(gtk.SeparatorMenuItem())
