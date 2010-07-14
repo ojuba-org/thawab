@@ -311,6 +311,7 @@ class ThImportWindow(gtk.Window):
     #self.element_progress_cb(0, 25.0, "testing")
     self.tool.set_sensitive(True)
     self.main.th.loadMeta()
+    self.main._do_in_all_views('reload')
 
   def stop(self, b):
     self.tool.set_sensitive(True)
@@ -712,6 +713,12 @@ class ThMainWindow(gtk.Window):
      if n<0: return
      view=self._content.get_nth_page(n).get_child()
      getattr(view, action)(*a,**kw)
+
+  def _do_in_all_views (self, action, *a, **kw):
+     for n in range(self._content.get_n_pages()):
+       view=self._content.get_nth_page(n).get_child()
+       getattr(view, action)(*a,**kw)
+
 
   def fixes_cb(self, b):
     if not self.fixes_w: self.fixes_w=ThFixesWindow(self)
