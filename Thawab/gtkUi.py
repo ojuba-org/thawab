@@ -92,6 +92,15 @@ class ThWV(webkit.WebView):
       return 1
     return 0
 
+  def _eval_js(self, e):
+     """
+     can be used to eval a javascript expression
+     eg. to obtain value of a javascript variable given its name
+     """
+     self.execute_script('thawab_eval_js_oldtitle=document.title;document.title=%s;' % e)
+     r = self.get_main_frame().get_title()
+     self.execute_script('document.title=thawab_eval_js_oldtitle;')
+     return r
 
   def populate_popup(self, view, menu):
     menu.append(gtk.SeparatorMenuItem())
