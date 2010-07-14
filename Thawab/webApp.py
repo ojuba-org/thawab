@@ -24,6 +24,7 @@ import bisect
 
 from cgi import escape # for html escaping
 from meta import prettyId, makeId
+from stemming import normalize_tb
 from okasha.utils import ObjectsCache
 from okasha.baseWebApp import *
 
@@ -242,12 +243,12 @@ Allow: /
       #r=escape(self.th.searchEngine.resultExcerpt(R,i)).replace('\0','<em>').replace('\010','</em>').replace(u"\u2026",u"\u2026<br/>").encode('utf8')
       return r
     elif args[0]=='kutub' and len(args)==1:
-      q=rq.q.getfirst('q','').decode('utf-8').strip()
+      q=rq.q.getfirst('q','').decode('utf-8').strip().translate(normalize_tb)
       r=[]
       l=self.th.getMeta().getKitabList()
       for k in l:
         n=prettyId(k)
-        if not q or q in n:
+        if not q or q in n.translate(normalize_tb):
           r.append('\t<li><a href="/view/%s/">%s</a></li>' % (k, n))
       return '<ul>%s</ul>\n<div class="clear"></div>' % "\n".join(r)
     raise forbiddenException()
