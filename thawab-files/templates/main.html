@@ -76,6 +76,10 @@ var script='%(script)s';
   </div>
 
 <a name="books"></a><h2>الكتب المتوفرة</h2>
+<form action="" name="KutubFilterForm" onsubmit="kutubFilter(document.getElementById('kutub_q').value); return false;" style="margin:0;border:0;padding:0;">
+تصفية الكتب:
+<input id="kutub_q" class="entry" type="text" value=""></input>
+</form>
 <div id="kutubListing">
 <ul>
 %(kutublinks)s

@@ -73,6 +73,25 @@ function doSearch(q) {
 
 }
 
+function kutubFilter(q) {
+	var o=document.getElementById("kutubListing");
+	var old=o.innerHTML;
+	var l=document.getElementById("loading");
+	l.style.display="block";
+	getAjax(script+"/ajax/kutub", {q:q},
+		function (d) {
+			o.innerHTML=d;
+			l.style.display="none";
+		},
+		function () {
+			o.innerHTML=old;
+			l.style.display="none";
+		}
+	);
+
+	return false;
+}
+
 function moveMouse(E) {
 	var e=window.event || E;
 	mouse_x=window.pageXOffset+e.clientX;

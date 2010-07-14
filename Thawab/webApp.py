@@ -241,6 +241,15 @@ Allow: /
       r=self.th.searchEngine.resultExcerpt(R,i)
       #r=escape(self.th.searchEngine.resultExcerpt(R,i)).replace('\0','<em>').replace('\010','</em>').replace(u"\u2026",u"\u2026<br/>").encode('utf8')
       return r
+    elif args[0]=='kutub' and len(args)==1:
+      q=rq.q.getfirst('q','').decode('utf-8').strip()
+      r=[]
+      l=self.th.getMeta().getKitabList()
+      for k in l:
+        n=prettyId(k)
+        if not q or q in n:
+          r.append('\t<li><a href="/view/%s/">%s</a></li>' % (k, n))
+      return '<ul>%s</ul>\n<div class="clear"></div>' % "\n".join(r)
     raise forbiddenException()
   
   @expose(jsonDumps)
