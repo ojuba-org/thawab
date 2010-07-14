@@ -26,6 +26,7 @@ from xml.sax.saxutils import escape, unescape, quoteattr # for xml rendering
 from dataModel import *
 from tags import *
 from meta import MCache, metaDict2Hash, prettyId, makeId
+from userDb import UserDb
 
 from whooshSearchEngine import SearchEngine
 from asyncIndex import AsyncIndex
@@ -63,6 +64,7 @@ the first thing you should do is to call loadMCache()
       self.prefixes.append(os.path.abspath(system_prefix))
     self.assertManagedTree()
     self.searchEngine=SearchEngine(self)
+    self.user_db=UserDb(self, os.path.join(self.prefixes[0],"user.db") )
     if indexerQueueSize>=0:
       self.asyncIndexer=AsyncIndex(self.searchEngine, indexerQueueSize)
     else:
@@ -86,7 +88,7 @@ the first thing you should do is to call loadMCache()
      # conf	application configuration
      # cache	contains the metadata cache for all containers"""
      P=self.prefixes[0]
-     for i in ['db','index','conf','cache', 'user','tmp']:
+     for i in ['db','index','conf','cache', 'tmp']:
        p=os.path.join(P,i)
        if not os.path.isdir(p): os.makedirs(p)
   def mktemp(self):
