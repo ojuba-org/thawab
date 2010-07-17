@@ -746,6 +746,7 @@ Note: the implementation is a non-recursive optimized code with a single query""
 
   def _wiki2html(self, txt):
     # TODO: split from "^__________$"
+    # FIXME: when an embedded quoted section got footnotes there would be duplicated ids
     txt = self._footnote_s_re.sub(r'''<sup id="fns_\2"><a href="javascript:document.getElementById('fnt_\2').scrollIntoView();">(\2)</a></sup>''', txt)
     txt = self._footnote_t_re.sub(r'''<a id="fnt_\2" href="javascript:document.getElementById('fns_\2').scrollIntoView();">(\2)</a>''', txt)
     txt = self._href_named_re.sub(r'''<a class="external" href="\1" target="_blank">\2</a>''', txt)
