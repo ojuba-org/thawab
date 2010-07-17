@@ -201,6 +201,19 @@ blockquote {
 #contentbody {
 	margin:0;padding:0 16px;border:0;
 }
+
+.fnsource {
+	color: blue;
+	font-size: 0.8em;
+}
+.fntarget {
+	color: blue;
+	font-size: 0.9em;
+}
+.fnsource:hover, .fntarget:hover {
+	text-decoration: underline;
+	cursor: pointer;
+}
 /* nav */
 .navtoolbar {
 	overflow:hidden;

@@ -703,7 +703,7 @@ Note: the implementation is a non-recursive optimized code with a single query""
     #return n.getTags().has_key('header') and u'\n<H%d>%s</H%d>\n' % (n.depth,escape(n.getContent()),n.depth) or "<p>%s</p>" % escape(n.getContent())
     r=u""
     if n.getTags().has_key('header'): r=u'\n<H%d>%s</H%d>\n' % (n.depth,escape(n.getContent()),n.depth)
-    else: r=u"<p>%s</p>" % escape(n.getContent())
+    else: r=u"<p>%s</p>" % self.footNoteParse(escape(n.getContent()))
     if n.getTags().has_key('quran.tafseer.ref'):
       sura,aya,na=n.getTags()['quran.tafseer.ref'].split('-')
       #r+=u'<p class="quran">نص من القرآن %s:%s:%s</p>\n\n' % (sura,aya,na)
@@ -727,6 +727,14 @@ Note: the implementation is a non-recursive optimized code with a single query""
           r+=s
     return r
 
+  def footNoteParse(self, txt):
+  	fnSource=re.compile(r'(\^\[([0-9]+)\])')
+  	fnTarget=re.compile(r'(\*\s\(([0-9]+)\))')
+  	
+  	txt = fnSource.sub("<sup class=\"fnsource\" id=\"fns_\\2\" onclick=\"scrollToId('fnt_\\2')\">(\\2)</sup>", txt)
+  	txt = fnTarget.sub("<span class=\"fntarget\" id=\"fnt_\\2\" onclick=\"scrollToId('fns_\\2')\">(\\2)</span>", txt)
+  	return txt
+  	
   def toHtml(self, upperBound=-1):
     """export the node and its descendants into HTML string"""
     # TODO: escape special chars

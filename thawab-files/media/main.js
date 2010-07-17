@@ -88,6 +88,11 @@ function autoscroll_down_cb() {
 	window.scroll(0,t);
 	return true
 }
+function scrollToId(id) {
+	var y = document.getElementById(id).offsetTop;
+	var x = window.pageXOffset;
+	window.scroll(x,y);
+}
 function import_script(url){
 	var t = document.createElement("script");
 	t.type="text/javascript";
