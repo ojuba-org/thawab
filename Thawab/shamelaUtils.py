@@ -379,7 +379,7 @@ def set_get_xref(xref, h_tags, sh, bkid, pg_id, matn, matnid):
   if matn and matnid and sh.metaById.has_key(matn):
     m=sh.metaById[matn]
     xref=sh.get_xref(matn, matnid)
-    if xref: h_tags['embed.section.ref']=u"".join((m['kitab'], u"-", m['version'], u"/", xref, ))
+    if xref: h_tags['embed.original.section']=xref
 
 
 def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=ur'\((\d+)\)', ft_prefix_len=1, ft_suffix_len=1):

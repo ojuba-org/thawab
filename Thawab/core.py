@@ -268,6 +268,9 @@ class Kitab(object):
     self.is_tmp = is_tmp
     self.th = th
     self.meta = meta
+    if meta and meta.get('originalKitab',None):
+      self.originalKi = self.th.getCachedKitabByNameV(meta['originalKitab']+u"-"+meta['originalVersion'])
+    else: self.originalKi = None
     # the logic to open the uri goes here
     # check if fn exists, if not then set the flag sql_create_schema
     if is_tmp or not os.path.exists(toFs(uri)): sql_create_schema=True
@@ -713,15 +716,25 @@ Note: the implementation is a non-recursive optimized code with a single query""
       #r+=u'<p class="quran">نص من القرآن %s:%s:%s</p>\n\n' % (sura,aya,na)
       # tanween fix u'\u064E\u064E', u'\u064E\u200C\u064E'
       r+=u'<p class="quran">%s</p>\n\n' % "".join(map(lambda i: (i[0]+u'\u202C').replace(u' \u06dd',u' \u202D\u06dd'), othman.getAyatIter(othman.ayaIdFromSuraAya(int(sura),int(aya)),int(na))))
-    if n.kitab and n.kitab.th and n.getTags().has_key('embed.section.ref'):
-      try: matn,xref = n.getTags()['embed.section.ref'].split(u'/', 1)
-      except ValueError: pass
-      else:
-        matnKi=n.kitab.th.getCachedKitabByNameV(matn)
+    if n.kitab and n.kitab.th:
+      if n.kitab.originalKi and n.getTags().has_key('embed.original.section'):
+        xref=n.getTags()['embed.original.section']
+        matnKi=n.kitab.originalKi
+        embd_class="quote_orignal"
+        embd=u"تعليقا على"
+      elif n.getTags().has_key('embed.section.ref'):
+        try: matn,xref = n.getTags()['embed.section.ref'].split(u'/', 1)
+        except ValueError: pass
+        else:
+          matnKi=n.kitab.th.getCachedKitabByNameV(matn)
+          embd_class="quote_external"
+          embd=u"اقتباس"
+      else: embd=None
+      if embd:
         matnNode=list(matnKi.getNodesByTagValueIter("header",xref,False, 1))
         if matnNode:
           matnNode=matnNode[0]
-          s=u'<blockquote><p>تعليقا على:</p>'
+          s=u'<blockquote class="%s"><p>%s:</p>' % (embd_class, embd)
           nx=matnKi.toc.next(matnNode)
           if nx: ub=nx.globalOrder
           else: ub=-1

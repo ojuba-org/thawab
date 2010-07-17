@@ -129,7 +129,8 @@ STD_TAGS_ARGS=( \
   ("request.fix.footnote", "a tag that marks an error in content footnotes.", 0),
   ("textbody", "a tag that marks a typical text.",0),
   ("quran.tafseer.ref", 'a reference to some Ayat in tafseer (in the form of "Sura-Aya-number").', 0),
-  ("embed.section.ref", 'a reference to some section in a kitab to embed (in the form of "kitabName-version/section").', 0),
+  ("embed.section.ref", 'a reference to some section in another kitab to embed (in the form of "kitabName-version/section").', 0),
+  ("embed.original.section", 'a reference to some section in the original kitab to embed. (used in commentary books)', 0),
   # the following index-tags marks the header
   ("hadith.authenticity", "marks the authenticity of the hadith, param values are Sahih, Hasan, weak, fabricated", TAG_FLAGS_IX_TAG),
   # new index field for rawi
