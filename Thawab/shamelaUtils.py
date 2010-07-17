@@ -27,13 +27,13 @@ from itertools import groupby,imap
 from meta import MCache, prettyId, makeId
 
 schema={
-  'main':"bkid INTEGER, bk TEXT, shortname TEXT, cat INTEGER, betaka TEXT, inf TEXT, bkord INTEGER DEFAULT -1, authno INTEGER DEFAULT 0, auth TEXT, authinfo TEXT, higrid INTEGER DEFAULT 0, ad INTEGER DEFAULT 0, islamshort INTEGER DEFAULT 0",
+  'main':"bkid INTEGER, bk TEXT, shortname TEXT, cat INTEGER, betaka TEXT, inf TEXT, bkord INTEGER DEFAULT -1, authno INTEGER DEFAULT 0, auth TEXT, authinfo TEXT, higrid INTEGER DEFAULT 0, ad INTEGER DEFAULT 0, islamshort INTEGER DEFAULT 0, blnk TEXT",
   'men': "id INTEGER, arrname TEXT, isoname TEXT, dispname TEXT",
   'shorts': "bk INTEGER, ramz TEXT, nass TEXT",
   'mendetail': "spid INTEGER PRIMARY KEY, manid INTEGER, bk INTEGER, id INTEGER, talween TEXT",
   'shrooh': "matn INTEGER, matnid INTEGER, sharh INTEGER, sharhid INTEGER, PRIMARY KEY (sharh, sharhid)",
   'cat':"id INTEGER PRIMARY KEY, name Text, catord INTEGER, lvl INTEGER",
-  'book':"id, nass TEXT, part INTEGER DEFAULT 0, page INTEGER DEFAULT 0, hno INTEGER DEFAULT 0, sora INTEGER DEFAULT 0, aya INTEGER DEFAULT 0, na INTEGER DEFAULT 0",
+  'book':"id, nass TEXT, part INTEGER DEFAULT 0, page INTEGER DEFAULT 0, hno INTEGER DEFAULT 0, sora INTEGER DEFAULT 0, aya INTEGER DEFAULT 0, na INTEGER DEFAULT 0, blnk TEXT",
   'toc': "id INTEGER, tit TEXT, lvl INTEGER DEFAULT 1, sub INTEGER DEFAULT 0"
 }
 schema_index={
@@ -113,6 +113,7 @@ class ShamelaSqlite(object):
     self.tables=None
     self.bok_fn=bok_fn
     self.metaById={}
+    self._blnk={}
     self.xref={}
     self.__bkids=None
     self.__commentaries=None
@@ -297,6 +298,12 @@ class ShamelaSqlite(object):
     r=self.c.execute('''SELECT matn, matnid, sharh, sharhid FROM shrooh WHERE sharh=? LIMIT 1''', (sharh_bkid, ) ).fetchone()
     if not r: return -1
     return int(r['matn'])
+
+  def getBLink(self, bkid):
+    if not self._blnk.has_key(bkid):
+      r=self.c.execute('SELECT blnk FROM main WHERE bkid=?', (bkid,)).fetchone()
+      self._blnk[bkid]=r['blnk']
+    return self._blnk[bkid]
 
   def getBookMeta(self, bkid):
     if self.__meta_by_bkid.has_key(bkid): return self.__meta_by_bkid[bkid]
@@ -523,15 +530,19 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
   # step 3: walk through pages, accumulating contents  
   # NOTE: in some books id need not be unique
   # 
-  #for r in c.execute("SELECT id,nass,part,page,hno,sora,aya,na FROM b%d ORDER BY id" % bkid):
+  blnk_base=sh.getBLink(bkid)
+  blnk=""
+  blnk_old=""
   r=c.execute('SELECT rowid FROM b%d ORDER BY rowid DESC LIMIT 1' % bkid).fetchone()
   r_max=float(r['rowid'])/100.0
-  for r in c.execute('SELECT b%d.rowid,id,nass,part,page,hno,sora,aya,na,matn,matnid FROM b%d LEFT OUTER JOIN shrooh ON shrooh.sharh=%d AND id=shrooh.sharhid ORDER BY id' % (bkid,bkid,bkid,)):
+  for r in c.execute('SELECT b%d.rowid,id,nass,part,page,hno,sora,aya,na,matn,matnid,blnk FROM b%d LEFT OUTER JOIN shrooh ON shrooh.sharh=%d AND id=shrooh.sharhid ORDER BY id' % (bkid,bkid,bkid,)):
     sh.progress("importing book [%d]" % bkid, r['rowid']/r_max, *sh.progress_args, **sh.progress_kw)
     if r['nass']: pg_txt=r['nass'].translate(dos2unix_tb).strip()
     else: pg_txt=u""
     pg_id=r['id']
     hno=r['hno']
+    blnk_old=blnk
+    blnk=r['blnk']
     try:
       matn=r['matn'] and int(r['matn'])
       matnid=r['matnid'] and int(r['matnid'])
@@ -631,6 +642,9 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
     _fixHeadBounds(pg_body, found)
     # commit the body of previous heading first
     if started:
+      if blnk_old and blnk_base:
+        last+=u"\n\n[[%s]]\n\n" % (blnk_base+blnk_old)
+        blnk_old=None
       last+=shamela_shift_footers_re.sub(footer_shift_cb, pg_body[:found[0].start])
       if footnotes_cnd:
         print " ** stall footnotes at pg_id=",pg_id
@@ -675,6 +689,9 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
     
 
   if not started: raise TypeError
+  if blnk and blnk_base:
+    last+=u"\n\n[[%s]]\n\n" % (blnk_base+blnk)
+    blnk=None
   if last:
     if footnotes:
       last+="\n\n__________\n"+pop_footers(footnotes)
