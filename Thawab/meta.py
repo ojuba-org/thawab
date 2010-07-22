@@ -228,12 +228,12 @@ class MCache(object):
     """
     return a list of meta dicts for Kutub that are likely to have broken index
     """
-    return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_INDEXED))
+    return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_DIRTY_INDEX))
 
   def getIndexedList(self):
     """
     return a list of meta dicts for Kutub that are already in index.
     """
-    return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_DIRTY_INDEX))
+    return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_INDEXED))
 
 

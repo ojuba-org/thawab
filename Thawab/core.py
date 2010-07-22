@@ -25,7 +25,7 @@ from StringIO import StringIO
 from xml.sax.saxutils import escape, unescape, quoteattr # for xml rendering
 from dataModel import *
 from tags import *
-from meta import MCache, metaDict2Hash, prettyId, makeId
+from meta import MCache, metaDict2Hash, prettyId, makeId, metaVrr
 from userDb import UserDb
 
 from whooshSearchEngine import SearchEngine
@@ -166,13 +166,15 @@ the first thing you should do is to call loadMCache()
 
   def reconstructMetaIndexedFlags(self):
     m=self.getMeta()
-    m.setAllIndexedFlags()
-    l=set(map(lambda i: i['uri'], m.getDirtyIndexList()))
-    for i in m.getUnindexedList()
-      if i['uri'] in l: continue # keep dirty as is
+    l1=m.getIndexedList()
+    l2=m.getUnindexedList()
+    #l3=m.getDirtyIndexList() # NOTE: Dirty are kept as is
+    for i in l1:
+      v=self.searchEngine.getIndexedVersion(i['kitab'])
+      if not v or metaVrr(i)!=v: m.setIndexedFlags(i['uri'], 0) # mark as unindexed
+    for i in l2:
       v=self.searchEngine.getIndexedVersion(i['kitab'])
       if v and metaVrr(i)==v: m.setIndexedFlags(i['uri']) # mark as indexed if same version
-      elif i['flags']!=0: m.setIndexedFlags(i['uri'], 0) # mask as unindexed elsewhere
 
 class KitabCursor:
   """
