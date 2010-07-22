@@ -651,7 +651,9 @@ for example to recover power failure.</span>"""))
     p=os.path.join(self.main.th.prefixes[0], 'cache', 'meta.db')
     try: os.unlink(p)
     except OSError: error(_("unable to remove file [%s]" % p), self)
-    else: info(_("Done"), self)
+    else:
+      self.main.th.reconstructMetaIndexedFlags()
+      info(_("Done"), self)
 
 class ThMainWindow(gtk.Window):
   def __init__(self, th, port, server):

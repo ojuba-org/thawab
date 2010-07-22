@@ -164,6 +164,16 @@ the first thing you should do is to call loadMCache()
     p=os.path.join(self.prefixes[0],'cache','meta.db')
     self.__meta=MCache(p, self.getManagedUriList())
 
+  def reconstructMetaIndexedFlags(self):
+    m=self.getMeta()
+    m.setAllIndexedFlags()
+    l=set(map(lambda i: i['uri'], m.getDirtyIndexList()))
+    for i in m.getUnindexedList()
+      if i['uri'] in l: continue # keep dirty as is
+      v=self.searchEngine.getIndexedVersion(i['kitab'])
+      if v and metaVrr(i)==v: m.setIndexedFlags(i['uri']) # mark as indexed if same version
+      elif i['flags']!=0: m.setIndexedFlags(i['uri'], 0) # mask as unindexed elsewhere
+
 class KitabCursor:
   """
   an object used to do a sequence of SQL operation

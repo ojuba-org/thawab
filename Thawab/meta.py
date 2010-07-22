@@ -56,7 +56,7 @@ def metaDict2Hash(meta, suffix=None):
 class MCache(object):
   """a class holding metadata cache"""
   def __init__(self, mcache_db, uri_list, smart=-1):
-    self.db_fn=mcache_db
+    self.db_fn = mcache_db
     if not os.path.exists(mcache_db): create_new=True
     else: create_new=False
     self._cn={}
@@ -224,7 +224,7 @@ class MCache(object):
     
     return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_UNINDEXED))
 
-  def getDiryIndexList(self):
+  def getDirtyIndexList(self):
     """
     return a list of meta dicts for Kutub that are likely to have broken index
     """
