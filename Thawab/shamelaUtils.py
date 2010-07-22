@@ -322,6 +322,7 @@ class ShamelaSqlite(object):
         m['kitab']=makeId(r['bk'])
         m['author'],m['year']=self.authorByID(r['authno'], r)
         m['classification']=self.classificationByBookId(bkid)
+        m['keywords']=u''
         matn_bkid=self._get_matn(bkid)
         print "%d is sharh for %d" % (bkid, matn_bkid)
         if matn_bkid>0:

@@ -20,7 +20,7 @@ from tags import *
 MCACHE_BASE_FIELDS=[
   'cache_hash','repo','lang','kitab','version', 'releaseMajor', 'releaseMinor', 'type',
   'author', 'year', 'originalAuthor', 'originalYear', 'originalKitab', 'originalVersion',
-  'classification'
+  'classification', 'keywords'
 ]
 MCACHE_FIELDS = MCACHE_BASE_FIELDS + ['uri', 'mtime', 'flags']
 
@@ -46,7 +46,8 @@ CREATE TABLE "meta" (
 	"originalYear" INTEGER,
 	"originalKitab" TEXT,
 	"originalVersion" TEXT,
-	"classification" TEXT
+	"classification" TEXT,
+	"keywords" TEXT
 );"""
 
 SQL_MCACHE_DATA_MODEL = MCACHE_BASE[:MCACHE_BASE.find('\n)')]+""",\n\
