@@ -10,6 +10,8 @@ locales=map(lambda i: ('share/'+i,[''+i+'/thawab.mo',]),glob('locale/*/LC_MESSAG
 data_files=[
   ('share/thawab/thawab-files/media/',glob('thawab-files/media/*.js')+glob('thawab-files/media/*.css')),
   ('share/thawab/thawab-files/media/img',glob('thawab-files/media/img/*')),
+  ('share/thawab/thawab-files/media/manual',glob('thawab-files/media/manual/*')),
+  ('share/thawab/thawab-files/media/manual/images/',glob('thawab-files/media/manual/images/*')),
   ('share/thawab/thawab-files/templates/',glob('thawab-files/templates/*.html')),
 ]
 data_files.extend(locales)

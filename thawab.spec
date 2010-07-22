@@ -1,7 +1,7 @@
 Name: thawab
 Summary: Thawab Arabic/Islamic encyclopedia system
 URL: http://thawab.ojuba.org/
-Version: 3.0.6
+Version: 3.0.7
 Release: 1%{?dist}
 Source0: http://git.ojuba.org/cgit/%{name}/snapshot/%{name}-%{version}.tar.bz2
 License: Waqf
@@ -55,7 +55,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/locale/*/*/*.mo
 
 %changelog
-* Sun Jul 4 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.6-1
+* Sun Jul 4 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.7-1
 - update to latest stable release
 - activate footnotes links
 - opens external links with default browser
