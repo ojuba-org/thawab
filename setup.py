@@ -1,19 +1,25 @@
 #! /usr/bin/python
-import sys, os
+import sys, os, os.path
 from distutils.core import setup
 from glob import glob
 
 # to install type: 
 # python setup.py install --root=/
 
+def no_empty(l):
+  return filter(lambda (i,j): j, l)
+
+def recusive_data_dir(to, src, l=None):
+  D=glob(os.path.join(src,'*'))
+  files=filter( lambda i: os.path.isfile(i), D )
+  dirs=filter( lambda i: os.path.isdir(i), D )
+  if l==None: l=[]
+  l.append( (to , files ) )
+  for d in dirs: recusive_data_dir( os.path.join(to,os.path.basename(d)), d , l)
+  return l
+
 locales=map(lambda i: ('share/'+i,[''+i+'/thawab.mo',]),glob('locale/*/LC_MESSAGES'))
-data_files=[
-  ('share/thawab/thawab-files/media/',glob('thawab-files/media/*.js')+glob('thawab-files/media/*.css')),
-  ('share/thawab/thawab-files/media/img',glob('thawab-files/media/img/*')),
-  ('share/thawab/thawab-files/media/manual',glob('thawab-files/media/manual/*')),
-  ('share/thawab/thawab-files/media/manual/images/',glob('thawab-files/media/manual/images/*')),
-  ('share/thawab/thawab-files/templates/',glob('thawab-files/templates/*.html')),
-]
+data_files=no_empty(recusive_data_dir('share/thawab/thawab-files', 'thawab-files'))
 data_files.extend(locales)
 setup (name='thawab', version='0.2.2',
       description='Thawab Arabic/Islamic encyclopedia system',
