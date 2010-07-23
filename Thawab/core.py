@@ -163,9 +163,10 @@ the first thing you should do is to call loadMCache()
     self.__meta=None
     p=os.path.join(self.prefixes[0],'cache','meta.db')
     self.__meta=MCache(p, self.getManagedUriList())
+    return self.__meta
 
   def reconstructMetaIndexedFlags(self):
-    m=self.getMeta()
+    m=self.loadMeta() # NOTE: getMeta is not used because we want to make sure we are using a fresh one
     l1=m.getIndexedList()
     l2=m.getUnindexedList()
     #l3=m.getDirtyIndexList() # NOTE: Dirty are kept as is
