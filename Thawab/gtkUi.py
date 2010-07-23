@@ -125,6 +125,7 @@ targets_l=gtk.target_list_add_uri_targets()
 class ThImportWindow(gtk.Window):
   def __init__(self, main):
     gtk.Window.__init__(self)
+    self.progress_dict = { }
     self.progress_phase = 0
     self.progress_books_in_file = 0
     self.progress_element = 0
@@ -158,8 +159,9 @@ class ThImportWindow(gtk.Window):
     self.progress=gtk.ProgressBar()
     self.progress.set_fraction(0.0)
     hb0.pack_start(self.progress, True, True, 2)
-    b=gtk.Button(stock=gtk.STOCK_STOP)
+    self.cancel_b=b=gtk.Button(stock=gtk.STOCK_STOP)
     b.connect('clicked', self.stop)
+    b.set_sensitive(False)
     hb0.pack_start(b, False, False, 2)
 
     self.ls = gtk.ListStore(str,str,float,int,str) # fn, basename, percent, pulse, label
@@ -185,7 +187,7 @@ class ThImportWindow(gtk.Window):
     vb.pack_start(scroll,True, True, 2)
 
     
-    x=gtk.Expander(_("Advanced options"))
+    self.x=x=gtk.Expander(_("Advanced options"))
     vb.pack_start(x, False, False, 2)
 
     xvb=gtk.VBox(False,2); x.add(xvb)
@@ -281,7 +283,7 @@ class ThImportWindow(gtk.Window):
 
   def element_progress_cb(self, i, percent, text=None):
     l=self.ls[(i,)]
-    l[2]=percent
+    if percent>=0.0: l[2]=percent
     if text!=None: l[4]=text
     gtk.main_iteration()
 
@@ -302,9 +304,15 @@ class ThImportWindow(gtk.Window):
     self.progress.set_fraction( float(i)/N + percent/100.0/N )
     gtk.main_iteration()
 
-  def start(self, b):
+  def start_cb(self):
     self.tool.set_sensitive(False)
+    self.x.set_sensitive(False)
+    self.cancel_b.set_sensitive(True)
+    self.progress_dict['cancel']=False
 
+  def start(self, b):
+    self.start_cb()
+    self.progress.set_text(_("working ..."))
     ft_at_line_start=self.ft_at_line_start.get_active()
     ft_prefix=self.ft_prefix.get_text(); ft_prefix_len=len(ft_prefix)
     ft_suffix=self.ft_suffix.get_text(); ft_suffix_len=len(ft_suffix)
@@ -332,10 +340,14 @@ class ThImportWindow(gtk.Window):
       else:
         cn=None
       self.progress_phase=1
-      try: sh=ShamelaSqlite(fn, cn, int(self.releaseMajor.get_value()), int(self.releaseMinor.get_value()), self.progress_cb)
+      try: sh=ShamelaSqlite(fn, cn, int(self.releaseMajor.get_value()), int(self.releaseMinor.get_value()), self.progress_cb, progress_dict=self.progress_dict)
       except TypeError: print "not a shamela file"; continue
       except OSError: print "mdbtools is not installed"; break
-      sh.toSqlite()
+      if not sh.toSqlite():
+        # canceled
+        self.progress.set_text(_("Canceled"))
+        self.element_progress_cb(self.progress_element, -1.0, _("Canceled"))
+        return
       self.progress_phase=2
       ids=sh.getBookIds()
       self.progress_books_in_file=len(ids)
@@ -344,6 +356,11 @@ class ThImportWindow(gtk.Window):
         ki=self.main.th.mktemp()
         c=ki.seek(-1,-1)
         m=shamelaImport(c, sh, bkid, footnote_re, body_footnote_re, ft_prefix_len, ft_suffix_len)
+        if m==None:
+          # canceled
+          self.progress.set_text(_("Canceled"))
+          self.element_progress_cb(self.progress_element, -1.0, _("Canceled"))
+          return
         c.flush()
         t_fn=os.path.join(self.main.th.prefixes[0], 'db', u"".join((m['kitab'] + u"-" + m['version'] + Thawab.core.th_ext,)))
         print "moving %s to %s" % (ki.uri, t_fn)
@@ -355,11 +372,22 @@ class ThImportWindow(gtk.Window):
       except OSError: pass
     #self.element_progress_cb(0, 25.0, "testing")
     self.tool.set_sensitive(True)
+    self.x.set_sensitive(True)
+    self.cancel_b.set_sensitive(False)
     self.main.th.loadMeta()
     self.main._do_in_all_views('reload_if_index')
+    self.progress.set_text(_("Done"))
+    info(_("Done"), self)
+    self.ls.clear()
+    self.progress.set_text("")
+    self.progress.set_fraction(0.0)
+    self.hide()
 
   def stop(self, b):
     self.tool.set_sensitive(True)
+    self.x.set_sensitive(True)
+    self.cancel_b.set_sensitive(False)
+    self.progress_dict['cancel']=True
 
   def add_cb(self, b):
     if self.run_add_dlg()==gtk.RESPONSE_ACCEPT:
@@ -591,7 +619,9 @@ class ThIndexerWindow(gtk.Window):
     b.connect('clicked', self.indexNew)
     hb.pack_start(b, False, False, 0)
     hb.pack_start(self.progress, False, False, 0)
-    hb.pack_start(gtk.Button(stock=gtk.STOCK_CANCEL), False, False, 0)
+    self.cancel_b=b=gtk.Button(stock=gtk.STOCK_CANCEL)
+    hb.pack_start(b, False, False, 0)
+    b.set_sensitive(False)
     self.update()
     glib.timeout_add(250, self.update)
 

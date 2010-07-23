@@ -103,13 +103,14 @@ def footer_shift_cb(mi):
 
 
 class ShamelaSqlite(object):
-  def __init__(self, bok_fn, cn=None, releaseMajor=0, releaseMinor=0, progress=None, progress_args=[], progress_kw={}):
+  def __init__(self, bok_fn, cn=None, releaseMajor=0, releaseMinor=0, progress=None, progress_args=[], progress_kw={}, progress_dict=None):
     """import the bok file into sqlite"""
     self.releaseMajor = releaseMajor
     self.releaseMinor = releaseMinor
     self.progress = progress
     self.progress_args = progress_args
     self.progress_kw = progress_kw
+    self.progress_dict = progress_dict
     self.tables=None
     self.bok_fn=bok_fn
     self.metaById={}
@@ -118,6 +119,7 @@ class ShamelaSqlite(object):
     self.__bkids=None
     self.__commentaries=None
     self.version,self.tb,self.bkids=self.identify()
+    if self.progress_dict==None: self.progress_dict={}
     # note: the difference between tb and self.tables that tables are left as reported by mdbtoolds while tb are lower-cased
     self.cn=cn or sqlite3.connect(':memory:', isolation_level=None)
     self.cn.row_factory=sqlite3.Row
@@ -223,6 +225,9 @@ class ShamelaSqlite(object):
     self.imported_tables.append(Tb)
 
   def toSqlite(self, in_transaction=True, bkids=None):
+    """
+    return True if success, or False if canceled
+    """
     if in_transaction: self.c.execute('BEGIN TRANSACTION')
     tables=self.getTables()
     is_special=lambda t: (t.lower().startswith('t') or t.lower().startswith('b')) and t[1:].isdigit()
@@ -235,10 +240,12 @@ class ShamelaSqlite(object):
     progress_delta=1.0/(len(s_tables)+len(g_tables))*100.0
     progress=0.0
     for t in g_tables:
+      if self.progress_dict.get('cancel', False): return False
       if self.progress: self.progress("importing table [%s]" % t,progress, *self.progress_args, **self.progress_kw)
       progress+=progress_delta
       self.importTable(t, t.lower())
     for t in s_tables:
+      if self.progress_dict.get('cancel', False): return False
       if self.progress: self.progress("importing table [%s]" % t,progress, *self.progress_args, **self.progress_kw)
       progress+=progress_delta
       if t.lower().startswith('t'):
@@ -249,6 +256,7 @@ class ShamelaSqlite(object):
     if self.progress: self.progress("finished, committing ...",progress, *self.progress_args, **self.progress_kw)
     if in_transaction: self.c.execute('END TRANSACTION')
     self.__getCommentariesHash()
+    return True
 
   def __getCommentariesHash(self):
     if self.__commentaries!=None: return self.__commentaries
@@ -537,6 +545,8 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
   r=c.execute('SELECT rowid FROM b%d ORDER BY rowid DESC LIMIT 1' % bkid).fetchone()
   r_max=float(r['rowid'])/100.0
   for r in c.execute('SELECT b%d.rowid,id,nass,part,page,hno,sora,aya,na,matn,matnid,blnk FROM b%d LEFT OUTER JOIN shrooh ON shrooh.sharh=%d AND id=shrooh.sharhid ORDER BY id' % (bkid,bkid,bkid,)):
+    if sh.progress_dict.get('cancel', False): return None
+    # FIXME: since we are using ORDER BY id, then using rowid for progress is not always correct
     sh.progress("importing book [%d]" % bkid, r['rowid']/r_max, *sh.progress_args, **sh.progress_kw)
     if r['nass']: pg_txt=r['nass'].translate(dos2unix_tb).strip()
     else: pg_txt=u""
