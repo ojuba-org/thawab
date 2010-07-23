@@ -305,13 +305,14 @@ tfoot td, tfoot th	{border:none; font-size:130%}
 	color:#000;
 }
 
-.mini table, .mini th, .mini td, .mini a{
-	padding:0;
+.mini table, .mini th, .mini td { padding:0; }
+.mini tbody a{
+	display:block;
+	padding:0 5px;
+	white-space:nowrap;
+	width:380px; overflow:hidden;
 }
-
-.mini #SearchPages span {
-	font-size:80%;
-}
+.mini #SearchPages span { font-size:80%; }
 
 .mini #SearchPages a{ padding:0 0.2em; }
 
