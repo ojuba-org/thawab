@@ -309,6 +309,12 @@ tfoot td, tfoot th	{border:none; font-size:130%}
 	padding:0;
 }
 
+.mini #SearchPages span {
+	font-size:80%;
+}
+
+.mini #SearchPages a{ padding:0 0.2em; }
+
 #SearchContainer.mini {
 	padding:36px 0 0 0;
 	overflow:hidden;
