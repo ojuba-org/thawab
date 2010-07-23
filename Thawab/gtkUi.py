@@ -92,6 +92,9 @@ class ThWV(webkit.WebView):
       return 1
     return 0
 
+  def reload_if_index(self, *a, **kw):
+    if self.get_property('uri').endswith('/index/'): self.reload()
+
   def _eval_js(self, e):
      """
      can be used to eval a javascript expression
@@ -353,7 +356,7 @@ class ThImportWindow(gtk.Window):
     #self.element_progress_cb(0, 25.0, "testing")
     self.tool.set_sensitive(True)
     self.main.th.loadMeta()
-    self.main._do_in_all_views('reload')
+    self.main._do_in_all_views('reload_if_index')
 
   def stop(self, b):
     self.tool.set_sensitive(True)
