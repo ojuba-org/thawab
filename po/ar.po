@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-07-22 23:11+0300\n"
+"POT-Creation-Date: 2010-07-23 18:40+0300\n"
 "PO-Revision-Date: 2010-06-12 19:35+0300\n"
 "Last-Translator: Muayyad Saleh Alsadi <alsadi@ojuba.org>\n"
 "Language-Team: thawab@ojuba.org\n"
@@ -21,108 +21,115 @@ msgstr ""
 msgid "Electronic Arabic/Islamic Encyclopedia"
 msgstr "موسوعة ثواب العربية الإسلامية"
 
-#: ../thawab.desktop.in.h:2 ../Thawab/gtkUi.py:665 ../Thawab/gtkUi.py:677
+#: ../thawab.desktop.in.h:2 ../Thawab/gtkUi.py:698 ../Thawab/gtkUi.py:710
 msgid "Thawab"
 msgstr "ثواب"
 
-#: ../Thawab/gtkUi.py:131
+#: ../Thawab/gtkUi.py:135
 msgid "Import Shamela .bok files"
 msgstr "استيراد ملفات bok من الشاملة"
 
-#: ../Thawab/gtkUi.py:185
+#: ../Thawab/gtkUi.py:190
 msgid "Advanced options"
 msgstr "خيارات متقدمة"
 
-#: ../Thawab/gtkUi.py:190
+#: ../Thawab/gtkUi.py:195
 msgid "Performance tuning:"
 msgstr "معايرة الأداء"
 
-#: ../Thawab/gtkUi.py:194
+#: ../Thawab/gtkUi.py:199
 msgid "in memory"
 msgstr "في الذاكرة"
 
-#: ../Thawab/gtkUi.py:195
+#: ../Thawab/gtkUi.py:200
 msgid "faster but consumes more memory and harder to debug."
 msgstr "أسرع لكنها تستهلك الكثير من الذاكرة وصعبة التمحيص"
 
-#: ../Thawab/gtkUi.py:203
+#: ../Thawab/gtkUi.py:208
 msgid "Release Major:"
 msgstr "الإصدار الأكبر:"
 
-#: ../Thawab/gtkUi.py:206
+#: ../Thawab/gtkUi.py:211
 msgid "Release Minor:"
 msgstr "الإصدار الأصغر:"
 
-#: ../Thawab/gtkUi.py:214 ../Thawab/gtkUi.py:240
+#: ../Thawab/gtkUi.py:219 ../Thawab/gtkUi.py:245
 msgid "Prefix:"
 msgstr "السابقة:"
 
-#: ../Thawab/gtkUi.py:220 ../Thawab/gtkUi.py:246
+#: ../Thawab/gtkUi.py:225 ../Thawab/gtkUi.py:251
 msgid "Suffix:"
 msgstr "اللاحقة:"
 
-#: ../Thawab/gtkUi.py:226
+#: ../Thawab/gtkUi.py:231
 msgid "only at line start"
 msgstr "فقط على بداية الكلمة"
 
-#: ../Thawab/gtkUi.py:230 ../Thawab/gtkUi.py:253
+#: ../Thawab/gtkUi.py:235 ../Thawab/gtkUi.py:258
 msgid "in between spaces:"
 msgstr "المسافات البينية:"
 
-#: ../Thawab/gtkUi.py:231 ../Thawab/gtkUi.py:254
+#: ../Thawab/gtkUi.py:236 ../Thawab/gtkUi.py:259
 msgid "no spaces"
 msgstr "دون مسافات"
 
-#: ../Thawab/gtkUi.py:232 ../Thawab/gtkUi.py:255
+#: ../Thawab/gtkUi.py:237 ../Thawab/gtkUi.py:260
 msgid "optional white-space"
 msgstr "مسافة واحدة اختيارية"
 
-#: ../Thawab/gtkUi.py:233 ../Thawab/gtkUi.py:256
+#: ../Thawab/gtkUi.py:238 ../Thawab/gtkUi.py:261
 msgid "optional white-spaces"
 msgstr "مسافات اختيارية"
 
-#: ../Thawab/gtkUi.py:297
+#: ../Thawab/gtkUi.py:302 ../Thawab/gtkUi.py:315
 msgid "working ..."
 msgstr "يجري العمل ..."
 
-#: ../Thawab/gtkUi.py:348 ../Thawab/gtkUi.py:647 ../Thawab/gtkUi.py:656
+#. canceled
+#: ../Thawab/gtkUi.py:348 ../Thawab/gtkUi.py:349 ../Thawab/gtkUi.py:361
+#: ../Thawab/gtkUi.py:362
+msgid "Canceled"
+msgstr "ملغي"
+
+#: ../Thawab/gtkUi.py:368 ../Thawab/gtkUi.py:379 ../Thawab/gtkUi.py:380
+#: ../Thawab/gtkUi.py:680 ../Thawab/gtkUi.py:689
 msgid "Done"
 msgstr "تم"
 
-#: ../Thawab/gtkUi.py:368
+#: ../Thawab/gtkUi.py:399
 msgid "Select files to import"
 msgstr "اختر الملفات كي تستورد"
 
-#: ../Thawab/gtkUi.py:370
+#: ../Thawab/gtkUi.py:401
 msgid "Shamela BOK files"
 msgstr "ملفات BOK الخاصة بالشاملة"
 
-#: ../Thawab/gtkUi.py:533
+#: ../Thawab/gtkUi.py:564
 msgid "Open Link in New Tab"
 msgstr "فتح الرابط في لسان جديد"
 
-#: ../Thawab/gtkUi.py:582
+#: ../Thawab/gtkUi.py:613
 msgid "Manage search index"
 msgstr "إدارة فهارس البحث"
 
-#: ../Thawab/gtkUi.py:587
+#: ../Thawab/gtkUi.py:618
 msgid "Queue new books"
 msgstr "دفع الكتب الجديدة"
 
-#: ../Thawab/gtkUi.py:605
+#: ../Thawab/gtkUi.py:638
 #, python-format
 msgid "Indexing ... (%d left)"
 msgstr "يجري الفهرسة ... (بقي %d)"
 
-#: ../Thawab/gtkUi.py:608
+#: ../Thawab/gtkUi.py:641
 msgid "no indexing jobs left"
 msgstr "لم يتبق أي مهمات فهرسة"
 
-#: ../Thawab/gtkUi.py:614
+#: ../Thawab/gtkUi.py:647
 msgid "Misc. Fixes"
 msgstr "إصلاحات متنوعة"
 
-#: ../Thawab/gtkUi.py:624
+#: ../Thawab/gtkUi.py:657
 msgid ""
 "<span size=\"large\">Those procedures are to be used in case of "
 "<b>emergency</b> only,\n"
@@ -131,23 +138,23 @@ msgstr ""
 "<span size=\"large\">تستخدم هذه الإجراءات في الحالات <b>الطارئة</b> فقط,\n"
 "مثل عطل ناتج عن انقطاع الطاقة الكهربائية.</span>"
 
-#: ../Thawab/gtkUi.py:629
+#: ../Thawab/gtkUi.py:662
 msgid "remove search index"
 msgstr "حذف فهرس البحث"
 
-#: ../Thawab/gtkUi.py:630
+#: ../Thawab/gtkUi.py:663
 msgid "you will need to re-index all books"
 msgstr "ستحتاج للقيام بإعادة فعرسة كل الكتب"
 
-#: ../Thawab/gtkUi.py:635
+#: ../Thawab/gtkUi.py:668
 msgid "remove meta data cache to generate a fresh one"
 msgstr "إزالة نسخة الميتا الخبيئة وتوليد واحدة جديدة"
 
-#: ../Thawab/gtkUi.py:636
+#: ../Thawab/gtkUi.py:669
 msgid "instead of incremental meta data gathering"
 msgstr "عوضا عن جمعها تزايديا"
 
-#: ../Thawab/gtkUi.py:643
+#: ../Thawab/gtkUi.py:676
 msgid ""
 "You will need to recreate search index in-order to search again.\n"
 "Are you sure you want to remove search index?"
@@ -155,76 +162,76 @@ msgstr ""
 "يتوجب عليك إعادة توليد فهارس البحث حتى يعمل البحث مجددا.\n"
 "هل أنت متأكد من رغبتك في حذف فهارس البحث؟"
 
-#: ../Thawab/gtkUi.py:646
+#: ../Thawab/gtkUi.py:679
 #, python-format
 msgid "unable to remove folder [%s]"
 msgstr "غير قادر على حذف المجلد [%s]"
 
-#: ../Thawab/gtkUi.py:650
+#: ../Thawab/gtkUi.py:683
 msgid "Are you sure you want to remove search meta data cache?"
 msgstr "هل أنت متاكد من رغبتك في إزالة خبيئة الميتا؟"
 
-#: ../Thawab/gtkUi.py:653
+#: ../Thawab/gtkUi.py:686
 #, python-format
 msgid "unable to remove file [%s]"
 msgstr "غير قادر على إزالة الملف [%s]"
 
-#: ../Thawab/gtkUi.py:683
+#: ../Thawab/gtkUi.py:716
 msgid "Open a new tab"
 msgstr "فتح لسان جديد"
 
-#: ../Thawab/gtkUi.py:691
+#: ../Thawab/gtkUi.py:724
 msgid "Import"
 msgstr "استيراد"
 
-#: ../Thawab/gtkUi.py:692
+#: ../Thawab/gtkUi.py:725
 msgid "Import .bok files"
 msgstr "استيراد ملف bok"
 
-#: ../Thawab/gtkUi.py:698
+#: ../Thawab/gtkUi.py:731
 msgid "Index"
 msgstr "فهرسة"
 
-#: ../Thawab/gtkUi.py:700
+#: ../Thawab/gtkUi.py:733
 msgid "Create search index"
 msgstr "إنشاء فهرس البحث"
 
-#: ../Thawab/gtkUi.py:708
+#: ../Thawab/gtkUi.py:741
 msgid "Zoom in"
 msgstr "تكبير"
 
-#: ../Thawab/gtkUi.py:710
+#: ../Thawab/gtkUi.py:743
 msgid "Makes things appear bigger"
 msgstr "تجعل الأشياء تبدو أكبر"
 
-#: ../Thawab/gtkUi.py:716
+#: ../Thawab/gtkUi.py:749
 msgid "Zoom out"
 msgstr "تصغيير"
 
-#: ../Thawab/gtkUi.py:717
+#: ../Thawab/gtkUi.py:750
 msgid "Makes things appear smaller"
 msgstr "تجعل الأشياء تبدو أصغر"
 
-#: ../Thawab/gtkUi.py:723
+#: ../Thawab/gtkUi.py:756
 msgid "1:1 Zoom"
 msgstr "تكبير 1:1"
 
-#: ../Thawab/gtkUi.py:724
+#: ../Thawab/gtkUi.py:757
 msgid "restore original zoom factor"
 msgstr "تعيد التكبير الأصلي"
 
-#: ../Thawab/gtkUi.py:732
+#: ../Thawab/gtkUi.py:765
 msgid "Fixes"
 msgstr "إصلاحات"
 
-#: ../Thawab/gtkUi.py:734
+#: ../Thawab/gtkUi.py:767
 msgid "Misc Fixes"
 msgstr "إصلاحات متنوعة"
 
-#: ../Thawab/gtkUi.py:742
+#: ../Thawab/gtkUi.py:775
 msgid "Help"
 msgstr "مساعدة"
 
-#: ../Thawab/gtkUi.py:743
+#: ../Thawab/gtkUi.py:776
 msgid "Show user manual"
 msgstr "إظهار دليل المستخدم"

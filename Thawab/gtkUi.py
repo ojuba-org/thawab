@@ -159,7 +159,7 @@ class ThImportWindow(gtk.Window):
     self.progress=gtk.ProgressBar()
     self.progress.set_fraction(0.0)
     hb0.pack_start(self.progress, True, True, 2)
-    self.cancel_b=b=gtk.Button(stock=gtk.STOCK_STOP)
+    self.cancel_b=b=gtk.Button(stock=gtk.STOCK_CANCEL)
     b.connect('clicked', self.stop)
     b.set_sensitive(False)
     hb0.pack_start(b, False, False, 2)
