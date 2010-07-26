@@ -1,7 +1,7 @@
 Name: thawab
 Summary: Thawab Arabic/Islamic encyclopedia system
 URL: http://thawab.ojuba.org/
-Version: 3.0.7
+Version: 3.0.8
 Release: 1%{?dist}
 Source0: http://git.ojuba.org/cgit/%{name}/snapshot/%{name}-%{version}.tar.bz2
 License: Waqf
@@ -55,6 +55,11 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/locale/*/*/*.mo
 
 %changelog
+* Mon Jul 26 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.8-1
+- activate cancel button in import window
+- only reload index after new import
+- css: hide overflow in minisearch
+
 * Sun Jul 4 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.7-1
 - update to latest stable release
 - activate footnotes links

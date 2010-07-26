@@ -24,7 +24,14 @@ div.toc {
   background: #cda;
   padding:20px;margin:10px;
   border: #999 solid 2px;
-  }
+}
+
+div.footnotes {
+  margin: 0.5em -2em 0;
+  padding: 1em 4em 0;
+  border-top: 2px dotted #CCC
+}
+
 pre {
   background: #cda;
   border: #cdc solid 2px;
