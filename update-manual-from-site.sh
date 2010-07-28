@@ -16,6 +16,7 @@ perl -i -lwne 'BEGIN{$echo=1;}
 s:href="/wiki/thawab/([^"]+)":href="${1}.html":g;
 s:src="/wiki/_media/thawab/([^?"]+)(\?[^"]*)?":src="images/$1":g;
 s:href="/wiki/_detail/thawab/([^?"]+)(\?[^"]*)?":href="images/$1":g;
+s!a href="http://!a target="_blank" href="http://!g;
 s|\Q<title>thawab:\E.*\Q</title>\E|<title>دليل استخدام ثواب</title>|g;
 if(/#discussion__section|\<(link|meta|script)[^>]*\>/){next;}if (/class="tags"/) {$echo=0;}
 if(/\<\/head\>/) {
