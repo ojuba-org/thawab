@@ -7,7 +7,7 @@ var resultsPerPage=50;
 var async_tips_div, mouse_x, mouse_y;
 
 function main_search_row_factory(u, bu, r) {
-  return "<tr><td>"+html_escape(r.k)+"</td><td>"+html_escape(r.a)+"</td><td>"+(r.y || "-")+"</td><td><a onmouseover='asynctip(this);' onmouseout='asynctip_hide(this);' class='external' target='_blank' rel='"+u+r.i+"' href='"+bu+encodeURI(r.k)+"#"+encodeURI(r.n)+"'>"+ html_escape(r.t)+"</a></td><td>"+html_escape(r.r)+"</td>\n";
+  return "<tr><td>"+html_escape(r.k)+"</td><td>"+html_escape(r.a)+"</td><td>"+(r.y || "-")+"</td><td><a onmouseover='asynctip(this);' onmouseout='asynctip_hide(this);' target='_blank' rel='"+u+r.i+"' href='"+bu+encodeURI(r.k)+"#"+encodeURI(r.n)+"'>"+ html_escape(r.t)+"</a></td><td>"+html_escape(r.r)+"</td>\n";
 }
 var search_row_factory=main_search_row_factory;
 var search_done=function() {};

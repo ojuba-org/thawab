@@ -1,13 +1,8 @@
 .clear {clear:both; padding-bottom:2px;}
 a img { border: none; }
-a { text-decoration: none; }
-a:hover { text-decoration: underline; }
-
-.external {
-background:transparent url('img/external.gif') center left no-repeat;
-padding-left:16px;
-}
-
+a[href] { text-decoration: none; color:#150;}
+a[href]:hover { text-decoration: underline; }
+a[target] { background: transparent url('img/external.gif') top left no-repeat; padding-left:12px;}
 
 body {
   font-family: "Liberation Sans", "KacstOne", "Simplified Naskh", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "sans", "Sans";
