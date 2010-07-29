@@ -241,10 +241,10 @@ padding-left:24px;padding-right:16px;
 
 
 #kutubListing {
-	border: 2px solid #acf;
+	border: 2px solid #aba;
 	width:90%;
 	margin:0 auto;
-	background-color:#def;
+	background-color:#eef7ee;
 }
 #kutubListing ul { display:block;}
 #kutubListing ul li {
