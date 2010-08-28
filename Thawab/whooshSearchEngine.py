@@ -64,7 +64,7 @@ analyzer=StandardAnalyzer(expression=ur"[\w\u064e\u064b\u064f\u064c\u0650\u064d\
 #        self.stored = stored
 #        self.unique = unique
 
-from whoosh.qparser import MultifieldParser, FieldAliasPlugin
+from whoosh.qparser import MultifieldParser, FieldAliasPlugin, QueryParserError
 
 def ThMultifieldParser():
   # TODO: convert "؟" into "?" in wild cards
@@ -141,7 +141,7 @@ class SearchEngine(BaseSearchEngine):
     """return an interatable of fields dict"""
     # FIXME: the return should not be implementation specific
     try: r=self.__ix_searcher.search(self.__ix_qparser.parse(queryString), limit=500)
-    except ParseBaseException: return None
+    except QueryParserError: return None
     return r
 
   def resultExcerpt(self, results, i, ki=None):
