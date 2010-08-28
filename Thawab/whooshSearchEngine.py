@@ -20,10 +20,12 @@ import sys, os, os.path, re
 from tags import *
 from meta import prettyId,makeId
 
+from whoosh import query
 from whoosh.index import EmptyIndexError, create_in, open_dir
 from whoosh.highlight import highlight, SentenceFragmenter, BasicFragmentScorer, FIRST, HtmlFormatter
 from whoosh.filedb.filestore import FileStorage
 from whoosh.fields import Schema, ID, IDLIST, TEXT
+from whoosh.formats import Frequency
 
 from whoosh.lang.porter import stem
 from whoosh.analysis import StandardAnalyzer, StemFilter
@@ -62,41 +64,18 @@ analyzer=StandardAnalyzer(expression=ur"[\w\u064e\u064b\u064f\u064c\u0650\u064d\
 #        self.stored = stored
 #        self.unique = unique
 
-from whoosh.qparser import MultifieldParser
-from whooshQParser import make_thawab_qparser, ParseBaseException
+from whoosh.qparser import MultifieldParser, FieldAliasPlugin
 
-TH_Q_PARSER=make_thawab_qparser()
-
-class ThMultifieldParser(MultifieldParser):
-  """
-  Thawab specific MultifieldParser
-  """
-  _fieldsTranslation={
-    u"كتاب":u"kitab", u"عنوان":u"title", u"وسوم":u"tags",
-  }
-  def __init__(self, th, *args, **kw):
-    self.th=th
-    MultifieldParser.__init__(self, *args, **kw)
-    self.parser=TH_Q_PARSER
-
-  def _trField(self, fieldname, text):
-    f=self._fieldsTranslation.get(fieldname,None)
-    if f: fieldname=f
-    if fieldname=="kitab":
-      text=makeId(text)
-    return fieldname, text
-
-  def _Wildcard(self, node, fieldname):
-    return self.make_wildcard(fieldname, node[0].replace(u'؟',u'?'))
-
-
-  def make_term(self, fieldname, text):
-    fieldname, text=self._trField(fieldname, text)
-    return MultifieldParser.make_term(self, fieldname, text)
-
-  def make_phrase(self, fieldname, text):
-    fieldname, text=self._trField(fieldname, text)
-    return MultifieldParser.make_phrase(self, fieldname, text)
+def ThMultifieldParser():
+  # TODO: convert "؟" into "?" in wild cards
+  # TODO: use symbols instead of AND OR ..etc.
+  p = MultifieldParser(("title","content",))
+  p.add_plugin(FieldAliasPlugin({
+    u"kitab":(u"كتاب",),
+    u"title":(u"عنوان",),
+    u"tags":(u"وسوم",),
+  }))
+  return p
 
 class ExcerptFormatter(object):
     def __init__(self, between = "..."):
@@ -138,11 +117,12 @@ class SearchEngine(BaseSearchEngine):
         vrr=ID(stored=True,unique=False), # version release
         nodeIdNum=ID(stored=True,unique=False), 
         title=TEXT(stored=True,field_boost=1.5, analyzer=analyzer),
-        content=TEXT(stored=False,analyzer=analyzer),
+        content=TEXT(stored=False,analyzer=analyzer, vector=Frequency(analyzer=analyzer)),
         tags=IDLIST(stored=False)
       )
       self.indexer=create_in(ix_dir,schema)
-    self.__ix_qparser = ThMultifieldParser(self.th, ("title","content",), schema=self.indexer.schema)
+    #self.__ix_qparser = ThMultifieldParser(self.th, ("title","content",), schema=self.indexer.schema)
+    self.__ix_qparser = ThMultifieldParser()
     #self.__ix_pre=whoosh.query.Prefix
     self.__ix_searcher= self.indexer.searcher()
 
@@ -259,4 +239,22 @@ class SearchEngine(BaseSearchEngine):
     """
     if content: self.__ix_writer.add_document(kitab=name, vrr=vrr, nodeIdNum=unicode(nodeIdNum), title=title, content=content, tags=tags)
 
+  def keyterms(self, kitab, vrr, nodeIdNum):
+    s = self.indexer.searcher()
+    dn = s.document_number(kitab=kitab, vrr=vrr, nodeIdNum=unicode(nodeIdNum))
+    if dn == None: return None,[]
+    print " ## ", dn
+    r=s.key_terms([dn], "content", numterms=5)
+    return dn,r
+
+  def related(self, kitab, vrr, nodeIdNum):
+    dn,kt=self.keyterms(kitab, vrr, nodeIdNum)
+    if not dn: return None
+    for t,r in kt:
+      print "term=", t, " @ rank=",r
+    q = query.Or([query.Term("content", t) for (t,r) in kt])
+    results = self.indexer.searcher().search(q, limit=10)
+    for i, fields in enumerate(results):
+      if results.docnum(i) != dn:
+        print fields['kitab'],"\t\t",str(fields['nodeIdNum']),"\t\t",fields['title']
 
