@@ -185,33 +185,33 @@ class SearchEngine(BaseSearchEngine):
     """
     should be called after a sequence of indexing Ops, reindexAll() calls this method automatically
     """
-    self.__ix_writer.commit()
-    self.indexer.optimize()
+    self.__ix_writer.commit(optimize=True) # no need for self.indexer.optimize()
     self.reload()
 
   def reload(self):
     """
     called after commiting changes to index (eg. adding or dropping from index)
     """
-    self.indexer=self.indexer.refresh()
-    self.__ix_searcher= self.indexer.searcher()
+    self.__ix_searcher = self.__ix_searcher.refresh() # no need to obtain new one with self.indexer.searcher()
     self.__ix_writer = None
 
   def dropKitabIndex(self, name):
     """
     drop search index for a given Kitab by its uri
-    you need to call indexingStart() before this and indexingEnd() after it
+    if you call indexingStart() before this
+    then you must call indexingEnd() after it
     """
-    # FIXME: it seems that this does not work correctly without commit() just after drop, this mean that reindex needs a commit in-between
-    # NOTE: because the searcher could be limited do a loop that keeps deleting till the query is empty
+    # FIXME: it seems that this used not work correctly without commit() just after drop, this mean that reindex needs a commit in-between
     ki=self.th.getKitab(name)
     if ki: self.th.getMeta().setIndexedFlags(ki.uri, 1)
     print "dropping index for kitab name:", name,
-    #self.indexingStart()
-    while(self.indexer.delete_by_term('kitab', name)):
+    w, c = self.__ix_writer, False
+    if not w: w, c=self.indexer.writer(), True # creates a writer internally if one is not defined
+    # NOTE: because the searcher could be limited do a loop that keeps deleting till the query is empty
+    while(w.delete_by_term('kitab', name)):
       print "*",
-    #self.__ix_writer.commit() # without this reindexKitab won't work
     print
+    if c: w.commit()
     if ki: self.th.getMeta().setIndexedFlags(ki.uri, 0)
 
   def dropAll(self):
@@ -221,7 +221,7 @@ class SearchEngine(BaseSearchEngine):
     self.indexingStart()
     reader = self.indexer.reader() # also self.__ix_searcher.reader()
     for docnum in reader.all_stored_fields():
-      self.indexer.delete_document(docnum)
+      self.__ix_writer.delete_document(docnum)
     self.indexingEnd()
     self.th.getMeta().setAllIndexedFlags(0)
 
