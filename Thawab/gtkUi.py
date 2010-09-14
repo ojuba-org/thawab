@@ -632,7 +632,7 @@ class ThIndexerWindow(gtk.Window):
     self.update()
 
   def update(self, *a):
-    if not self.get_visible(): return True
+    if not self.get_property('visible'): return True
     j=self.main.th.asyncIndexer.jobs()
     if j>0:
       self.progress.set_text (_("Indexing ... (%d left)") % j)
