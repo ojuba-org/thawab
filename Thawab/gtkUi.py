@@ -846,13 +846,15 @@ def main():
   gettext.install('thawab', ld, unicode=0)
   th, port, server=launchServer()
 
+  gobject.threads_init()
+  gtk.gdk.threads_init()
+
   threading.Thread(target=server.serve_forever, args=()).start()
   while(not server.running): time.sleep(0.25)
-  gtk.gdk.threads_init()
-  #gtk.gdk.threads_enter()
+  gtk.gdk.threads_enter()
   w=ThMainWindow(th, port,server)
-  #gtk.gdk.threads_leave()
   gtk.main()
+  gtk.gdk.threads_leave()
 
 if __name__ == "__main__":
   main()
