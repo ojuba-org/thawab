@@ -825,8 +825,7 @@ def launchServer():
   datadir=os.path.join(exedir,'thawab-files')
   if not os.path.exists(datadir):
     datadir=os.path.join(exedir,'..','share','thawab','thawab-files')
-  system_prefix=os.path.dirname(datadir) # FIXME: use a smarter place for windows
-  th=Thawab.core.ThawabMan(os.path.expanduser('~/.thawab'), system_prefix=system_prefix, isMonolithic=False)
+  th=Thawab.core.ThawabMan(isMonolithic=False)
   app=webApp(
     th,True, 
     os.path.join(datadir,'templates'),

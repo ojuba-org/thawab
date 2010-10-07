@@ -27,6 +27,7 @@ from dataModel import *
 from tags import *
 from meta import MCache, metaDict2Hash, prettyId, makeId, metaVrr
 from userDb import UserDb
+from platform import guess_prefixes
 
 from whooshSearchEngine import SearchEngine
 from asyncIndex import AsyncIndex
@@ -38,31 +39,35 @@ th_ext_glob=u'*.ki'
 othman=othmanCore()
 
 class ThawabMan (object):
-  def __init__(self,user_prefix,system_prefix="", isMonolithic=True, indexerQueueSize=0):
+  def __init__(self, prefixes=None, isMonolithic=True, indexerQueueSize=0):
     """Create a new Thawab instance given a user writable directory and an optional system-wide read-only directory
 
-  user_prefix can be:
-    user_prefix=os.path.expanduser('~/.thawab')
-    user_prefix=os.path.join([os.path.dirname(sys.argv[0]),'..','data'])
+  prefixes a list of directories all are read-only except the first
+  the first writable directory can be 
+    os.path.expanduser('~/.thawab')
+    os.path.join([os.path.dirname(sys.argv[0]),'..','data'])
   
-  and system_prefix is a system-wide read-only directory like "/usr/share/thawab/"
-
   isMonolithic=True if we should use locks and reconnect to sqlite
   
   indexerQueueSize is the size of threaded index queue (0 infinite, -1 disabled)
 
 the first thing you should do is to call loadMCache()
 """
+    if not prefixes: prefixes=guess_prefixes()
     try:
-      if not os.path.isdir(user_prefix): os.makedirs(user_prefix)
+      if not os.path.isdir(prefixes[0]): os.makedirs(prefixes[0])
     except:
       raise OSError
-    self.prefixes=[os.path.abspath(user_prefix)]
+    self.prefixes=filter(lambda i:os.path.isdir(i), [os.path.realpath(os.path.abspath(p)) for p in prefixes])
+    # make sure it's unique
+    p=self.prefixes[0]
+    s=set(self.prefixes[1:])
+    if p in s: s.remove(p)
+    if len(s)<len(self.prefixes)-1: self.prefixes=[p]+sorted(list(s))
+    print self.prefixes
     self.othman=othman
     self.__meta=None
-    if system_prefix and os.path.isdir(system_prefix):
-      self.prefixes.append(os.path.abspath(system_prefix))
-    self.assertManagedTree()
+    self.read_only = self.assertManagedTree()
     self.searchEngine=SearchEngine(self)
     self.user_db=UserDb(self, os.path.join(self.prefixes[0],"user.db") )
     if indexerQueueSize>=0:
@@ -88,9 +93,12 @@ the first thing you should do is to call loadMCache()
      # conf	application configuration
      # cache	contains the metadata cache for all containers"""
      P=self.prefixes[0]
+     if not os.access(P, os.W_OK): return False
      for i in ['db','index','conf','cache', 'tmp']:
        p=os.path.join(P,i)
        if not os.path.isdir(p): os.makedirs(p)
+     return True
+
   def mktemp(self):
     h,fn=mkstemp(th_ext, 'THAWAB_',os.path.join(self.prefixes[0],'tmp'))
     return Kitab(fn,True)

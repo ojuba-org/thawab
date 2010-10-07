@@ -5,7 +5,7 @@ import Thawab.core
 from Thawab.webApp import webApp
 
 prefix=os.path.dirname(sys.argv[0])
-th=Thawab.core.ThawabMan(os.path.expanduser('~/.thawab'), isMonolithic=False)
+th=Thawab.core.ThawabMan()
 
 myLogger=logging.getLogger('ThawabWebAppTest')
 h=logging.StreamHandler() # in production use WatchedFileHandler or RotatingFileHandler

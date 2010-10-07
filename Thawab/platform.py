@@ -34,11 +34,33 @@ if sys.platform == 'win32':
           return shell.SHGetFolderPath(0, 26, 0, 0)
       except ImportError:
         application_data=None
-   if application_data: th_conf=os.path.join(application_data(),u"thawab","conf","main.conf")
-   else: th_conf=u"C:\\thawab.conf"
+  if application_data:
+    app_data=application_data()
+    th_conf=os.path.join(app_data,u"thawab","conf","main.conf")
+  else:
+    app_data=u"C:\\"
+    th_conf=u"C:\\thawab.conf"
 
 else:
+  app_data=u"/usr/share/"
   application_data=None
   def get_drives(): return []
   th_conf=os.path.expanduser('~/.thawab/conf/main.conf')
+
+def guess_prefixes():
+  l=[]
+  ed=os.path.join(os.path.dirname(sys.argv[0]),u'thawab-data')
+  ed_1st=False
+  if os.path.isdir(ed) and os.access(ed, os.W_OK): l.append(ed); ed_1st=True
+  if sys.platform == 'win32':
+    l.append(os.path.join(app_data,'thawab'))
+    if not ed_1st: l.append(ed)
+    l.extend([os.path.join(d,'thawab-data') for d in get_drives()])
+  else:
+    l.append(os.path.expanduser('~/.thawab'))
+    if not ed_1st: l.append(ed)
+    l.append(u'/usr/local/share/thawab')
+    l.append(u'/usr/share/thawab')
+  return l
+
 

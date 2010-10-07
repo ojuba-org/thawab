@@ -1,7 +1,7 @@
 #! /usr/bin/python
 # -*- coding: UTF-8 -*-
 import os, os.path, Thawab.core
-th=Thawab.core.ThawabMan(os.path.expanduser('~/.thawab'))
+th=Thawab.core.ThawabMan()
 th.searchEngine.reindexAll()
 # th.loadMeta() # to detect new files and add them ..etc.
 meta=th.getMeta()
