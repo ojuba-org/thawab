@@ -87,7 +87,7 @@ class MCache(object):
       g=list(G)
       self.__meta_by_kitab[k]=map(lambda i: i[0],g)
 
-  def __load_from_uri(self, uri):
+  def load_from_uri(self, uri):
     """extract meta object from kitab's uri and return it"""
     cn=sqlite3.connect(uri)
     cn.row_factory=sqlite3.Row
@@ -97,7 +97,7 @@ class MCache(object):
     return dict(r)
 
   def __cache(self, c, uri, meta=None):
-    if not meta: meta=self.__load_from_uri(uri)
+    if not meta: meta=self.load_from_uri(uri)
     if not meta: return 0
     #if drop_old_needed: 
     meta['uri']=uri
@@ -146,7 +146,7 @@ class MCache(object):
           if abs(os.path.getmtime(toFs(uri))-self.getByUri(uri)['mtime'])<1e-5: continue
         elif smart==1: # rely on a hash saved inside the database
           old_meta=self.getByUri(uri)
-          meta=self.__load_from_uri(uri)
+          meta=self.load_from_uri(uri)
           if not meta or old_meta['hash']==meta['hash']: continue
       if cache_needed:
         r+=self.__cache(c, uri, meta)

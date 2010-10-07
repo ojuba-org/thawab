@@ -281,6 +281,7 @@ class Kitab(object):
     self.is_tmp = is_tmp
     self.th = th
     self.meta = meta
+    if not meta: self.getMCache()
     if meta and meta.get('originalKitab',None):
       self.originalKi = self.th.getCachedKitabByNameV(meta['originalKitab']+u"-"+meta['originalVersion'])
     else: self.originalKi = None
@@ -317,6 +318,12 @@ class Kitab(object):
       r=sqlite3.connect(self.uri, isolation_level=None)
       self._cn_h[n] = r
     return r
+
+  def getMCache(self):
+    if not self.th: return None # needs a manager
+    if self.meta: return self.meta
+    self.meta = th.getMeta().load_from_uri(self.uri)
+    return self.meta
 
   def setMCache(self, meta):
     # TODO: add more checks
