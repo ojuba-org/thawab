@@ -23,7 +23,7 @@ import time
 import bisect
 
 from cgi import escape # for html escaping
-from meta import prettyId, makeId
+from meta import prettyId, makeId, metaVrr
 from stemming import normalize_tb
 from okasha.utils import ObjectsCache
 from okasha.baseWebApp import *
@@ -176,6 +176,8 @@ Allow: /
       r['upTitle']=escape(u.getContent())
     if b:
       r['breadcrumbs']=" &gt; ".join(map(lambda (i,t): ("<a href='"+d+"_i%i"+s+"'>%s</a>") % (i,escape(t)),b))
+    vrr=metaVrr(ki.meta)
+    #self.th.searchEngine.related(m['kitab'], vrr, node.idNum)
     return r
 
   def _get_kitab_details(self, rq, *args):
@@ -270,9 +272,10 @@ Allow: /
       # FIXME: check to see if one already search for that before
       q=q.decode('utf8')
       R=self.th.searchEngine.queryIndex(q)
+      # print R
       if not R: return {'t':0,'c':0,'h':''}
       self.searchCache.append(h,R)
-      r={'t':R.runtime,'c':R.scored_length(),'h':h}
+      r={'t':R.runtime,'c':R.scored,'h':h}
     elif args[0]=='searchResults':
       h=rq.q.getfirst('h','')
       try: i=int(rq.q.getfirst('i','0'))
@@ -281,7 +284,7 @@ Allow: /
       except TypeError: c=0
       R=self.searchCache.get(h)
       if R==None: return {'c':0}
-      C=R.scored_length()
+      C=R.scored
       if i>=C: return {'c':0}
       c=min(c,C-i)
       r={'c':c,'a':[]}
