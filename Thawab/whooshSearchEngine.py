@@ -246,7 +246,7 @@ class ThWildcardPlugin(Plugin):
         def create(cls, parser, match):
             return cls(match.group(0).replace(u'؟',u'?'))
 
-def ThMultifieldParser():
+def ThMultifieldParser(schema=None):
   plugins = (BoostPlugin, ThCompoundsPlugin, ThFieldsPlugin, GroupPlugin,
       ThNotPlugin, PhrasePlugin, RangePlugin, SingleQuotesPlugin,
       ThWildcardPlugin, FieldAliasPlugin({
@@ -254,7 +254,7 @@ def ThMultifieldParser():
         u"title":(u"عنوان",),
         u"tags":(u"وسوم",)})
       )
-  p = MultifieldParser(("title","content",), plugins=plugins)
+  p = MultifieldParser(("title","content",), schema=schema, plugins=plugins)
   # to add a plugin use: p.add_plugin(XYZ)
   return p
 
@@ -304,7 +304,7 @@ class SearchEngine(BaseSearchEngine):
       )
       self.indexer=create_in(ix_dir,schema)
     #self.__ix_qparser = ThMultifieldParser(self.th, ("title","content",), schema=self.indexer.schema)
-    self.__ix_qparser = ThMultifieldParser()
+    self.__ix_qparser = ThMultifieldParser(self.indexer.schema)
     #self.__ix_pre=whoosh.query.Prefix
     self.__ix_searcher= self.indexer.searcher()
 
