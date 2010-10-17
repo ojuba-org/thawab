@@ -143,7 +143,7 @@ the first thing you should do is to call loadMCache()
   def getKitabByUri(self,uri):
     m=self.getMeta().getByUri(uri)
     if m: return Kitab(uri, th=self, meta=m)
-    return Kitab(uri)
+    return Kitab(uri, th=self)
 
   def getKitabList(self):
     """
@@ -330,7 +330,7 @@ class Kitab(object):
   def getMCache(self):
     if not self.th: return None # needs a manager
     if self.meta: return self.meta
-    self.meta = th.getMeta().load_from_uri(self.uri)
+    self.meta = self.th.getMeta().load_from_uri(self.uri)
     return self.meta
 
   def setMCache(self, meta):
