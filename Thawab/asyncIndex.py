@@ -26,7 +26,7 @@ class AsyncIndex():
     if number of workers>1 then queued jobs need not be executed in order
     """
     self.searchEngine=searchEngine
-    self.worders_n=workers
+    self.workers_n=workers
     self.running=0
     self.lock=Lock() # used to report running tasks correctly
     self._q = Queue(queueSize)
@@ -55,7 +55,7 @@ class AsyncIndex():
     self.end_when_done=False
     self.started=False
     # here we create our thread pool of workers
-    for i in range(self.worders_n):
+    for i in range(self.workers_n):
       t = Thread(target=self._worker)
       t.setDaemon(True)
       t.start()
