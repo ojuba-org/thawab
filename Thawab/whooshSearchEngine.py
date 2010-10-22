@@ -76,7 +76,7 @@ class ThCompoundsPlugin(Plugin):
     """
     
     def tokens(self):
-        return ((ThCompoundsPlugin.AndNot, -10), (ThCompoundsPlugin.AndMaybe, 0), (ThCompoundsPlugin.And, 0),
+        return ((ThCompoundsPlugin.AndNot, -10), (ThCompoundsPlugin.AndMaybe, -5), (ThCompoundsPlugin.And, 0),
                 (ThCompoundsPlugin.Or, 0))
     
     def filters(self):
