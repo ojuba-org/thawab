@@ -95,8 +95,8 @@ class AsyncIndex():
         method, args, kw=item
         f=getattr(self.searchEngine, method)
         f(*args,**kw)
-        self._q.task_done()
         if self._q.qsize()==0: self.searchEngine.indexingEnd()
+        self._q.task_done()
         self.lock.acquire(); self.running-=1; self.lock.release()
       elif self._q.empty():
         if self.end_when_done: self.keepworking=False
