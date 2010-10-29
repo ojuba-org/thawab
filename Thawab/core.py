@@ -64,7 +64,7 @@ the first thing you should do is to call loadMCache()
     s=set(self.prefixes[1:])
     if p in s: s.remove(p)
     if len(s)<len(self.prefixes)-1: self.prefixes=[p]+sorted(list(s))
-    print self.prefixes
+    #print self.prefixes
     self.othman=othman
     self.__meta=None
     self.read_only = self.assertManagedTree()
@@ -345,8 +345,6 @@ class Kitab(object):
     if not y and oy!=None: meta['year']=oy
     if not oy and y!=None: meta['originalYear']=y
     if not meta.get('cache_hash',None): meta['cache_hash']=metaDict2Hash(meta)
-    print SQL_MCACHE_SET
-    print meta
     self.meta=meta
     self.cn().execute(SQL_MCACHE_SET,meta)
 

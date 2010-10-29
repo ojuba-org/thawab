@@ -222,7 +222,7 @@ class BaseSearchEngine:
     create search index for a given Kitab name
     NOTE: you need to call indexingStart() before this and indexingEnd() after it
     """
-    print "creating index for kitab with name:", name
+    #print "creating index for kitab with name:", name
     ki=self.th.getKitab(name)
     self.th.getMeta().setIndexedFlags(ki.uri, 1)
     vrr=metaVrr(ki.meta)
