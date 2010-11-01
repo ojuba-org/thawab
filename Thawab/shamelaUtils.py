@@ -116,6 +116,7 @@ class ShamelaSqlite(object):
     self.metaById={}
     self._blnk={}
     self.xref={}
+    self.encoding_fix_needed=None # True/False or None ie. not yet checked
     self.__bkids=None
     self.__commentaries=None
     self.version,self.tb,self.bkids=self.identify()
@@ -151,9 +152,9 @@ class ShamelaSqlite(object):
 
   def getTables(self):
     if self.tables: return self.tables
-    try: p=Popen(['mdb-tables', '-1',self.bok_fn], 0, stdout=PIPE)
+    try: p=Popen(['mdb-tables', '-1',self.bok_fn], 0, stdout=PIPE, env={'MDB_JET3_CHARSET':'cp1256', 'MDB_ICONV':'UTF-8'})
     except OSError: raise
-    try: self.tables=p.communicate()[0].strip().split('\n')
+    try: self.tables=p.communicate()[0].replace('\r','').strip().split('\n')
     except OSError: raise
     r=p.returncode; del p
     if r!=0: raise TypeError
@@ -164,7 +165,7 @@ class ShamelaSqlite(object):
     """Internal function used by importTable"""
     if prefix and sql_cmd[0].startswith('INSERT INTO '): sql_cmd[0]='INSERT INTO '+prefix+sql_cmd[0][12:]
     sql=''.join(sql_cmd)
-    #print sql
+    open("C:\\th.log","at+").write(sql+"\n")
     self.c.execute(sql)
 
   def __schemaGetCols(self, r):
@@ -177,8 +178,8 @@ class ShamelaSqlite(object):
     """create schema for table"""
     if is_tmp: temp='temp'
     else: temp=''
-    pipe=Popen(['mdb-schema', '-S','-T', Tb, self.bok_fn], 0, stdout=PIPE,env={'MDB_JET3_CHARSET':'cp1256'})
-    r=pipe.communicate()[0]
+    pipe=Popen(['mdb-schema', '-S','-T', Tb, self.bok_fn], 0, stdout=PIPE,env={'MDB_JET3_CHARSET':'cp1256', 'MDB_ICONV':'UTF-8'})
+    r=pipe.communicate()[0].replace('\r','')
     if pipe.returncode!=0: raise TypeError
     sql=schema_fix_text.sub('TEXT',schema_fix_int.sub('INETEGER',schema_fix_del.sub('',r))).lower()
     sql=sql.replace('create table ',' '.join(('create ',temp,' table ',prefix,)))
@@ -209,17 +210,24 @@ class ShamelaSqlite(object):
     tb_prefix=is_tmp and 'tmp_' or ''
     if Tb in self.imported_tables: return
     self.importTableSchema(Tb, tb, is_tmp, tb_prefix)
-    pipe=Popen(['mdb-export', '-R',';\n'+mark,'-I', self.bok_fn, Tb], 0, stdout=PIPE,env={'MDB_JET3_CHARSET':'cp1256'})
+    pipe=Popen(['mdb-export', '-R',';\n'+mark,'-I', self.bok_fn, Tb], 0, stdout=PIPE,env={'MDB_JET3_CHARSET':'cp1256', 'MDB_ICONV':'UTF-8'})
     sql_cmd=[]
     prefix=""
     if is_ignore: prefix="OR IGNORE INTO "
     elif is_replace: prefix="OR REPLACE INTO "
     prefix+=tb_prefix
     for l in pipe.stdout:
+      l=l.replace('\r','')
+      # output encoding in mdbtools in windows is cp1256, this is a bug in it
+      if self.encoding_fix_needed==None:
+        try: l.decode('UTF-8')
+        except: self.encoding_fix_needed=True; l=l.decode('cp1256')
+        else: self.encoding_fix_needed=False
+      elif self.encoding_fix_needed: l=l.decode('cp1256')
       if l==mark: self.__shamela3_fix_insert(sql_cmd,prefix); sql_cmd=[]
       else: sql_cmd.append(l)
     if len(sql_cmd): self.__shamela3_fix_insert(sql_cmd,prefix); sql_cmd=[]
-    print "waiting child process...",pipe.wait() # TODO: why is this needed
+    pipe.wait() # TODO: why is this needed
     if pipe.returncode!=0: raise TypeError
     del pipe
     self.imported_tables.append(Tb)
@@ -332,7 +340,7 @@ class ShamelaSqlite(object):
         m['classification']=self.classificationByBookId(bkid)
         m['keywords']=u''
         matn_bkid=self._get_matn(bkid)
-        print "%d is sharh for %d" % (bkid, matn_bkid)
+        #print "%d is sharh for %d" % (bkid, matn_bkid)
         if matn_bkid>0:
           matn_m=self.getBookMeta(matn_bkid)
           if matn_m:

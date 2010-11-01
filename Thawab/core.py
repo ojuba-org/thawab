@@ -83,9 +83,6 @@ the first thing you should do is to call loadMCache()
       lock1=None
     self.kutubCache=ObjectsCache(lock=lock1)
 
-  def __del__(self):
-    del self.searchEngine
-
   def assertManagedTree(self):
      """create the hierarchy inside the user-managed prefix    
      # db	contains Kitab files [.thawab]

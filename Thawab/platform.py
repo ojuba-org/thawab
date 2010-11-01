@@ -20,6 +20,9 @@ import sys, os, os.path
 from glob import glob
 
 if sys.platform == 'win32':
+  def uri_to_filename(u):
+    if len(u)<=1: return u
+    return u[1:].replace('/','\\')
 
   def get_drives():
     return filter(lambda j: os.path.exists(j), [chr(i)+':\\' for i in range(67,91)])
@@ -44,6 +47,8 @@ if sys.platform == 'win32':
 else:
   app_data=u"/usr/share/"
   application_data=None
+  def uri_to_filename(u): return u
+
   def get_drives(): return []
   th_conf=os.path.expanduser('~/.thawab/conf/main.conf')
 

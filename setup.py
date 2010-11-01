@@ -21,7 +21,7 @@ def recusive_data_dir(to, src, l=None):
 locales=map(lambda i: ('share/'+i,[''+i+'/thawab.mo',]),glob('locale/*/LC_MESSAGES'))
 data_files=no_empty(recusive_data_dir('share/thawab/thawab-files', 'thawab-files'))
 data_files.extend(locales)
-setup (name='thawab', version='0.2.2',
+setup (name='thawab', version='3.0.10',
       description='Thawab Arabic/Islamic encyclopedia system',
       author='Muayyad Saleh Alsadi',
       author_email='alsadi@ojuba.org',

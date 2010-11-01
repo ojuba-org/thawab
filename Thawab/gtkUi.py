@@ -33,6 +33,7 @@ import Thawab.core
 
 from Thawab.webApp import webApp
 from Thawab.shamelaUtils import ShamelaSqlite, shamelaImport
+from Thawab.platform import uri_to_filename
 from paste import httpserver
 
 setsid = getattr(os, 'setsid', None)
@@ -363,8 +364,10 @@ class ThImportWindow(gtk.Window):
           return
         c.flush()
         t_fn=os.path.join(self.main.th.prefixes[0], 'db', u"".join((m['kitab'] + u"-" + m['version'] + Thawab.core.th_ext,)))
-        print "moving %s to %s" % (ki.uri, t_fn)
-        shutil.move(ki.uri, t_fn)
+        #print "moving %s to %s" % (ki.uri, t_fn)
+        try: shutil.move(ki.uri, t_fn)
+        except OSError: print "unable to move converted file." # windows can't move an opened file
+        # FIXME: close ki in a clean way so the above code works in windows
       self.progress_cb(_("Done"), 100.0, show_msg=True)
 
     if db_fn and os.path.exists(db_fn):
@@ -420,7 +423,7 @@ class ThImportWindow(gtk.Window):
     self.ls.append([fn,os.path.basename(fn),0,-1,"Not started"])
 
   def add_uri(self, i):
-    if i.startswith('file://'): f=unquote(i[7:]); self.add_fn(f)
+    if i.startswith('file://'): f=uri_to_filename(unquote(i[7:])); self.add_fn(f)
     else: print "Protocol not supported in [%s]" % i
     
   def drop_data_cb(self, widget, dc, x, y, selection_data, info, t):
