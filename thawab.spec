@@ -1,14 +1,15 @@
 Name: thawab
 Summary: Thawab Arabic/Islamic encyclopedia system
 URL: http://thawab.ojuba.org/
-Version: 3.0.8
+Version: 3.0.10
 Release: 1%{?dist}
 Source0: http://git.ojuba.org/cgit/%{name}/snapshot/%{name}-%{version}.tar.bz2
 License: Waqf
 Group: System Environment/Base
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
-Requires: python, mdbtools, python-paste, python-whoosh, python-okasha, islamic-menus, python-othman, pygtk2, pywebkitgtk, pyparsing
+Requires: python-whoosh >= 1.0.0
+Requires: python, mdbtools, python-paste, python-okasha, islamic-menus, python-othman, pygtk2, pywebkitgtk
 BuildRequires: gettext
 BuildRequires: python, perl
 
@@ -55,6 +56,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/locale/*/*/*.mo
 
 %changelog
+* Mon Nov 1 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.10-1
+- update to whoosh 1.x.y
+
 * Mon Jul 26 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.8-1
 - activate cancel button in import window
 - only reload index after new import
