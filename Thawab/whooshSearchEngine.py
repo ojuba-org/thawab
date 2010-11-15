@@ -36,227 +36,8 @@ def stemfn(word): return stemArabic(stem(word))
 # word_re=ur"[\w\u064e\u064b\u064f\u064c\u0650\u064d\u0652\u0651\u0640]"
 analyzer=StandardAnalyzer(expression=ur"[\w\u064e\u064b\u064f\u064c\u0650\u064d\u0652\u0651\u0640]+(?:\.?[\w\u064e\u064b\u064f\u064c\u0650\u064d\u0652\u0651\u0640]+)*") | StemFilter(stemfn)
 
-#from whoosh.fields import FieldType, KeywordAnalyzer
-#try: from whoosh.fields import Existence
-#except ImportError: from whoosh.fields import Existance as Existence
-
-#class TAGSLIST(FieldType):
-#    """
-#    Configured field type for fields containing space-separated or comma-separated
-#    keyword-like data (such as tags). The default is to not store positional information
-#    (so phrase searching is not allowed in this field) and to not make the field scorable.
-#    
-#    unlike KEYWORD field type, TAGS list does not count frequency just existence.
-#    """
-#    
-#    def __init__(self, stored = False, lowercase = False, commas = False,
-#                 scorable = False, unique = False, field_boost = 1.0):
-#        """
-#        :stored: Whether to store the value of the field with the document.
-#        :comma: Whether this is a comma-separated field. If this is False
-#            (the default), it is treated as a space-separated field.
-#        :scorable: Whether this field is scorable.
-#        """
-#        
-#        ana = KeywordAnalyzer(lowercase = lowercase, commas = commas)
-#        self.format = Existence(analyzer = ana, field_boost = field_boost)
-#        self.scorable = scorable
-#        self.stored = stored
-#        self.unique = unique
-
-from whoosh.qparser import MultifieldParser, FieldAliasPlugin, QueryParserError, BoostPlugin, GroupPlugin, PhrasePlugin, RangePlugin, SingleQuotesPlugin, Group, AndGroup, OrGroup, AndNotGroup, AndMaybeGroup, Singleton, BasicSyntax, Plugin, White, Token
-
-from whoosh.qparser import CompoundsPlugin, NotPlugin, WildcardPlugin
-
-class ThCompoundsPlugin(Plugin):
-    """Adds the ability to use &, |, &~, and &! to specify
-    query constraints.
-    
-    This plugin is included in the default parser configuration.
-    """
-    
-    def tokens(self):
-        return ((ThCompoundsPlugin.AndNot, -10), (ThCompoundsPlugin.AndMaybe, -5), (ThCompoundsPlugin.And, 0),
-                (ThCompoundsPlugin.Or, 0))
-    
-    def filters(self):
-        return ((ThCompoundsPlugin.do_compounds, 600), )
-
-    @staticmethod
-    def do_compounds(parser, stream):
-        newstream = stream.empty()
-        i = 0
-        while i < len(stream):
-            t = stream[i]
-            ismiddle = newstream and i < len(stream) - 1
-            if isinstance(t, Group):
-                newstream.append(ThCompoundsPlugin.do_compounds(parser, t))
-            elif isinstance(t, (ThCompoundsPlugin.And, ThCompoundsPlugin.Or)):
-                if isinstance(t, ThCompoundsPlugin.And):
-                    cls = AndGroup
-                else:
-                    cls = OrGroup
-                
-                if cls != type(newstream) and ismiddle:
-                    last = newstream.pop()
-                    rest = ThCompoundsPlugin.do_compounds(parser, cls(stream[i+1:]))
-                    newstream.append(cls([last, rest]))
-                    break
-            
-            elif isinstance(t, ThCompoundsPlugin.AndNot):
-                if ismiddle:
-                    last = newstream.pop()
-                    i += 1
-                    next = stream[i]
-                    if isinstance(next, Group):
-                        next = ThCompoundsPlugin.do_compounds(parser, next)
-                    newstream.append(AndNotGroup([last, next]))
-            
-            elif isinstance(t, ThCompoundsPlugin.AndMaybe):
-                if ismiddle:
-                    last = newstream.pop()
-                    i += 1
-                    next = stream[i]
-                    if isinstance(next, Group):
-                        next = ThCompoundsPlugin.do_compounds(parser, next)
-                    newstream.append(AndMaybeGroup([last, next]))
-            else:
-                newstream.append(t)
-            i += 1
-        
-        return newstream
-    
-    class And(Singleton):
-        expr = re.compile(u"&")
-        
-    class Or(Singleton):
-        expr = re.compile(u"\|")
-        
-    class AndNot(Singleton):
-        expr = re.compile(u"&!")
-        
-    class AndMaybe(Singleton):
-        expr = re.compile(u"&~") # when using Arabic keyboard ~ is shift+Z
-
-class ThFieldsPlugin(Plugin):
-    """Adds the ability to specify the field of a clause using a colon.
-    
-    This plugin is included in the default parser configuration.
-    """
-    
-    def tokens(self):
-        return ((ThFieldsPlugin.Field, 0), )
-    
-    def filters(self):
-        return ((ThFieldsPlugin.do_fieldnames, 100), )
-
-    @staticmethod
-    def do_fieldnames(parser, stream):
-        newstream = stream.empty()
-        newname = None
-        for i, t in enumerate(stream):
-            if isinstance(t, ThFieldsPlugin.Field):
-                valid = False
-                if i < len(stream) - 1:
-                    next = stream[i+1]
-                    if not isinstance(next, (White, ThFieldsPlugin.Field)):
-                        newname = t.fieldname
-                        valid = True
-                if not valid:
-                    newstream.append(Word(t.fieldname, fieldname=parser.fieldname))
-                continue
-            
-            if isinstance(t, Group):
-                t = ThFieldsPlugin.do_fieldnames(parser, t)
-            newstream.append(t.set_fieldname(newname))
-            newname = None
-        
-        return newstream
-    
-    class Field(Token):
-        expr = re.compile(u"(\w[\w\d]*):", re.U)
-        
-        def __init__(self, fieldname):
-            self.fieldname = fieldname
-        
-        def __repr__(self):
-            return "<%s:>" % self.fieldname
-        
-        def set_fieldname(self, fieldname):
-            return self.__class__(fieldname)
-        
-        @classmethod
-        def create(cls, parser, match):
-            return cls(match.group(1))
-
-class ThNotPlugin(Plugin):
-    """Adds the ability to negate a clause by preceding it with !.
-    
-    This plugin is included in the default parser configuration.
-    """
-    
-    def tokens(self):
-        return ((ThNotPlugin.Not, 0), )
-    
-    def filters(self):
-        return ((ThNotPlugin.do_not, 800), )
-    
-    @staticmethod
-    def do_not(parser, stream):
-        newstream = stream.empty()
-        notnext = False
-        for t in stream:
-            if isinstance(t, ThNotPlugin.Not):
-                notnext = True
-                continue
-            
-            if notnext:
-                t = NotGroup([t])
-            newstream.append(t)
-            notnext = False
-            
-        return newstream
-    
-    class Not(Singleton):
-        expr = re.compile(u"!")
-
-class ThWildcardPlugin(Plugin):
-    """Adds the ability to specify wildcard queries by using asterisk and
-    question mark characters in terms. Note that these types can be very
-    performance and memory intensive. You may consider not including this
-    type of query.
-    
-    This plugin is included in the default parser configuration.
-    """
-    
-    def tokens(self):
-        return ((ThWildcardPlugin.Wild, 0), )
-    
-    class Wild(BasicSyntax):
-        expr = re.compile(u"[^ \t\r\n*?]*(\\*|\\?|؟)\\S*")
-        qclass = query.Wildcard
-        
-        def __repr__(self):
-            r = "%s:wild(%r)" % (self.fieldname, self.text)
-            if self.boost != 1.0:
-                r += "^%s" % self.boost
-            return r
-        
-        @classmethod
-        def create(cls, parser, match):
-            return cls(match.group(0).replace(u'؟',u'?'))
-
-def ThMultifieldParser(schema=None):
-  plugins = (BoostPlugin, ThCompoundsPlugin, ThFieldsPlugin, GroupPlugin,
-      ThNotPlugin, PhrasePlugin, RangePlugin, SingleQuotesPlugin,
-      ThWildcardPlugin, FieldAliasPlugin({
-        u"kitab":(u"كتاب",),
-        u"title":(u"عنوان",),
-        u"tags":(u"وسوم",)})
-      )
-  p = MultifieldParser(("title","content",), schema=schema, plugins=plugins)
-  # to add a plugin use: p.add_plugin(XYZ)
-  return p
+from whoosh.qparser import FieldAliasPlugin
+from whooshSymbolicQParser import MultifieldSQParser
 
 class ExcerptFormatter(object):
     def __init__(self, between = "..."):
@@ -304,7 +85,12 @@ class SearchEngine(BaseSearchEngine):
       )
       self.indexer=create_in(ix_dir,schema)
     #self.__ix_qparser = ThMultifieldParser(self.th, ("title","content",), schema=self.indexer.schema)
-    self.__ix_qparser = ThMultifieldParser(self.indexer.schema)
+    self.__ix_qparser = MultifieldSQParser(("title","content",), self.indexer.schema)
+    self.__ix_qparser.add_plugin(FieldAliasPlugin({
+        u"kitab":(u"كتاب",),
+        u"title":(u"عنوان",),
+        u"tags":(u"وسوم",)})
+    )
     #self.__ix_pre=whoosh.query.Prefix
     self.__ix_searcher= self.indexer.searcher()
 
@@ -315,7 +101,9 @@ class SearchEngine(BaseSearchEngine):
     """
     return a Version-Release string if in index, otherwise return None
     """
-    d=self.__ix_searcher.document(kitab=unicode(makeId(name)))
+    try: d=self.__ix_searcher.document(kitab=unicode(makeId(name)))
+    except TypeError: return None
+    except KeyError: return None
     if d: return d['vrr']
     return None
 
