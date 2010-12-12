@@ -398,6 +398,17 @@ def set_get_xref(xref, h_tags, sh, bkid, pg_id, matn, matnid):
     xref=sh.get_xref(matn, matnid)
     if xref: h_tags['embed.original.section']=xref
 
+ss_re=re.compile(" +")
+re_ss_re=re.compile("( \*){2,}")
+
+def ss(txt):
+  """squeeze spaces"""
+  return ss_re.sub(" ", txt)
+
+def re_ss(txt):
+  """squeeze spaces in re"""
+  return re_ss_re.sub(" *", ss(txt))
+
 
 def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=ur'\((\d+)\)', ft_prefix_len=1, ft_suffix_len=1):
   """
@@ -493,30 +504,30 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
       h_p=no_w_re.sub(' ', h.translate(sh_normalize_tb)).strip()
       if h_p: # if normalized h_p is not empty
         # NOTE: no need for map h_p on re.escape() because it does not contain special chars
-        h_re_entire_line=re.compile(ur"^\s*%s\s*$" % ur" *".join(list(h_p)), re.M)
+        h_re_entire_line=re.compile(re_ss(ur"^\s*%s\s*$" % ur" *".join(list(h_p))), re.M)
         if _shamelaFindHeadings(txt, page_id, d, h, h_re_entire_line, ix, j, 2): continue
 
       if not txt_no_d: txt_no_d=txt.translate(sh_digits_to_spaces_tb)
       h_p_no_d=h_p.translate(sh_digits_to_spaces_tb).strip()
       if h_p_no_d:
-        h_re_entire_line_no_d=re.compile(ur"^\s*%s\s*$" % ur" *".join(list(h_p_no_d)), re.M)
+        h_re_entire_line_no_d=re.compile(re_ss(ur"^\s*%s\s*$" % ur" *".join(list(h_p_no_d))), re.M)
         if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_entire_line_no_d, ix, j, 3): continue
 
       # at the beginning of the line
       if _shamelaFindExactHeadings(page_txt, page_id, "\n%s", d, h, ix,j, 4): continue
       if h_p:
-        h_re_line_start=re.compile(ur"^\s*%s\s*" % ur" *".join(list(h_p)), re.M)
+        h_re_line_start=re.compile(re_ss(ur"^\s*%s\s*" % ur" *".join(list(h_p))), re.M)
         if _shamelaFindHeadings(txt, page_id, d, h, h_re_line_start, ix, j, 5): continue
       if h_p_no_d:
-        h_re_line_start_no_d=re.compile(ur"^\s*%s\s*" % ur" *".join(list(h_p_no_d)), re.M)
+        h_re_line_start_no_d=re.compile(re_ss(ur"^\s*%s\s*" % ur" *".join(list(h_p_no_d))), re.M)
         if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_line_start_no_d, ix, j, 6): continue
       # any where in the line
       if _shamelaFindExactHeadings(page_txt, page_id, "%s", d, h, ix,j, 7): continue
       if h_p:
-        h_re_any_ware=re.compile(ur"\s*%s\s*" % ur" *".join(list(h_p)), re.M)
+        h_re_any_ware=re.compile(re_ss(ur"\s*%s\s*" % ur" *".join(list(h_p))), re.M)
         if _shamelaFindHeadings(txt, page_id, d, h, h_re_any_ware, ix, j, 8): continue
       if h_p_no_d:
-        h_re_any_ware_no_d=re.compile(ur"\s*%s\s*" % ur" *".join(list(h_p_no_d)), re.M)
+        h_re_any_ware_no_d=re.compile(re_ss(ur"\s*%s\s*" % ur" *".join(list(h_p_no_d))), re.M)
         if _shamelaFindHeadings(txt_no_d, page_id, d, h, h_re_any_ware, ix, j, 9): continue
       # if we reached here then head is not found
       # place it just after last one
@@ -609,6 +620,7 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
             # NOTE: t_tags is used since h_tags was already committed
             t_tags["request.fix.footnote"]="shamela import warning: excess text in footnotes"
     else: pg_body=pg_txt
+    if r["id"]==1923: print "done footnotes split pg_body=[%s]" % (pg_body) 
     # debug stubs
     #if pg_id==38:
     #  print "pg_body=[%s]\n" % pg_body
