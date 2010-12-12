@@ -620,7 +620,6 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
             # NOTE: t_tags is used since h_tags was already committed
             t_tags["request.fix.footnote"]="shamela import warning: excess text in footnotes"
     else: pg_body=pg_txt
-    if r["id"]==1923: print "done footnotes split pg_body=[%s]" % (pg_body) 
     # debug stubs
     #if pg_id==38:
     #  print "pg_body=[%s]\n" % pg_body
@@ -714,7 +713,6 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
     depths.append(f.depth)
     #last=pg_body[f.end:]+'\n'
     last=shamela_shift_footers_re.sub(footer_shift_cb, pg_body[f.end:]+'\n')
-    if footnotes_cnd and pg_id!=154: print " *** stall footnotes at pg_id=",pg_id; # raise
     if footnotes_cnd:
       last+="\n==========[\n"+pop_footers(footnotes_cnd)+"\n]==========\n"
     
