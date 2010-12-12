@@ -22,7 +22,6 @@ import sys, os, os.path, glob, shutil
 import sqlite3
 from getopt import getopt, GetoptError
 
-thprefix=os.path.expanduser('~/.thawab')
 def usage():
     print '''\
 Usage: %s [-i] [-m DIR] FILES ...
@@ -30,7 +29,7 @@ Where:
 \t-i\t\t- in-memory
 \t-m DIR\t\t- move successfully imported files into DIR
 
-the generated files will be moved into ~/.thawab/db/
+the generated files will be moved into db in thawab prefix (usually ~/.thawab/db/)
 ''' % os.path.basename(sys.argv[0])
 
 try:
@@ -52,6 +51,7 @@ def progress(msg, p, *a, **kw): print " ** [%g%% completed] %s" % (p,msg)
 from Thawab.core import ThawabMan
 from Thawab.shamelaUtils import ShamelaSqlite,shamelaImport
 th=ThawabMan()
+thprefix=th.prefixes[0]
 
 if not opts.has_key('-i'): db_fn=os.path.expanduser('~/bok2sql.db')
 else: db_fn=None
