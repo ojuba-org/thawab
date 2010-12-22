@@ -165,7 +165,6 @@ class ShamelaSqlite(object):
     """Internal function used by importTable"""
     if prefix and sql_cmd[0].startswith('INSERT INTO '): sql_cmd[0]='INSERT INTO '+prefix+sql_cmd[0][12:]
     sql=''.join(sql_cmd)
-    open("C:\\th.log","at+").write(sql+"\n")
     self.c.execute(sql)
 
   def __schemaGetCols(self, r):
