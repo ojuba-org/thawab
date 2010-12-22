@@ -438,6 +438,7 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
   # NOTE: we only need page_id,title and depth, sub is only used to sort them
   toc_ls=filter(lambda i: i[2] and i[1], [list(i) for i in r])
   if not toc_ls: raise TypeError # no text in the book
+  if toc_ls[0][0]!=1: toc_ls.insert(0, [1, sh.getBookMeta(bkid)['kitab'].replace('_',' '),toc_ls[0][2]])
   toc_hash=map(lambda i: (i[1][0],i[0]),enumerate(toc_ls))
   # toc_hash.sort(lambda a,b: cmp(a[0],b[0])) # FIXME: this is not needed!
   toc_hash=dict(map(lambda j: (j[0],map(lambda k:k[1], j[1])), groupby(toc_hash,lambda i: i[0])))
@@ -625,7 +626,6 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
     #  for j,k in footnotes_cnd:
     #    print "j=[%s] k=[%s]" % (j,k)
     #  # raise KeyError
-
     if toc_hash.has_key(pg_id):
       hno_pop_needed=False
     elif hno!=None and hno!=last_hno:
