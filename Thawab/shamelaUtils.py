@@ -217,7 +217,7 @@ class ShamelaSqlite(object):
     elif is_replace: prefix="OR REPLACE INTO "
     prefix+=tb_prefix
     for l in pipe.stdout:
-      l=l.replace('\r','')
+      l=l.replace('\r','\n')
       # output encoding in mdbtools in windows is cp1256, this is a bug in it
       if self.encoding_fix_needed==None:
         try: l.decode('UTF-8')
