@@ -66,7 +66,7 @@ schema_fix_text=re.compile('Memo/Hyperlink',re.I)
 schema_fix_int=re.compile('(Boolean|Byte|Byte|Numeric|Replication ID|(\w+ )?Integer)',re.I)
 sqlite_cols_re=re.compile("\((.*)\)",re.M | re.S)
 no_sql_comments=re.compile('^--.*$',re.M)
-shamela_footers_re=re.compile('^(_{4,})$',re.M)
+shamela_footers_re=re.compile(u'^(¬?_{4,})$',re.M)
 digits_re=re.compile(r'\d+')
 no_w_re=re.compile(ur'[^A-Za-zابتثجحخدذرزسشصضطظعغفقكلمنهوي\s]')
 # one to one transformations that does not change chars order
