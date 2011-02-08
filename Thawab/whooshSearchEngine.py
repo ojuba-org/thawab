@@ -74,7 +74,7 @@ class SearchEngine(BaseSearchEngine):
     try: self.indexer=open_dir(ix_dir)
     except (EmptyIndexError, IndexVersionError):
       # create a new one
-      try: shutil.rmtree(ix_dir, True)
+      try: shutil.rmtree(ix_dir, True); os.makedirs(ix_dir)
       except OSError: pass
       schema = Schema(
         kitab=ID(stored=True),
