@@ -74,6 +74,8 @@ class SearchEngine(BaseSearchEngine):
     try: self.indexer=open_dir(ix_dir)
     except (EmptyIndexError, IndexVersionError):
       # create a new one
+      try: shutil.rmtree(ix_dir, True)
+      except OSError: pass
       schema = Schema(
         kitab=ID(stored=True),
         vrr=ID(stored=True,unique=False), # version release
