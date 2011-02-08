@@ -21,7 +21,7 @@ from tags import *
 from meta import prettyId,makeId
 
 from whoosh import query
-from whoosh.index import EmptyIndexError, create_in, open_dir
+from whoosh.index import EmptyIndexError, create_in, open_dir, IndexVersionError
 from whoosh.highlight import highlight, SentenceFragmenter, BasicFragmentScorer, FIRST, HtmlFormatter
 from whoosh.filedb.filestore import FileStorage
 from whoosh.fields import Schema, ID, IDLIST, TEXT
@@ -72,7 +72,7 @@ class SearchEngine(BaseSearchEngine):
     ix_dir=os.path.join(th.prefixes[0],'index')
     # try to load a pre-existing index
     try: self.indexer=open_dir(ix_dir)
-    except EmptyIndexError:
+    except (EmptyIndexError, IndexVersionError):
       # create a new one
       schema = Schema(
         kitab=ID(stored=True),
