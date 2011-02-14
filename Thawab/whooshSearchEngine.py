@@ -17,12 +17,14 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 
 """
 import sys, os, os.path, re
+import shutil
 from tags import *
 from meta import prettyId,makeId
 
 from whoosh import query
 from whoosh.index import EmptyIndexError, create_in, open_dir, IndexVersionError
 from whoosh.highlight import highlight, SentenceFragmenter, BasicFragmentScorer, FIRST, HtmlFormatter
+from whoosh.filedb.fileindex import _INDEX_VERSION as whoosh_ix_ver
 from whoosh.filedb.filestore import FileStorage
 from whoosh.fields import Schema, ID, IDLIST, TEXT
 from whoosh.formats import Frequency
@@ -69,7 +71,8 @@ class SearchEngine(BaseSearchEngine):
   def __init__(self, th):
     BaseSearchEngine.__init__(self, th, False)
     self.__ix_writer = None
-    ix_dir=os.path.join(th.prefixes[0],'index')
+    ix_dir=os.path.join(th.prefixes[0],'index', "ix_"+str(whoosh_ix_ver))
+    if not os.path.isdir(ix_dir): os.makedirs(ix_dir)
     # try to load a pre-existing index
     try: self.indexer=open_dir(ix_dir)
     except (EmptyIndexError, IndexVersionError):
