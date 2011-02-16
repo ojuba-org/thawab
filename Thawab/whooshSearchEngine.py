@@ -135,7 +135,7 @@ class SearchEngine(BaseSearchEngine):
     txt=node.toText(ub)
     s=set()
     #results.query.all_terms(s) # return (field,term) pairs 
-    results.query.existing_terms(self.indexer.reader(), s, phrases=True) # return (field,term) pairs  # self.self.__ix_searcher.reader()
+    results.q.existing_terms(self.indexer.reader(), s, phrases=True) # return (field,term) pairs  # self.self.__ix_searcher.reader()
     terms=dict(
       map(lambda i: (i[1],i[0]),
       filter(lambda j: j[0]=='content' or j[0]=='title', s))).keys()
