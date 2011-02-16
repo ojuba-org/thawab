@@ -275,7 +275,7 @@ Allow: /
       # print R
       if not R: return {'t':0,'c':0,'h':''}
       self.searchCache.append(h,R)
-      r={'t':R.runtime,'c':R.scored,'h':h}
+      r={'t':R.runtime,'c':len(R),'h':h}
     elif args[0]=='searchResults':
       h=rq.q.getfirst('h','')
       try: i=int(rq.q.getfirst('i','0'))
@@ -284,11 +284,11 @@ Allow: /
       except TypeError: c=0
       R=self.searchCache.get(h)
       if R==None: return {'c':0}
-      C=R.scored
+      C=len(R)
       if i>=C: return {'c':0}
       c=min(c,C-i)
       r={'c':c,'a':[]}
-      n=100.0/R.scores[0]
+      n=100.0/R[0].score
       j=0
       for j in range(i,i+c):
         name=R[j]['kitab']
@@ -298,7 +298,7 @@ Allow: /
         r['a'].append({
         'i':j,'n':'_i'+R[j]['nodeIdNum'],
         'k':m['kitab'], 'a':prettyId(m['author']), 'y':tryInt(m['year']),
-        't':R[j]['title'], 'r':'%4.1f' % (n*R.scores[j])})
+        't':R[j]['title'], 'r':'%4.1f' % (n*R[j].score)})
         j+=1
       r[c]=j;
     else: r={}
