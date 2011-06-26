@@ -14,10 +14,11 @@ myLogger.addHandler(h)
 myLogger.setLevel(logging.INFO)
 
 from paste import httpserver
+
 app=webApp(
-  th,True, 
-  os.path.join(prefix,'thawab-files','templates'),
-  staticBaseDir={'/_files/':os.path.join(prefix,'thawab-files','media')},
+  th,'web', 
+  os.path.join(prefix,'thawab-themes','default'), '/_theme/',
+  staticBaseDir={'/_files/':os.path.join(prefix,'thawab-themes', 'default', 'static')},
   logger=myLogger
   );
 # for options see http://pythonpaste.org/modules/httpserver.html

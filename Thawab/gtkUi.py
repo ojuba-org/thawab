@@ -825,14 +825,14 @@ THAWAB_HIGH_PORT=18080
 
 def launchServer():
   exedir=os.path.dirname(sys.argv[0])
-  datadir=os.path.join(exedir,'thawab-files')
-  if not os.path.exists(datadir):
-    datadir=os.path.join(exedir,'..','share','thawab','thawab-files')
+  themesdir=os.path.join(exedir,'thawab-themes')
+  if not os.path.exists(themesdir):
+    themesdir=os.path.join(exedir,'..','share','thawab','thawab-themes')
   th=Thawab.core.ThawabMan(isMonolithic=False)
   app=webApp(
-    th,True, 
-    os.path.join(datadir,'templates'),
-    staticBaseDir={'/_files/':os.path.join(datadir,'media')})
+    th,'app', 
+    os.path.join(themesdir,'default'), '/_theme/',
+    staticBaseDir={'/_files/':os.path.join(themesdir,'static')})
   launched=False
   port=THAWAB_HIGH_PORT
   while(not launched):

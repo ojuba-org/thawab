@@ -27,6 +27,7 @@ from meta import prettyId, makeId, metaVrr
 from stemming import normalize_tb
 from okasha.utils import ObjectsCache
 from okasha.baseWebApp import *
+from okasha.bottleTemplate import bottleTemplate
 
 # fixme move this to okasha.utils
 def tryInt(s,d=0):
@@ -37,13 +38,14 @@ def tryInt(s,d=0):
 
 class webApp(baseWebApp):
   _emptyViewResp={
+    'apptype':'web',
     'content':'', 'childrenLinks':'',
     'prevUrl':'', 'prevTitle':'',
     'upUrl':'', 'upTitle':'',
     'nextUrl':'', 'nextTitle':'',
     'breadcrumbs':''
   }
-  def __init__(self, th, allowByUri=False, *args, **kw):
+  def __init__(self, th, typ='web', *args, **kw):
     """
     th is an instance of ThawabMan
     allowByUri=True for desktop, False for server
@@ -51,7 +53,9 @@ class webApp(baseWebApp):
     self.th=th
     self.isMonolithic=th.isMonolithic
     self.stringSeed="S3(uR!r7y"
-    self._allowByUri=allowByUri
+    self._typ=typ
+    self._allowByUri=(typ=='app')
+    self._emptyViewResp[u"apptype"]=self._typ
     # FIXME: move ObjectsCache of kitab to routines to core.ThawabMan
     if not self.isMonolithic:
       import threading
@@ -107,7 +111,7 @@ Allow: /
 </urlset>""" % (d,"\n".join(urls))
 
 
-  @expose(percentTemplate,["main.html"])
+  @expose(bottleTemplate,["main"])
   def index(self, rq, *args):
     l=self.th.getMeta().getKitabList()
     htmlLinks=[]
@@ -117,10 +121,11 @@ Allow: /
       prettyId(self.th.getMeta().getByKitab(k)[0]['kitab'])))
     htmlLinks=(u"\n".join(htmlLinks))
     return {
+      u"apptype":self._typ,
       u"script":rq.script,
       u"app":u"Thawab", u"version":u"3.0.1",
       u"lang":u"ar", u"dir":u"rtl",
-      u"title": "Kitab Index",
+      u"title": "الرئيسية",
       u"kutublinks": htmlLinks,
       "args":'/'.join(args)}
 
@@ -202,7 +207,7 @@ Allow: /
     return ki,m,r
 
 
-  @expose(percentTemplate,["view.html"])
+  @expose(bottleTemplate,["view"])
   def static(self, rq, *args):
     l=len(args)
     if l<1: raise forbiddenException() # TODO: make it show a list of books
@@ -220,7 +225,7 @@ Allow: /
     r['s']='.html'
     return r
 
-  @expose(percentTemplate,["view.html"])
+  @expose(bottleTemplate,["view"])
   def view(self, rq, *args):
     if len(args)!=1: raise forbiddenException()
     ki,m,r=self._get_kitab_details(rq, *args)

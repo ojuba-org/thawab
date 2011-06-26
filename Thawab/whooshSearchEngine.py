@@ -28,7 +28,7 @@ from whoosh.filedb.fileindex import _INDEX_VERSION as whoosh_ix_ver
 from whoosh.filedb.filestore import FileStorage
 from whoosh.fields import Schema, ID, IDLIST, TEXT
 from whoosh.formats import Frequency
-
+from whoosh.qparser import QueryParserError
 from whoosh.lang.porter import stem
 from whoosh.analysis import StandardAnalyzer, StemFilter
 

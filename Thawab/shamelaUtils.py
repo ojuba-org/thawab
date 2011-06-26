@@ -103,7 +103,7 @@ def footer_shift_cb(mi):
 
 
 class ShamelaSqlite(object):
-  def __init__(self, bok_fn, cn=None, releaseMajor=0, releaseMinor=0, progress=None, progress_args=[], progress_kw={}, progress_dict=None):
+  def __init__(self, src, cn=None, releaseMajor=0, releaseMinor=0, progress=None, progress_args=[], progress_kw={}, progress_dict=None):
     """import the bok file into sqlite"""
     self.releaseMajor = releaseMajor
     self.releaseMinor = releaseMinor
@@ -112,7 +112,11 @@ class ShamelaSqlite(object):
     self.progress_kw = progress_kw
     self.progress_dict = progress_dict
     self.tables=None
-    self.bok_fn=bok_fn
+    self.tablesFn={}
+    self.src_is_dir=False
+    if os.path.isdir(src): self.sh_prefix=src; self.src_is_dir=True
+    elif os.path.isfile(src): self.bok_fn=src
+    else: raise OSError
     self.metaById={}
     self._blnk={}
     self.xref={}
@@ -150,16 +154,40 @@ class ShamelaSqlite(object):
     bkid.sort()
     return (3,tb,bkid)
 
-  def getTables(self):
-    if self.tables: return self.tables
-    try: p=Popen(['mdb-tables', '-1',self.bok_fn], 0, stdout=PIPE, env={'MDB_JET3_CHARSET':'cp1256', 'MDB_ICONV':'UTF-8'})
+  def _getTablesInFile(self, fn):
+    try: p=Popen(['mdb-tables', '-1', fn], 0, stdout=PIPE, env={'MDB_JET3_CHARSET':'cp1256', 'MDB_ICONV':'UTF-8'})
     except OSError: raise
-    try: self.tables=p.communicate()[0].replace('\r','').strip().split('\n')
+    try: tables=p.communicate()[0].replace('\r','').strip().split('\n')
     except OSError: raise
     r=p.returncode; del p
     if r!=0: raise TypeError
-    self.tables=filter(lambda t: not t.isdigit(), self.tables)
+    tables=filter(lambda t: not t.isdigit(), tables)
+    return tables
+  
+  def _getTablesInBok(self):
+    if self.tables: return self.tables
+    self.tables=self._getTablesInFile(self.bok_fn)
+    self.tablesFn=dict(((t,self.bok_fn) for t in self.tables))
     return self.tables
+  
+  def _getTablesInDir(self):
+    if self.tables: return self.tables
+    self.tables=[]
+    for f in ("main.mdb", "special.mdb"):
+      fn=os.path.join(self.sh_prefix, "Files",f)
+      tb=self._getTablesInFile(fn)
+      self.tables.extend(tb)
+      self.tablesFn.update(dict(((t,fn) for t in tb)))
+    return self.tables
+
+  def _getTableFile(self, tb):
+    if self.src_is_dir: return self.tablesFn[tb]
+    return self.bok_fn
+
+  def getTables(self):
+    if self.tables: return self.tables
+    if self.src_is_dir: return self._getTablesInDir()
+    return self._getTablesInBok()
 
   def __shamela3_fix_insert(self, sql_cmd, prefix="OR IGNORE INTO tmp_"):
     """Internal function used by importTable"""
@@ -177,7 +205,8 @@ class ShamelaSqlite(object):
     """create schema for table"""
     if is_tmp: temp='temp'
     else: temp=''
-    pipe=Popen(['mdb-schema', '-S','-T', Tb, self.bok_fn], 0, stdout=PIPE,env={'MDB_JET3_CHARSET':'cp1256', 'MDB_ICONV':'UTF-8'})
+    fn=self._getTableFile(Tb)
+    pipe=Popen(['mdb-schema', '-S','-T', Tb, fn], 0, stdout=PIPE,env={'MDB_JET3_CHARSET':'cp1256', 'MDB_ICONV':'UTF-8'})
     r=pipe.communicate()[0].replace('\r','')
     if pipe.returncode!=0: raise TypeError
     sql=schema_fix_text.sub('TEXT',schema_fix_int.sub('INETEGER',schema_fix_del.sub('',r))).lower()
@@ -209,7 +238,8 @@ class ShamelaSqlite(object):
     tb_prefix=is_tmp and 'tmp_' or ''
     if Tb in self.imported_tables: return
     self.importTableSchema(Tb, tb, is_tmp, tb_prefix)
-    pipe=Popen(['mdb-export', '-R',';\n'+mark,'-I', self.bok_fn, Tb], 0, stdout=PIPE,env={'MDB_JET3_CHARSET':'cp1256', 'MDB_ICONV':'UTF-8'})
+    fn=self._getTableFile(Tb)
+    pipe=Popen(['mdb-export', '-R',';\n'+mark,'-I', fn, Tb], 0, stdout=PIPE,env={'MDB_JET3_CHARSET':'cp1256', 'MDB_ICONV':'UTF-8'})
     sql_cmd=[]
     prefix=""
     if is_ignore: prefix="OR IGNORE INTO "

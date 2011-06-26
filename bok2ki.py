@@ -22,6 +22,13 @@ import sys, os, os.path, glob, shutil, re
 import sqlite3
 from getopt import getopt, GetoptError
 
+# TODO: take shamela prefix
+# import Files/special.mdb Files/main.mdb first
+# then take bokids eg. -f /opt/emu/apps/shamela-r1/ 100 15001 ..etc.
+# if first arg of ShamelaSqlite is a directory,
+# getTables should generate tb:fn
+# 
+
 def usage():
     print '''\
 Usage: %s [-i] [-m DIR] FILES ...
