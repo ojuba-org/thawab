@@ -31,7 +31,7 @@ from urllib import unquote
 
 import Thawab.core
 
-from Thawab.webApp import webApp
+from Thawab.webApp import webApp, get_theme_dirs
 from Thawab.shamelaUtils import ShamelaSqlite, shamelaImport
 from Thawab.platform import uri_to_filename
 from paste import httpserver
@@ -825,14 +825,16 @@ THAWAB_HIGH_PORT=18080
 
 def launchServer():
   exedir=os.path.dirname(sys.argv[0])
-  themesdir=os.path.join(exedir,'thawab-themes')
-  if not os.path.exists(themesdir):
-    themesdir=os.path.join(exedir,'..','share','thawab','thawab-themes')
   th=Thawab.core.ThawabMan(isMonolithic=False)
+  lookup=[
+    os.path.join(exedir,'thawab-themes'),
+    os.path.join(exedir,'..','share','thawab','thawab-themes'),
+  ]
+  lookup.extend(map(lambda i: os.path.join(i, 'themes'), th.prefixes))
   app=webApp(
     th,'app', 
-    os.path.join(themesdir,'default'), '/_theme/',
-    staticBaseDir={'/_files/':os.path.join(themesdir,'static')})
+    get_theme_dirs(lookup, 'default'), '/_theme/',
+  )
   launched=False
   port=THAWAB_HIGH_PORT
   while(not launched):

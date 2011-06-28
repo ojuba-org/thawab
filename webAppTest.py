@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 import sys, os, os.path, logging
 import Thawab.core
-from Thawab.webApp import webApp
+from Thawab.webApp import webApp, get_theme_dirs
 
 prefix=os.path.dirname(sys.argv[0])
 th=Thawab.core.ThawabMan()
@@ -15,10 +15,11 @@ myLogger.setLevel(logging.INFO)
 
 from paste import httpserver
 
+lookup=[os.path.join(prefix,'thawab-themes')]
+lookup.extend(map(lambda i: os.path.join(i, 'themes'), th.prefixes))
 app=webApp(
   th,'web', 
-  os.path.join(prefix,'thawab-themes','default'), '/_theme/',
-  staticBaseDir={'/_files/':os.path.join(prefix,'thawab-themes', 'default', 'static')},
+  get_theme_dirs(lookup, 'default'), '/_theme/',
   logger=myLogger
   );
 # for options see http://pythonpaste.org/modules/httpserver.html

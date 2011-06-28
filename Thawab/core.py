@@ -91,7 +91,7 @@ the first thing you should do is to call loadMCache()
      # cache	contains the metadata cache for all containers"""
      P=self.prefixes[0]
      if not os.access(P, os.W_OK): return False
-     for i in ['db','index','conf','cache', 'tmp']:
+     for i in ['db','index','conf','cache', 'tmp', 'themes']:
        p=os.path.join(P,i)
        if not os.path.isdir(p): os.makedirs(p)
      return True
