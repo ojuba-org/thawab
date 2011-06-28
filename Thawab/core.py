@@ -68,6 +68,7 @@ the first thing you should do is to call loadMCache()
     self.othman=othman
     self.__meta=None
     self.read_only = self.assertManagedTree()
+    self.conf = self.prase_conf()
     self.searchEngine=SearchEngine(self)
     self.user_db=UserDb(self, os.path.join(self.prefixes[0],"user.db") )
     if indexerQueueSize>=0:
@@ -82,6 +83,21 @@ the first thing you should do is to call loadMCache()
     else:
       lock1=None
     self.kutubCache=ObjectsCache(lock=lock1)
+
+  def prase_conf(self):
+    r={}
+    fn=os.path.join(self.prefixes[0], 'conf', 'main.txt')
+    if not os.path.exists(fn): return {}
+    try:
+      f=open(fn)
+      t=f.readlines()
+      f.close()
+    except: return {}
+    for l in t:
+      a=l.strip().split("=",1)
+      if len(a)!=2: continue
+      r[a[0].strip()]=a[1].strip()
+    return r
 
   def assertManagedTree(self):
      """create the hierarchy inside the user-managed prefix    

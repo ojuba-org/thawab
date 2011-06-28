@@ -19,7 +19,7 @@ lookup=[os.path.join(prefix,'thawab-themes')]
 lookup.extend(map(lambda i: os.path.join(i, 'themes'), th.prefixes))
 app=webApp(
   th,'web', 
-  get_theme_dirs(lookup, 'default'), '/_theme/',
+  get_theme_dirs(lookup, th.conf.get('theme','default')), '/_theme/',
   logger=myLogger
   );
 # for options see http://pythonpaste.org/modules/httpserver.html

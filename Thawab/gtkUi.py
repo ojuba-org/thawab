@@ -833,7 +833,7 @@ def launchServer():
   lookup.extend(map(lambda i: os.path.join(i, 'themes'), th.prefixes))
   app=webApp(
     th,'app', 
-    get_theme_dirs(lookup, 'default'), '/_theme/',
+    get_theme_dirs(lookup, th.conf.get('theme', 'default')), '/_theme/',
   )
   launched=False
   port=THAWAB_HIGH_PORT
