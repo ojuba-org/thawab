@@ -10,17 +10,17 @@
 <link rel="shortcut icon" href="/_theme/img/favicon.ico" type="image/x-icon" />
 <link rel="stylesheet" type="text/css" href="/_theme/main.css" />
 <link rel="stylesheet" type="text/css" href="/_theme/fx.css" />
+{{!_r.render_css_links()}}
 %if x_js_script: x_js_script()
 <script type="text/javascript" src="/_theme/main.js"></script>
-%for js_link in js_links:
-<script type="text/javascript" src="{{js_link}}"></script>
-%end
+{{!_r.render_js_links('head')}}
 <!--[if lt IE 8]>
   <link rel="stylesheet" type="text/css" media="screen" href="/_theme/ie-fx.css" />
 <![endif]-->
 <link rel="stylesheet" type="text/css" media="print" href="/_theme/print.css" />
 </head>
 <body dir="rtl" class="body">
+{{!_r.render_js_links('begin')}}
 <div id="loading" class="showOnFocus noprint"></div>
 <a id="logo" class="showOnFocus noprint" href="/"><img src="/_theme/img/kutub.gif" alt="ثواب" /></a>
 
@@ -47,7 +47,8 @@
 </div>
 </div>
 
-%include footer apptype=apptype
+%include footer
 
+{{!_r.render_js_links('end')}}
 </body>
 </html>

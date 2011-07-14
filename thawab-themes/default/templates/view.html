@@ -1,5 +1,5 @@
-%js_links=["/_theme/th-main.js", "/_theme/th-view.js"]
-
+%_r.add_js_link('th-main.js')
+%_r.add_js_link('th-view.js')
 %def x_js_script_f():
 <script type="text/javascript">
 var script='';
@@ -32,6 +32,6 @@ var highlighted="";
 
 </div>
 
-%rebase layout typ="view", apptype=apptype, title=title, keywords=[], description="", topnav=topnav_f, js_links=js_links, x_js_script=x_js_script_f
+%rebase layout typ="view", title=title, keywords=[], description="", topnav=topnav_f, x_js_script=x_js_script_f
 
 
