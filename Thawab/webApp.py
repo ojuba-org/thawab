@@ -113,6 +113,7 @@ Allow: /
 
   @expose(bottleTemplate,["main"])
   def index(self, rq, *args):
+    rq.q.title="الرئيسية"
     l=self.th.getMeta().getKitabList()
     htmlLinks=[]
     for k in l:
@@ -121,11 +122,7 @@ Allow: /
       prettyId(self.th.getMeta().getByKitab(k)[0]['kitab'])))
     htmlLinks=(u"\n".join(htmlLinks))
     return {
-      u"apptype":self._typ,
-      u"script":rq.script,
-      u"app":u"Thawab", u"version":u"3.0.1",
       u"lang":u"ar", u"dir":u"rtl",
-      u"title": "الرئيسية",
       u"kutublinks": htmlLinks,
       "args":'/'.join(args)}
 

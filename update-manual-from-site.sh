@@ -1,5 +1,5 @@
 #! /bin/bash
-pushd thawab-files/media/manual || {
+pushd thawab-themes/default/static/manual || {
   echo "can't change dir"
   exit 1
 }

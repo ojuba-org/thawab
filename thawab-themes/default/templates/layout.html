@@ -3,10 +3,10 @@
 	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<title>{{title or '::'}} :: ثواب ::</title>
+<title>{{_r.title or '::'}} :: ثواب ::</title>
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<meta name="keywords" content="{{', '.join(keywords)}}" />
-<meta name="description" content="{{description}}" />
+<meta name="keywords" content="{{', '.join(_r.meta_keywords)}}" />
+<meta name="description" content="{{_r.meta_description}}" />
 <link rel="shortcut icon" href="/_theme/img/favicon.ico" type="image/x-icon" />
 <link rel="stylesheet" type="text/css" href="/_theme/main.css" />
 <link rel="stylesheet" type="text/css" href="/_theme/fx.css" />
