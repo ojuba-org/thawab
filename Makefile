@@ -17,6 +17,7 @@ pos:
 install: all
 	python setup.py install -O2 --root $(DESTDIR)
 	$(INSTALL) -d $(datadir)/applications/
+	$(INSTALL) -d $(datadir)/thawab/
 	$(INSTALL) -m 0644 thawab.desktop $(datadir)/applications/
 	$(INSTALL) -m 0644 -D thawab.svg $(datadir)/icons/hicolor/scalable/apps/thawab.svg;
 	for i in 96 72 64 48 36 32 24 22 16; do \
