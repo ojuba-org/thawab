@@ -215,8 +215,8 @@ Allow: /
     h=args[1]
     if h.endswith(".html"): h=h[:-5]
     r.update(self._view(ki, m, h, './', ".html"))
-    if self.th.searchEngine.getIndexedVersion(m['kitab']): r['is_indexed']=1
-    else: r['is_indexed']=0
+    if self.th.searchEngine.getIndexedVersion(m['kitab']): rq.q.is_indexed=1; r['is_indexed']=1
+    else: rq.q.is_indexed=0; r['is_indexed']=0
     r['is_static']=1
     r['d']='./'
     r['s']='.html'
@@ -227,8 +227,8 @@ Allow: /
     if len(args)!=1: raise forbiddenException()
     ki,m,r=self._get_kitab_details(rq, *args)
     if not ki: raise fileNotFoundException()
-    if self.th.searchEngine.getIndexedVersion(m['kitab']): r['is_indexed']=1
-    else: r['is_indexed']=0
+    if self.th.searchEngine.getIndexedVersion(m['kitab']): rq.q.is_indexed=1; r['is_indexed']=1
+    else: rq.q.is_indexed=0; r['is_indexed']=0
     r['is_static']=0
     r['d']='#'
     r['s']=''
