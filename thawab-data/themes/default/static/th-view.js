@@ -122,7 +122,7 @@ function th_view_init() {
 	}
 	/* hide mini-search if not indexed */
 	if (!is_indexed) {
-		document.getElementById("SearchTable").style.display="none";
+		document.getElementById("minisearch").style.display="none";
 		document.getElementById("nominisearch").style.display="block";
 	}
 	highlighted=get_url_vars()["highlight"] || "";
