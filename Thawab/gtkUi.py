@@ -614,7 +614,9 @@ class ThIndexerWindow(gtk.Window):
     self.main=main
     self.connect('delete-event', lambda w,*a: w.hide() or True)
     self.set_title(_('Manage search index'))
-    self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
+    self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_UTILITY)
+    self.set_transient_for(main)
+    self.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
     vb=gtk.VBox(False,2); self.add(vb)
     hb=gtk.HBox(False,2); vb.pack_start(hb, False, False, 0)
     self.progress=gtk.ProgressBar()
@@ -648,11 +650,14 @@ class ThFixesWindow(gtk.Window):
   def __init__(self, main):
     gtk.Window.__init__(self)
     self.set_title(_('Misc. Fixes'))
-    self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
+    self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_UTILITY)
     self.set_modal(True)
     self.set_transient_for(main)
+    self.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
+
     self.main=main
     self.connect('delete-event', lambda w,*a: w.hide() or True)
+    self.set_deletable(True)
 
     vb=gtk.VBox(False,2); self.add(vb)
     hb=gtk.HBox(False,2); vb.pack_start(hb, False, False, 0)
