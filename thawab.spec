@@ -9,7 +9,8 @@ Group: System Environment/Base
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: python-whoosh >= 1.7.2
-Requires: python, mdbtools, python-paste, python-okasha, islamic-menus, python-othman, pygtk2, pywebkitgtk
+Requires: python-okasha >= 0.2.3
+Requires: python, mdbtools, python-paste, islamic-menus, python-othman, pygtk2, pywebkitgtk
 BuildRequires: gettext
 BuildRequires: python, perl
 
