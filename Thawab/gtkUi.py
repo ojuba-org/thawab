@@ -782,7 +782,7 @@ class ThMainWindow(gtk.Window):
     img.set_from_stock(gtk.STOCK_HELP, gtk.ICON_SIZE_BUTTON)
     b=gtk.ToolButton(icon_widget=img, label=_("Help"))
     b.set_tooltip_text(_("Show user manual"))
-    b.connect('clicked', lambda a: self._content.new_tab ("http://127.0.0.1:%d/_files/manual/manual.html" % port))
+    b.connect('clicked', lambda a: self._content.new_tab ("http://127.0.0.1:%d/_theme/manual/manual.html" % port))
     tools.insert(b, -1)
 
     self._content.new_tab()
