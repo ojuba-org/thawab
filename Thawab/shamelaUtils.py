@@ -455,7 +455,7 @@ def shamelaImport(cursor, sh, bkid, footnote_re=ur'\((\d+)\)', body_footnote_re=
   c=sh.c
   # step 0: prepare shorts
   shorts_t=c.execute("SELECT islamshort FROM main WHERE bkid=?", (bkid,)).fetchone()
-  if shorts_t: shorts_t=shorts_t[0]
+  if shorts_t: shorts_t=shorts_t[0] or 0
   else: shorts_t=0
   if shorts_t>1:
     shorts_dict=dict(c.execute("SELECT ramz,nass FROM shorts WHERE bk=?", (bkid,)).fetchall())
