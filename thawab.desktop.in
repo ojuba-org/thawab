@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+_Name=Thawab
+_GenericName=Electronic Arabic/Islamic Encyclopedia
+Terminal=false
+TryExec=thawab-gtk
+Exec=thawab-gtk
+Icon=thawab
+Categories=X-Islamic-Software;GTK;
+StartupNotify=false

@@ -1,0 +1,37 @@
+%_r.title=title
+%_r.add_js_link('th-main.js')
+%_r.add_js_link('th-view.js')
+%def x_js_script_f():
+<script type="text/javascript">
+var script='';
+var title='{{title}}';
+var kitabId='{{kitabId}}';
+var kitabUid=encodeURI('{{kitabId}}');
+var is_indexed={{is_indexed}};
+var is_static={{is_static}};
+var highlighted="";
+</script>
+%end
+
+%def topnav_f():
+  <a id="prevLink" class="blurOnFocus" style="float:right;" href="{{prevUrl}}" title="{{prevTitle}}"><img src="/_theme/img/go-prev.gif" alt="prev" /></a>
+  <a id="upLink" class="blurOnFocus" style="float:right;" href="{{upUrl}}" title="{{upTitle}}"><img src="/_theme/img/go-up.gif" alt="up" /></a>
+  <a class="blurOnFocus" style="float:right;" href="{{d}}_i0{{s}}" title="{{title}}"><img src="/_theme/img/go-home.gif" alt="home" /></a>
+  <a id="nextLink" class="blurOnFocus" style="float:right;" href="{{nextUrl}}" title="{{nextTitle}}"><img src="/_theme/img/go-next.gif" alt="next" /></a>
+  <a class="blurOnFocus" style="float:right;" href="javascript:window.print()" title="طباعة الصفحة"><img src="/_theme/img/print.gif" alt="print" /></a>
+%end
+
+
+<div id="contentheader">
+<h1><a href="/">مكتبة ثواب</a> - <a href="{{d}}_i0{{s}}">{{title}}</a></h1>
+<div id="breadcrumbs">{{!breadcrumbs}}</div>
+</div>
+<div id="contentbody">
+
+  <div id="maincontent">{{!content}}</div>
+  <div id="subtoc">{{!childrenLinks}}</div>
+
+</div>
+
+%rebase layout typ="view", topnav=topnav_f, x_js_script=x_js_script_f
+
