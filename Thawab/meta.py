@@ -34,7 +34,7 @@ def prettyId(i, empty_for_special=True):
 
 def makeId(i):
   """convert the id into a canonical form"""
-  return i.strip().replace(' ','_')
+  return i.strip().replace(' ','_').replace('/','_')
 
 def metaVr(m):
   return m[u"version"]+u"-"+unicode(m[u"releaseMajor"])
