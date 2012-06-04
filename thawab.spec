@@ -1,7 +1,7 @@
 Name: thawab
 Summary: Thawab Arabic/Islamic encyclopedia system
 URL: http://thawab.ojuba.org/
-Version: 3.0.13
+Version: 3.1.1
 Release: 1%{?dist}
 Source0: http://git.ojuba.org/cgit/%{name}/snapshot/%{name}-%{version}.tar.bz2
 License: Waqf
@@ -10,7 +10,9 @@ BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires: python-whoosh >= 1.7.2
 Requires: python-okasha >= 0.2.3
-Requires: python, mdbtools, python-paste, islamic-menus, python-othman, pygtk2, pywebkitgtk
+Requires: pygobject3 >= 3.0.2
+Requires: python, mdbtools, python-paste, islamic-menus, python-othman
+
 BuildRequires: gettext
 BuildRequires: python, perl
 
@@ -57,6 +59,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/locale/*/*/*.mo
 
 %changelog
+* Mon Jun 1 2012  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.1.1-1
+- port to gtk 3
+
 * Mon Nov 1 2010  Muayyad Saleh AlSadi <alsadi@ojuba.org> - 3.0.10-1
 - update to whoosh 1.x.y
 
