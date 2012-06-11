@@ -459,7 +459,7 @@ class ThImportWindow(Gtk.Window):
         self.main.th.loadMeta()
         self.main._do_in_all_views('reload_if_index')
         self.progress.set_text(_("Done"))
-        info(_("Done"), self)
+        info(_("Convert Book, Done"), self.main)
         self.ls.clear()
         self.progress.set_text("")
         self.progress.set_fraction(0.0)
@@ -521,56 +521,58 @@ class ThImportWindow(Gtk.Window):
 
 
 class TabLabel(Gtk.HBox):
-        """A class for Tab labels"""
+    """A class for Tab labels"""
 
-        __gsignals__ = {
-                "close": (GObject.SIGNAL_RUN_FIRST,
-                          GObject.TYPE_NONE,
-                          (GObject.TYPE_OBJECT,))
-                }
+    __gsignals__ = {
+        "close": (GObject.SIGNAL_RUN_FIRST,
+                  GObject.TYPE_NONE,
+                  (GObject.TYPE_OBJECT,))
+        }
 
-        def __init__ (self, title, child):
-                """initialize the tab label"""
-                Gtk.HBox.__init__(self, False, 4)
-                self.title = title
-                self.child = child
-                self.label = Gtk.Label(title)
-                self.label.props.max_width_chars = 30
-                self.label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
-                self.label.set_alignment(0.0, 0.5)
-                # FIXME: use another icon
-                icon = Gtk.Image.new_from_icon_name("thawab", Gtk.IconSize.MENU)
-                close_image = Gtk.Image.new_from_stock(Gtk.STOCK_CLOSE, Gtk.IconSize.MENU)
-                close_button = Gtk.Button()
-                close_button.set_relief(Gtk.ReliefStyle.NONE)
-                close_button.connect("clicked", self._close_tab, child)
-                close_button.add(close_image)
-                self.pack_start(icon, False, False, 0)
-                self.pack_start(self.label, True, True, 0)
-                self.pack_start(close_button, False, False, 0)
+    def __init__ (self, title, child):
+        """initialize the tab label"""
+        Gtk.HBox.__init__(self, False, 4)
+        self.title = title
+        self.child = child
+        self.label = Gtk.Label(title)
+        self.label.props.max_width_chars = 30
+        self.label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+        self.label.set_alignment(0.0, 0.5)
+        # FIXME: use another icon
+        icon = Gtk.Image.new_from_icon_name("thawab", Gtk.IconSize.MENU)
+        close_image = Gtk.Image.new_from_stock(Gtk.STOCK_CLOSE, Gtk.IconSize.MENU)
+        close_button = Gtk.Button()
+        close_button.set_relief(Gtk.ReliefStyle.NONE)
+        close_button.connect("clicked", self._close_tab, child)
+        close_button.add(close_image)
+        self.pack_start(icon, False, False, 0)
+        self.pack_start(self.label, True, True, 0)
+        self.pack_start(close_button, False, False, 0)
 
-                self.set_data("label", self.label)
-                self.set_data("close-button", close_button)
-                self.connect("style-set", tab_label_style_set_cb)
+        self.set_data("label", self.label)
+        self.set_data("close-button", close_button)
+        self.connect("style-set", tab_label_style_set_cb)
 
-        def set_label_text (self, text):
-                """sets the text of this label"""
-                if text: self.label.set_label(text)
+    def set_label_text (self, text):
+        """sets the text of this label"""
+        if text:
+            self.label.set_label(text)
 
-        def _close_tab (self, widget, child):
-                self.emit("close", child)
+    def _close_tab (self, widget, child):
+        self.emit("close", child)
 
 def tab_label_style_set_cb (tab_label, style):
-        context = tab_label.get_pango_context()
-        font_desc = Pango.font_description_from_string(tab_label.label.get_label())
-        metrics = context.get_metrics(font_desc, context.get_language())
-        #metrics = context.get_metrics(tab_label.style.font_desc, context.get_language())
-        char_width = metrics.get_approximate_digit_width()
-        (icons, width, height) = Gtk.icon_size_lookup_for_settings(tab_label.get_settings(),
-                                                                   Gtk.IconSize.MENU)
-        tab_label.set_size_request(20 * char_width + 2 * width, -1)
-        button = tab_label.get_data("close-button")
-        button.set_size_request(width + 4, height + 4)
+    #context = tab_label.get_pango_context()
+    #font_desc = Pango.font_description_from_string(tab_label.label.get_label())
+    #metrics = context.get_metrics(font_desc, context.get_language())
+    #metrics = context.get_metrics(tab_label.style.font_desc, context.get_language())
+    #char_width = metrics.get_approximate_digit_width()
+    #(icons, width, height) = Gtk.icon_size_lookup_for_settings(tab_label.get_settings(),
+    #                                                           Gtk.IconSize.MENU)
+    #tab_label.set_size_request(20 * char_width + 2 * width, -1)
+    tab_label.set_size_request(230, -1)
+    button = tab_label.get_data("close-button")
+    #button.set_size_request(width + 4, height + 4)
 
 class ContentPane (Gtk.Notebook):
     __gsignals__ = {
@@ -656,7 +658,6 @@ class ContentPane (Gtk.Notebook):
 
         # hide the tab if there's only one
         self.set_show_tabs(self.get_n_pages() > 1)
-
         self.show_all()
         self.set_current_page(new_tab_number)
 
@@ -714,38 +715,59 @@ class ThIndexerWindow(Gtk.Window):
         self.connect('delete-event', lambda w,*a: w.hide() or True)
         self.set_title(_('Manage search index'))
         self.set_type_hint(Gdk.WindowTypeHint.DIALOG)
-        self.set_modal(False)
+        self.set_modal(True)
         self.set_transient_for(main)
         self.main = main
         self.set_position(Gtk.WindowPosition.CENTER_ON_PARENT)
         vb = Gtk.VBox(False,2); self.add(vb)
         hb = Gtk.HBox(False,2); vb.pack_start(hb, False, False, 0)
-        self.progress=Gtk.ProgressBar()
-        b = Gtk.Button(_("Queue new books"))
+        self.progress = Gtk.ProgressBar()
+        self.progress.set_show_text(True)
+        self.progress.set_text("")
+        self.start_b = b = Gtk.Button(_("Queue new books"))
         b.connect('clicked', self.indexNew)
         hb.pack_start(b, False, False, 0)
         hb.pack_start(self.progress, False, False, 0)
-        self.cancel_b = b = Gtk.Button(stock = Gtk.STOCK_CANCEL)
+        self.cancel_b = b = Gtk.Button(stock = Gtk.STOCK_CLOSE)
+        #b.connect('clicked', self.cancel_cb)
+        b.connect('clicked', lambda w,*a: self.hide() or True)
         hb.pack_start(b, False, False, 0)
-        b.set_sensitive(False)
-        self.update()
-        GLib.timeout_add(250, self.update)
-
-
+        #b.set_sensitive(False)
+        #self.update()
+        
+    def cancel_cb(self, *w):
+        return False
+        if self.main.th.asyncIndexer.started:
+            self.main.th.asyncIndexer.cancelQueued()
+            self.start_b.set_sensitive(True)
+            self.cancel_b.set_sensitive(False)
+            self.progress.set_text(_("Indexing jobs canceled"))
+            return False
+    
     def indexNew(self, *a):
+        self.start_b.set_sensitive(False)
+        #self.cancel_b.set_sensitive(True)
         self.main.th.asyncIndexer.queueIndexNew()
         if not self.main.th.asyncIndexer.started:
             self.main.th.asyncIndexer.start()
         self.update()
-
+        #GLib.timeout_add(250, self.update)
+        
     def update(self, *a):
-        if not self.get_property('visible'): return True
-        j = self.main.th.asyncIndexer.jobs()
-        if j > 0:
+        #if not self.get_property('visible'):
+        #    return True
+        jj = j = self.main.th.asyncIndexer.jobs()
+        while (j > 0 and self.main.get_property('visible')):
             self.progress.set_text (_("Indexing ... (%d left)") % j)
             self.progress.pulse()
-        else:
-            self.progress.set_text (_("no indexing jobs left"))
+            j = self.main.th.asyncIndexer.jobs()
+            Gtk.main_iteration()
+            #Gtk.main_iteration_do(True)
+        self.progress.set_text (_("No indexing jobs left"))
+        self.start_b.set_sensitive(True)
+        if j <= 0 and jj > 0:
+            info(_("Indexing %d jobs, Done") % jj, self.main)
+        #self.cancel_b.set_sensitive(False)
         return True
 
 class ThFixesWindow(Gtk.Window):
@@ -778,29 +800,32 @@ for example to recover power failure.</span>"""))
         b.set_tooltip_text(_('instead of incremental meta data gathering'))
         hb.pack_start(b , False, False, 0)
         b.connect('clicked', self.rm_mcache_cb)
-
-        self.show_all()
+        
+        b = Gtk.Button(stock = Gtk.STOCK_CLOSE)
+        hb.pack_end(b , False, False, 0)
+        b.connect('clicked', lambda w,*a: self.hide() or True)
+        #self.show_all()
 
     def rm_index_cb(self, b):
-        if not sure(_("You will need to recreate search index in-order to search again.\nAre you sure you want to remove search index?"), self): return
+        if not sure(_("You will need to recreate search index in-order to search again.\nAre you sure you want to remove search index?"), self.main): return
         p = os.path.join(self.main.th.prefixes[0], 'index')
         try:
             shutil.rmtree(p)
         except OSError:
-            error(_("unable to remove folder [%s]" % p), self)
+            error(_("unable to remove folder [%s]" % p), self.main)
         else:
-            info(_("Done"), self)
+            info(_("Done"), self.main)
 
     def rm_mcache_cb(self, b):
-        if not sure(_("Are you sure you want to remove search meta data cache?"), self): return
+        if not sure(_("Are you sure you want to remove search meta data cache?"), self.main): return
         p = os.path.join(self.main.th.prefixes[0], 'cache', 'meta.db')
         try:
             os.unlink(p)
         except OSError:
-            error(_("unable to remove file [%s]" % p), self)
+            error(_("unable to remove file [%s]" % p), self.main)
         else:
             self.main.th.reconstructMetaIndexedFlags()
-            info(_("Done"), self)
+            info(_("Done"), self.main)
 
 class ThMainWindow(Gtk.Window):
     def __init__(self, th, port, server):
@@ -812,7 +837,7 @@ class ThMainWindow(Gtk.Window):
         self.set_title(_('Thawab'))
         self.set_default_size(600, 480)
         self.maximize()
-        self.import_w = None
+        self.fixes_w = ThFixesWindow(self)
         self.import_w = ThImportWindow(self)
         self.ix_w = ThIndexerWindow(self)
         
@@ -906,6 +931,7 @@ class ThMainWindow(Gtk.Window):
         self._content.new_tab()
 
         self.connect("delete_event", self.quit)
+        self.connect("destroy", self.quit)
         ## prepare dnd 
         self.drag_dest_set(Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY)
         self.drag_dest_set_target_list(targets)
@@ -929,7 +955,7 @@ class ThMainWindow(Gtk.Window):
     def fixes_cb(self, b):
         if not self.fixes_w:
             self.fixes_w = ThFixesWindow(self)
-        self.fixes_w.show()
+        self.fixes_w.show_all()
 
     def drop_data_cb(self, widget, dc, x, y, selection_data, info, t):
         if not self.import_w:
@@ -946,9 +972,12 @@ class ThMainWindow(Gtk.Window):
         self.import_w.show_all()
 
     def quit(self,*args):
-        if self.import_w.cancel_b.get_sensitive():
-            self.import_w.show()
-            return True
+        #if self.import_w.cancel_b.get_sensitive():
+        #    self.import_w.show()
+        #    return True
+        #if not self.ix_w.start_b.get_sensitive():
+        #    self.ix_w.show_all()
+        #    return True
         self.server.running = False
         Gtk.main_quit()
         return False

@@ -282,7 +282,11 @@ Allow: /
             R = self.searchCache.get(h)
             if R == None:
                 return 'انتهت صلاحية هذا البحث'
-            r = self.th.searchEngine.resultExcerpt(R, i)
+            try :
+                r = self.th.searchEngine.resultExcerpt(R, i)
+            except OSError, e:
+                print '** webapp.ajax: %s' , e
+                return ''
             #r = escape(self.th.searchEngine.resultExcerpt(R,i)).replace('\0','<em>').replace('\010','</em>').replace(u"\u2026",u"\u2026<br/>").encode('utf8')
             return r
         elif args[0] == 'kutub' and len(args) == 1:

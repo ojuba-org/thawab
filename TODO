@@ -1,5 +1,7 @@
 بسم الله الرحمن الرحيم
-- add close button to chlid windows ( dialogs )
+- fix indixing after clear cache
+- fix indexing repete jobs in current session ( reload search cache )
+- add close button to chlid windows ( dialogs ) ....... Done
 - fix tabs title
 - fix FIXME lines
 

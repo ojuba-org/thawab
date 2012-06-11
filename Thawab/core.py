@@ -243,17 +243,18 @@ class KitabCursor:
         pass
 
     def seek(self, parentNodeIdNum = -1,nodesNum = -1):
-        """should be called before concatenating nodes, all descendants will be dropped
-where:
-    parentNodeIdNum    - the parent below which the concatenation will begin, -1 at the tail
-    nodesNum        - number of nodes to be concatenated, -1 for unknown open number
+        """
+            should be called before concatenating nodes, all descendants will be dropped
+            where:
+                parentNodeIdNum    - the parent below which the concatenation will begin, -1 at the tail
+                nodesNum        - number of nodes to be concatenated, -1 for unknown open number
 
-seek()
-appendNode(parentNodeIdNum, content, tags)
-appendNode(parentNodeIdNum, content, tags)
-...
-plush()
-"""
+            seek()
+            appendNode(parentNodeIdNum, content, tags)
+            appendNode(parentNodeIdNum, content, tags)
+            ...
+            plush()
+        """
         self.__lock()
         self.__is_tailing = False
         self.__is_tmp = False
@@ -364,7 +365,8 @@ class Kitab(object):
         self.__tags_loaded = False
         self.__counter = 0 # used to renumber rows
         self.inc_size = 1 << 10
-        # TODO: make a decision, should the root node be saved in SQL, if so a lower bound checks to Kitab.getSliceBoundary() and an exception into Kitab.getNodeByIdNum()
+        # TODO: make a decision, should the root node be saved in SQL,
+        # if so a lower bound checks to Kitab.getSliceBoundary() and an exception into Kitab.getNodeByIdNum()
         self.root = Node(kitab = self,
                          idNum = 0,
                          parent = -1,
