@@ -84,6 +84,7 @@ input {
 	position:absolute;
 	top:16px;
 	left:8px;
+	margin:20px auto;
 	width:32px;
 	height:32px;
 }
@@ -132,7 +133,7 @@ input {
 	top:128px;
 	left:10px;
 	width:32px;
-	height:80px;
+	height:110px;
 	margin:0;
 	padding:0;
 	border:2px solid #aaa;
@@ -140,6 +141,7 @@ input {
 #absnav2 img,  #absnav3 img {
 	padding:8px 5px;
 	border:0;
+	margin:8px auto 8px auto;
 }
 
 #results {
