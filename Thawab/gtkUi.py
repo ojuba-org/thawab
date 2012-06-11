@@ -146,7 +146,7 @@ class ThImportWindow(Gtk.Window):
         self.progress_books_in_file = 0
         self.progress_element = 0
         self.add_dlg = None
-        
+        self.set_size_request(-1, 400)
         ## prepare dnd 
         self.drag_dest_set(Gtk.DestDefaults.ALL, [], Gdk.DragAction.COPY)
         self.drag_dest_set_target_list(targets)
@@ -156,8 +156,8 @@ class ThImportWindow(Gtk.Window):
         self.set_modal(True)
         self.set_transient_for(main)
         self.main = main
-        self.connect('delete-event', lambda w,*a: w.hide() or True)
-        
+        self.connect('delete-event', self.close_cb)
+        self.connect('destroy', self.close_cb)
         vb = Gtk.VBox(False,2)
         self.add(vb)
         hb0 = Gtk.HBox(False,2)
@@ -183,9 +183,14 @@ class ThImportWindow(Gtk.Window):
         b.connect('clicked', self.stop)
         b.set_sensitive(False)
         hb0.pack_start(b, False, False, 2)
-
+        
+        self.close_b = b = Gtk.Button(stock = Gtk.STOCK_CLOSE)
+        b.connect('clicked', self.close_cb)
+        hb0.pack_start(b, False, False, 2)
+        
         self.ls = Gtk.ListStore(str,str,float,int,str) # fn, basename, percent, pulse, label
         self.lsv = Gtk.TreeView(self.ls)
+        #self.lsv.set_size_request(250, -1)
         cells = []
         cols = []
         cells.append(Gtk.CellRendererText())
@@ -203,7 +208,7 @@ class ThImportWindow(Gtk.Window):
             self.lsv.insert_column(i, -1)
 
         scroll = Gtk.ScrolledWindow()
-        scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.ALWAYS)
+        scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC)
         scroll.add(self.lsv)
         vb.pack_start(scroll,True, True, 2)
 
@@ -302,17 +307,24 @@ class ThImportWindow(Gtk.Window):
         ft_prefix_len = len(ft_prefix)
         ft_suffix_len = len(ft_suffix)
         #shamelaImport(cursor, sh, bkid, footnote_re = ur'\((\d+)\)', body_footnote_re = ur'\((\d+)\)', ft_prefix_len = 1, ft_suffix_len = 1):
-        self.show_all()
+        #self.show_all()
 
+    def close_cb(self, *w):
+        return self.hide() or True
+        
     def element_pulse_cb(self, i):
         self.ls[(i,)][2] = 0
         self.ls[(i,)][3] = int(abs(self.ls[(i,)][3])+1)
         Gtk.main_iteration()
 
     def element_progress_cb(self, i, percent, text = None):
-        l=self.ls[(i,)]
-        if percent >= 0.0: l[2] = percent
-        if text != None: l[4] = text
+        l = self.ls[(i,)]
+        if percent >= 0.0:
+            l[2] = percent
+        if text != None and not 'working' in text:
+            l[4] = text
+        else:
+            l[4] = '%s%%' % str(int(percent))
         Gtk.main_iteration()
 
     def progress_cb(self, msg, p, *d, **kw):
@@ -344,7 +356,7 @@ class ThImportWindow(Gtk.Window):
         self.start_cb()
         self.progress.set_text(_("working ..."))
         ft_at_line_start = self.ft_at_line_start.get_active()
-        ft_prefix=self.ft_prefix.get_text()
+        ft_prefix = self.ft_prefix.get_text()
         ft_prefix_len = len(ft_prefix)
         
         ft_suffix=self.ft_suffix.get_text()
@@ -488,12 +500,12 @@ class ThImportWindow(Gtk.Window):
 
     def rm(self, b):
         l, ls_p = self.lsv.get_selection().get_selected_rows()
-        r = map(lambda p: Gtk.TreeRowReference(self.ls, p), ls_p)
+        r = map(lambda p: Gtk.TreeRowReference.new(self.ls, p), ls_p)
         for i in r:
             self.ls.remove(self.ls.get_iter(i.get_path()))
 
     def add_fn(self, fn):
-        self.ls.append([fn,os.path.basename(fn),0,-1,"Not started"])
+        self.ls.append([fn, os.path.basename(fn), float(0), -1, "Not started"])
 
     def add_uri(self, i):
         if i.startswith('file://'):
@@ -505,7 +517,7 @@ class ThImportWindow(Gtk.Window):
     def drop_data_cb(self, widget, dc, x, y, selection_data, info, t):
         for i in selection_data.get_uris():
             self.add_uri(i)
-        dc.drop_finish(True, t)
+        #dc.drop_finish(True, t)
 
 
 class TabLabel(Gtk.HBox):
@@ -801,7 +813,7 @@ class ThMainWindow(Gtk.Window):
         self.set_default_size(600, 480)
         self.maximize()
         self.import_w = None
-        self.fixes_w = None
+        self.import_w = ThImportWindow(self)
         self.ix_w = ThIndexerWindow(self)
         
         vb = Gtk.VBox(False,0); self.add(vb)
@@ -915,22 +927,28 @@ class ThMainWindow(Gtk.Window):
 
 
     def fixes_cb(self, b):
-        if not self.fixes_w: self.fixes_w = ThFixesWindow(self)
+        if not self.fixes_w:
+            self.fixes_w = ThFixesWindow(self)
         self.fixes_w.show()
 
     def drop_data_cb(self, widget, dc, x, y, selection_data, info, t):
-        if not self.import_w: self.import_w = ThImportWindow(self)
+        if not self.import_w:
+            self.import_w = ThImportWindow(self)
         for i in selection_data.get_uris():
             self.import_w.add_uri(i)
-        self.import_w.show()
-        dc.drop_finish (True, t);
+        self.import_w.show_all()
+        #dc.drop_finish (True, t);
 
 
     def import_cb(self, b):
-        if not self.import_w: self.import_w = ThImportWindow(self)
-        self.import_w.show()
+        if not self.import_w:
+            self.import_w = ThImportWindow(self)
+        self.import_w.show_all()
 
     def quit(self,*args):
+        if self.import_w.cancel_b.get_sensitive():
+            self.import_w.show()
+            return True
         self.server.running = False
         Gtk.main_quit()
         return False
