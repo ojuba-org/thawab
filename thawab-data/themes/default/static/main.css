@@ -9,7 +9,34 @@ body {
 	background:#000;
 	margin:0;padding:0;border:0;
 }
-
+h1
+{
+margin-top:50px;
+padding-top:5px;
+padding-bottom:5px;
+padding-left:4px;
+color:#303030;
+border:1px solid #d4d4d4;
+background-color:#eee;
+background:#fff url('img/bg-l.png') top left repeat-x;
+background-repeat:repeat-x;
+background-position:0px -50px;
+clear:both;
+}
+h2
+{
+margin-top:20px;
+padding-top:5px;
+padding-bottom:5px;
+padding-left:4px;
+color:#303030;
+border:1px solid #d4d4d4;
+background-color:#eee;
+background:#fff url('img/bg-l.png') top left repeat-x;
+background-repeat:repeat-x;
+background-position:0px -50px;
+clear:both;
+}
 #async_tips_div {
 	display:none;
 	position: absolute;
@@ -42,9 +69,14 @@ blockquote {
   padding:5px 50px;
 }
 
+input {
+    font-family: "Simplified Naskh", "me_quran", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "Serif";
+    font-size:100%;
+    width:50%;
+    height:25px;
+    color:#000;
+}
 
-.search_inactive {color:#999;}
-.search_active {color:#000;}
 
 #loading {
 	display:none;
@@ -242,19 +274,24 @@ padding-left:24px;padding-right:16px;
 
 #kutubListing {
 	border: 2px solid #aba;
-	width:90%;
-	margin:0 auto;
+	margin:20px;
 	background-color:#eef7ee;
 }
-#kutubListing ul { display:block;}
+#kutubListing ul { 
+    display:inline;
+    }
 #kutubListing ul li {
-	display:inline;
-	float:right; margin:16px; padding-top:64px;
-	min-width:64px;
+    display:inline;
+    font-size:18px;
+	display:block;
+	float:right;
+	margin:18px 16px;
+	padding-top:64px;
+	width:130px;
+	height:50px;
 	text-align:center;
 	background:transparent url('img/kutub.gif') no-repeat center 8px;
 }
-
 
 table,th,td	{
 	border:none;
@@ -285,11 +322,15 @@ tbody tr:nth-child(odd) td	{ background-color:#eee; color:#222}
 tfoot td, tfoot th	{border:none; font-size:130%}
 
 #SearchPages span {
+    display:inline;
 	float:right;
-	margin:1px;
+	margin:0px;
+	text-align:center;
 	background: #def;
 	color:#777;
 	border:2px solid #acd;
+	width:42px;
+	cursor:pointer;
 }
 #SearchPages a{
 	padding:0 0.5em;

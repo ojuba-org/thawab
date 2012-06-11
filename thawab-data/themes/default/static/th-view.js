@@ -14,7 +14,7 @@ function mini_search_row_factory_st(u, bu, r) {
 resultsPerPage=10; // defined in main.js
 search_row_factory=(is_static)?mini_search_row_factory_st:mini_search_row_factory;
 function doMiniSearch(q) {
-  doSearch(q+" كتاب:"+kitabId);
+  doSearch(q+" كتاب:"+kitabId, false);
 }
 
 function view_cb(h) {

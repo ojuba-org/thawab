@@ -21,9 +21,10 @@ var script='';
 <div id="contentbody">
 <a name="search"></a><h2>البحث</h2>
 <div>
-<form action="" name="SearchForm" onsubmit="doSearch(document.getElementById('q').value); return false;" style="margin:0;border:0;padding:0;">
-<input id="q" class="search_inactive" type="text" value="نص البحث" onfocus="search_entry_focus(this);document.getElementById('searchHelpDiv').style.display='block';" onblur="search_entry_blur
-(this);" style="width:80%"></input>
+<form action="" name="SearchForm" onsubmit="doSearch(document.getElementById('q').value, true); return false;" style="margin:0;border:0;padding:0;">
+<input id="q" class="search_inactive" type="text" value="نص البحث" onfocus="search_entry_focus(this);document.getElementById('searchHelpDiv').style.display='none';" onblur="search_entry_blur
+(this);" ></input>
+  &nbsp;&nbsp;<a href="/_theme/manual/manual.html" target='help'>دليل الاستخدام ( البحث المتقدم )</a>
 </form>
 </div>
 <div id="searchHelpDiv">
@@ -39,8 +40,9 @@ var script='';
 </div>
 </div>
 
-  <div id="SearchContainer">
+  <div id="SearchContainer" style="display:none;">
 تم البحث خلال   <span id="SearchTime">-</span> من الثواني وعُثر على <span id="SearchRCount">-</span> من النتائج موزعة على <span id="SearchPagesCount">-</span> من الصفحات.
+<div id="SearchContainer_tab" style="display:none;">
 <center><table style="width:90%;">
   <thead>
   <tr><th colspan="5">نتائج البحث</th></tr>
@@ -50,6 +52,7 @@ var script='';
   <tfoot><tr><td colspan="5"><div id="SearchPages">-</div></td></tr></tfoot>
   <tbody id="SearchResults"><tr><td colspan="5">-</td></tr></tbody>
 </table></center>
+  </div>
   </div>
 
 <a name="books"></a><h2>الكتب المتوفرة</h2>

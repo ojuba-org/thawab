@@ -176,7 +176,12 @@ class SearchEngine(BaseSearchEngine):
         """
         should be called before any sequence of indexing Ops, reindexAll() calls this method automatically
         """
-        if not self.__ix_writer: self.__ix_writer=self.indexer.writer()
+        if not self.__ix_writer:
+            try:
+                self.__ix_writer = self.indexer.writer()
+            except OSError, e:
+                print '*** whooshSearchEnfine.indexingStart: %s', e
+                
 
     def indexingEnd(self):
         """

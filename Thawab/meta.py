@@ -207,6 +207,8 @@ class MCache(object):
         return a meta object for latest kitab (based on version)
         """
         a = self.__meta_by_kitab.get(kitab, None)
+        if not a:
+            return None
         ma = filter(lambda m: m[u'version'] == v,[self.__meta[i] for i in a])
         if not ma:
             return None

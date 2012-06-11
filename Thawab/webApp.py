@@ -120,6 +120,7 @@ Allow: /
         rq.q.title = "الرئيسية"
         l = self.th.getMeta().getKitabList()
         htmlLinks = []
+        l = sorted(l)
         for k in l:
             # FIXME: it currenly offers only one version for each kitab (the first one)
             htmlLinks.append('\t<li><a href="/view/%s/">%s</a></li>' % (k,
@@ -293,6 +294,7 @@ Allow: /
             q = rq.q.getfirst('q','').decode('utf-8').strip().translate(normalize_tb)
             r = []
             l = self.th.getMeta().getKitabList()
+            l = sorted(l)
             for k in l:
                 n = prettyId(k)
                 if not q or q in n.translate(normalize_tb):
@@ -346,11 +348,12 @@ Allow: /
                 name = R[j]['kitab']
                 v = R[j]['vrr'].split('-')[0]
                 m = self.th.getMeta().getLatestKitabV(name,v)
+                k = m['kitab'] #.replace('_', ' ')
                 if not m:
                     continue # book is removed
                 r['a'].append({
                 'i':j,'n':'_i'+R[j]['nodeIdNum'],
-                'k':m['kitab'], 'a':prettyId(m['author']), 'y':tryInt(m['year']),
+                'k':k, 'a':prettyId(m['author']), 'y':tryInt(m['year']),
                 't':R[j]['title'], 'r':'%4.1f' % (n*R[j].score)})
                 j += 1
             r[c] = j;
