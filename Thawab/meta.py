@@ -98,7 +98,10 @@ class MCache(object):
         cn = sqlite3.connect(uri)
         cn.row_factory=sqlite3.Row
         c = cn.cursor()
-        r = c.execute(SQL_MCACHE_GET).fetchone()
+        try:
+            r = c.execute(SQL_MCACHE_GET).fetchone()
+        except sqlite3.OperationalError:
+            return None
         if not r:
             return None
         return dict(r)
