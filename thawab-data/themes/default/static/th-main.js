@@ -45,12 +45,16 @@ function showSearchPage(hash, pg){
 
 function doSearch(q, main) {
 	var i,pages,o,h,l;
+	
 	l=document.getElementById("loading");
 	if (main){
 	    se = document.getElementById('SearchContainer');
 	    se_t = document.getElementById('SearchContainer_tab');
 	    se.style.display="block";
 	    se_t.style.display="none";
+	}
+	if (q=="") {
+	    se.style.display="none";
 	}
 	getJson(script+"/json/search", {q:q}, 
 		function (d) {

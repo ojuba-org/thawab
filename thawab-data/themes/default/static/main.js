@@ -8,6 +8,19 @@ var animations={}, ani_c=0, init_ls=[];
 var autoscroll_dir=0, autoscroll_px=5;
 var overlay_d;
 
+function text_keyup(e, evt, func, bool) {
+    var charCode = (evt.which) ? evt.which : event.keyCode
+    if (charCode == 27) {  // catch ESC key and clear input
+        e.value = "";
+        if (bool == true) {
+            func("", true);
+        }else{
+            func("");
+        }
+        return false;
+    }
+}
+  
 // fake trim for IE
 if (!Boolean(String.prototype.trim)) {
 	String.prototype.trim = function() {

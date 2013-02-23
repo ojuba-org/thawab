@@ -56,7 +56,7 @@ clear:both;
 
 
 .quran {
-  font-family: "Simplified Naskh", "me_quran", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "Serif";
+  font-family: "amiri", "Simplified Naskh", "me_quran", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "Serif";
   font-size: 150%;
   color: #240;
   background-color:#ffe;
@@ -70,14 +70,35 @@ blockquote {
 }
 
 input {
-    font-family: "Simplified Naskh", "me_quran", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "Serif";
-    font-size:100%;
-    width:50%;
-    height:25px;
-    color:#000;
+    font-family: "amiri", "Simplified Naskh", "me_quran", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "Serif";
+    padding: 2px 30px;
+    border-radius: 17px;
+    font-size: 12pt;
+    color: rgb(0, 0, 0);
+    border: 2px solid rgba(245,245,245,0.2);
+    background:#ddd url('img/search.gif') center right no-repeat;
+    background-gradient-start: rgba(5,5,6,0.1);
+    background-gradient-end: rgba(254,254,254,0.1);
+    background-gradient-direction: vertical;
+    selected-color: black;
+    caret-color: rgb(128, 128, 128);
+    caret-size: 1px;
+    width: 30%;
+    transition-duration: 300;
+    box-shadow: inset 0px 2px 4px rgba(0,0,0,0.6);
+    outline: none;
 }
-
-
+input:focus,
+input:hover {
+    border: 2px solid rgb(136,138,133);
+    background-gradient-start: rgb(200,200,200);
+    background-gradient-end: white;
+    background-gradient-direction: vertical;
+    outline: none;
+}
+input:hover {
+    transition-duration: 300;
+}
 #loading {
 	display:none;
 	background:transparent url('img/loading.gif') center center no-repeat;
@@ -171,7 +192,7 @@ input {
 	position:absolute;
 	top:0px;
 	left:92px;
-	width:200px;
+	width:220px;
 	height:32px;
 	margin:0;padding:0;
 	border:2px solid #777;
@@ -180,8 +201,8 @@ input {
 	margin:0;border:0;padding:0;
 }
 #minisearch input {
-	background:#fff;
-	width:168px;
+    #background:#ddd url('img/search.gif') center right no-repeat;
+	width:70%;
 	height:24px;
 	border:2px solid #aaa;
 }

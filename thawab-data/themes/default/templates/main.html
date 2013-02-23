@@ -22,8 +22,7 @@ var script='';
 <a name="search"></a><h2>البحث</h2>
 <div>
 <form action="" name="SearchForm" onsubmit="doSearch(document.getElementById('q').value, true); return false;" style="margin:0;border:0;padding:0;">
-<input id="q" class="search_inactive" type="text" value="نص البحث" onfocus="search_entry_focus(this);document.getElementById('searchHelpDiv').style.display='none';" onblur="search_entry_blur
-(this);" ></input>
+<input id="q" class="search_inactive" name=q type="text" placeholder="نص البحث" onkeyup="text_keyup(this, event, doSearch, true);"/>
   &nbsp;&nbsp;<a href="/_theme/manual/manual.html" target='help'>دليل الاستخدام ( البحث المتقدم )</a>
 </form>
 </div>
@@ -57,8 +56,8 @@ var script='';
 
 <a name="books"></a><h2>الكتب المتوفرة</h2>
 <form action="" name="KutubFilterForm" onsubmit="kutubFilter(document.getElementById('kutub_q').value); return false;" style="margin:0;border:0;padding:0;">
-تصفية الكتب:
-<input id="kutub_q" class="entry" type="text" value=""></input>
+<!--تصفية الكتب:-->
+<center><input id="kutub_q" class="entry" type="text" placeholder="تصفية الكتب" onkeyup="text_keyup(this, event, kutubFilter);" /></center>
 </form>
 <div id="kutubListing">
 <ul>
