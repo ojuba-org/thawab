@@ -251,7 +251,7 @@ class ShamelaSqlite(object):
         else:
             temp = ''
         fn = self._getTableFile(Tb)
-        pipe = Popen(['mdb-schema', '-S','-T', Tb, fn],
+        pipe = Popen(['mdb-schema', '-T', Tb, fn],
                       0,
                       stdout = PIPE,
                       env = {'MDB_JET3_CHARSET':'cp1256',
@@ -309,7 +309,7 @@ class ShamelaSqlite(object):
             return
         self.importTableSchema(Tb, tb, is_tmp, tb_prefix)
         fn = self._getTableFile(Tb)
-        pipe = Popen(['mdb-export', '-R',';\n'+mark,'-I', fn, Tb],
+        pipe = Popen(['mdb-export', '-R','\n'+mark,'-I', 'postgres', fn, Tb],
                       0,
                       stdout = PIPE,
                       env = {'MDB_JET3_CHARSET':'cp1256',
