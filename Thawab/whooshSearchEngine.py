@@ -24,7 +24,7 @@ from meta import prettyId,makeId
 from whoosh import query
 from whoosh.index import EmptyIndexError, create_in, open_dir, IndexVersionError
 from whoosh.highlight import highlight, SentenceFragmenter, BasicFragmentScorer, FIRST, HtmlFormatter
-from whoosh.filedb.fileindex import _INDEX_VERSION as whoosh_ix_ver
+from whoosh.index import _CURRENT_TOC_VERSION as whoosh_ix_ver
 from whoosh.filedb.filestore import FileStorage
 from whoosh.fields import Schema, ID, IDLIST, TEXT
 from whoosh.formats import Frequency
