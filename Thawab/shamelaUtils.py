@@ -253,13 +253,13 @@ class ShamelaSqlite(object):
             temp = ''
         fn = self._getTableFile(Tb)
         opts=['mdb-schema', '-S','-T', Tb, fn]
-        if self.mode==None or self.mode='0.6':
+        if self.mode==None or self.mode=='0.6':
             self.mode='0.6'
             pipe = Popen(opts, 0, stdout = PIPE, env = {'MDB_JET3_CHARSET':'cp1256','MDB_ICONV':'UTF-8'})
             r = pipe.communicate()[0].replace('\r', '')
             if pipe.returncode != 0:
                 raise TypeError
-        if self.mode=='0.7' || (r.startswith('mdb-schema: invalid option') && opts[1]=='-S'):
+        if self.mode=='0.7' or (r.startswith('mdb-schema: invalid option') and opts[1]=='-S'):
             del opts[1]
             self.mode='0.7'
             pipe = Popen(opts, 0, stdout = PIPE, env = {'MDB_JET3_CHARSET':'cp1256','MDB_ICONV':'UTF-8'})
