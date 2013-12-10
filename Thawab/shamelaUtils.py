@@ -111,6 +111,7 @@ def footer_shift_cb(mi):
 
 
 class ShamelaSqlite(object):
+    mode=None
     def __init__(self,
                        src,
                        cn = None,
@@ -251,14 +252,25 @@ class ShamelaSqlite(object):
         else:
             temp = ''
         fn = self._getTableFile(Tb)
-        pipe = Popen(['mdb-schema', '-S','-T', Tb, fn],
-                      0,
-                      stdout = PIPE,
-                      env = {'MDB_JET3_CHARSET':'cp1256',
-                             'MDB_ICONV':'UTF-8'})
-        r = pipe.communicate()[0].replace('\r', '')
-        if pipe.returncode != 0:
-            raise TypeError
+        opts=['mdb-schema', '-S','-T', Tb, fn]
+        e=""
+        if self.mode==None or self.mode=='0.6':
+            self.mode='0.6'
+            print "MODE 0.6"
+            pipe = Popen(opts, 0, stdout = PIPE, stderr = PIPE, env = {'MDB_JET3_CHARSET':'cp1256','MDB_ICONV':'UTF-8'})
+            r,e = pipe.communicate()
+            print e
+            r=r.replace('\r', '')
+            if pipe.returncode != 0:
+                raise TypeError
+        if self.mode=='0.7' or (e.startswith("mdb-schema: invalid option") and opts[1]=='-S'):
+            print "MODE 0.7"
+            del opts[1]
+            self.mode='0.7'
+            pipe = Popen(opts, 0, stdout = PIPE, env = {'MDB_JET3_CHARSET':'cp1256','MDB_ICONV':'UTF-8'})
+            r = pipe.communicate()[0].replace('\r', '').replace('[', '').replace(']', '')
+            if pipe.returncode != 0:
+                raise TypeError
         sql = schema_fix_text.sub('TEXT',
                                   schema_fix_int.sub('INETEGER',
                                                      schema_fix_del.sub('',r))).lower()
@@ -309,7 +321,11 @@ class ShamelaSqlite(object):
             return
         self.importTableSchema(Tb, tb, is_tmp, tb_prefix)
         fn = self._getTableFile(Tb)
-        pipe = Popen(['mdb-export', '-R',';\n'+mark,'-I', fn, Tb],
+        if self.mode=='0.6': opts=['mdb-export', '-R',';\n'+mark,'-I', fn, Tb]
+        else: opts=['mdb-export', '-R','\n'+mark,'-I', 'postgres', fn, Tb]
+        print "** opts: ",opts
+        print "** mode: ", self.mode
+        pipe = Popen(opts,
                       0,
                       stdout = PIPE,
                       env = {'MDB_JET3_CHARSET':'cp1256',
