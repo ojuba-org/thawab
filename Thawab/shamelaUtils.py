@@ -268,7 +268,7 @@ class ShamelaSqlite(object):
             del opts[1]
             self.mode='0.7'
             pipe = Popen(opts, 0, stdout = PIPE, env = {'MDB_JET3_CHARSET':'cp1256','MDB_ICONV':'UTF-8'})
-            r = pipe.communicate()[0].replace('\r', '')
+            r = pipe.communicate()[0].replace('\r', '').replace('[', '').replace(']', '')
             if pipe.returncode != 0:
                 raise TypeError
         sql = schema_fix_text.sub('TEXT',
