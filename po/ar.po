@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-02-23 00:43+0200\n"
+"POT-Creation-Date: 2014-02-16 04:06+0200\n"
 "PO-Revision-Date: 2010-06-12 19:35+0300\n"
 "Last-Translator: Muayyad Saleh Alsadi <alsadi@ojuba.org>\n"
 "Language-Team: thawab@ojuba.org\n"
@@ -136,6 +136,7 @@ msgid "No indexing jobs left"
 msgstr "لم يتبق أي مهمات فهرسة"
 
 #: ../Thawab/gtkUi.py:769
+#, python-format
 msgid "Indexing %d jobs, Done"
 msgstr "إنتهى %d مهمات فهرسة"
 

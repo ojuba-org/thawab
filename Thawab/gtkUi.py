@@ -549,8 +549,8 @@ class TabLabel(Gtk.HBox):
         self.pack_start(self.label, True, True, 0)
         self.pack_start(close_button, False, False, 0)
 
-        self.set_data("label", self.label)
-        self.set_data("close-button", close_button)
+        #self.set_data("label", self.label)
+        #self.set_data("close-button", close_button)
         self.connect("style-set", tab_label_style_set_cb)
 
     def set_label_text (self, text):
@@ -571,7 +571,7 @@ def tab_label_style_set_cb (tab_label, style):
     #                                                           Gtk.IconSize.MENU)
     #tab_label.set_size_request(20 * char_width + 2 * width, -1)
     tab_label.set_size_request(230, -1)
-    button = tab_label.get_data("close-button")
+    #button = tab_label.get_data("close-button")
     #button.set_size_request(width + 4, height + 4)
 
 class ContentPane (Gtk.Notebook):
@@ -857,7 +857,7 @@ class ThMainWindow(Gtk.Window):
         b = Gtk.ToolButton.new_from_stock(Gtk.STOCK_NEW)
         b.connect('clicked', lambda bb: self._content.new_tab())
         b.add_accelerator("clicked", self.axl, ord('n'), ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
-        b.set_tooltip_text(u"{}\t‪{}‬".format(_("Open a new tab"), "(Ctrl+N)" ))
+        b.set_tooltip_text("{}\t‪{}‬".format(_("Open a new tab"), "(Ctrl+N)" ))
         tools.insert(b, -1)
 
         # TODO: add navigation buttons (back, forward ..etc.) and zoom buttons
@@ -887,7 +887,7 @@ class ThMainWindow(Gtk.Window):
         b.add_accelerator("clicked", self.axl, Gdk.KEY_plus, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
         b.add_accelerator("clicked", self.axl, Gdk.KEY_KP_Add, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
         b.set_is_important(True)
-        b.set_tooltip_text(u"{}\t‪{}‬".format(_("Makes things appear bigger"), "(Ctrl++)"))
+        b.set_tooltip_text("{}\t‪{}‬".format(_("Makes things appear bigger"), "(Ctrl++)"))
         b.connect('clicked', lambda a: self._do_in_current_view("zoom_in"))
         tools.insert(b, -1)
 
@@ -896,7 +896,7 @@ class ThMainWindow(Gtk.Window):
         b = Gtk.ToolButton(icon_widget = img, label = _("Zoom out"))
         b.add_accelerator("clicked", self.axl, Gdk.KEY_minus, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
         b.add_accelerator("clicked", self.axl, Gdk.KEY_KP_Subtract, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
-        b.set_tooltip_text(u"{}\t‪{}‬".format(_("Makes things appear smaller"), "(Ctrl+-)"))
+        b.set_tooltip_text("{}\t‪{}‬".format(_("Makes things appear smaller"), "(Ctrl+-)"))
         b.connect('clicked', lambda a: self._do_in_current_view("zoom_out"))
         tools.insert(b, -1)
 
@@ -905,7 +905,7 @@ class ThMainWindow(Gtk.Window):
         b = Gtk.ToolButton(icon_widget = img, label = _("1:1 Zoom"))
         b.add_accelerator("clicked", self.axl, ord('0'), ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
         b.add_accelerator("clicked", self.axl, Gdk.KEY_KP_0, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
-        b.set_tooltip_text(u"{}\t{}".format(_("Restore original zoom factor"), "(Ctrl+0)"))
+        b.set_tooltip_text("{}\t{}".format(_("Restore original zoom factor"), "(Ctrl+0)"))
         b.connect('clicked', lambda a: self._do_in_current_view("set_zoom_level",1.0))
         tools.insert(b, -1)
 
