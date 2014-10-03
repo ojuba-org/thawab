@@ -5,7 +5,7 @@ a[href]:hover { text-decoration: underline; }
 a[target] { background: transparent url('img/external.gif') top left no-repeat; padding-left:12px;}
 
 body {
-  font-family: "Liberation Sans", "KacstOne", "Simplified Naskh", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "sans", "Sans";
+  font-family: "amiri", "Liberation Sans", "KacstOne", "Simplified Naskh", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "sans", "Sans";
 	background:#000;
 	margin:0;padding:0;border:0;
 }
@@ -56,7 +56,7 @@ clear:both;
 
 
 .quran {
-  font-family: "amiri", "Simplified Naskh", "me_quran", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "Serif";
+  font-family: "amiri-quran", "amiri", "Simplified Naskh", "me_quran", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "Serif";
   font-size: 150%;
   color: #240;
   background-color:#ffe;

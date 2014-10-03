@@ -6,7 +6,7 @@ a[href]:hover { text-decoration: underline; }
 a[target] { background: transparent url('../img/external.gif') top left no-repeat; padding: 0 0 0 12px;}
 
 body {
-	font-family: "Liberation Sans", "KacstOne", "Simplified Naskh", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "sans", "Sans";
+	font-family: "amiri", "Liberation Sans", "KacstOne", "Simplified Naskh", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "sans", "Sans";
 	background:#999;
 	margin:0;padding:3em;border:0;
 }
@@ -16,7 +16,7 @@ body {
 	border: #aaa solid 4px;
 }
 h1, h2, h3, h4 {
-	font-family: "Liberation Sans", "KacstOne", "Simplified Naskh", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "sans", "Sans", sans-serif;
+	font-family: "amiri", "Liberation Sans", "KacstOne", "Simplified Naskh", "KFGQPC Uthman Taha Naskh", "ArabeyesQr", "Times New Roman", "sans", "Sans", sans-serif;
 	color: #437f22;
 	font-weight: bold;
 }
