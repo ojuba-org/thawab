@@ -47,6 +47,7 @@ uninstall:
 	@$(RM) -f $(DESTDIR)/usr/share/locale/*/LC_MESSAGES/$(APPNAME).mo
 	@$(ECHO) "- Removing: $(DESTDIR)/usr/bin/$(APPNAME)"
 	@$(RM) -f $(DESTDIR)/usr/bin/$(APPNAME)-gtk
+	@$(RM) -f $(DESTDIR)/usr/bin/$(APPNAME)-server	
 	@$(ECHO) "- Removing: $(DESTDIR)/usr/lib/python*/*-packages/Thawab"
 	@$(RM) -rf $(DESTDIR)/usr/lib/python*/*-packages/Thawab
 	@$(ECHO) "- Removing: $(DESTDIR)/usr/lib/python*/*-packages/$(APPNAME)*"
@@ -58,6 +59,7 @@ uninstall:
 	@$(RM) -f $(DESTDIR)/usr/*/share/locale/*/LC_MESSAGES/$(APPNAME).mo
 	@$(ECHO) "- Removing: $(DESTDIR)/usr/*/bin/$(APPNAME)"
 	@$(RM) -f $(DESTDIR)/usr/*/bin/$(APPNAME)-gtk
+	@$(RM) -f $(DESTDIR)/usr/*/bin/$(APPNAME)-server	
 	@$(ECHO) "- Removing: $(DESTDIR)/usr/*/lib/python*/*-packages/Thawab"
 	@$(RM) -rf $(DESTDIR)/usr/*/lib/python*/*-packages/Thawab
 	@$(ECHO) "- Removing: $(DESTDIR)/usr/*/lib/python*/*-packages/$(APPNAME)*"

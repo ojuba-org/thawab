@@ -1011,6 +1011,23 @@ def launchServer():
             launched = True
     return th, port, server
 
+def onlyterminal(): #To run thawab by terminal only by thawab-server
+    exedir = os.path.dirname(sys.argv[0])
+    ld = os.path.join(exedir,'..','share','locale')
+    if not os.path.isdir(ld):
+        ld = os.path.join(exedir, 'locale')
+    gettext.install('thawab', ld, unicode = 0)
+    th, port, server = launchServer()
+
+    try:
+        thread=threading.Thread(target=server.serve_forever, args=())
+        thread.daemon=True
+        thread.start()
+        while True: time.sleep(100)
+    except (KeyboardInterrupt, SystemExit):
+        print '\nHope to made a nice time, Ojuba team <ojuba.org>.\n'
+        os._exit(0)
+        
 def main():
     exedir = os.path.dirname(sys.argv[0])
     ld = os.path.join(exedir,'..','share','locale')

@@ -28,7 +28,7 @@ setup (name='thawab', version='3.0.10',
       url='http://thawab.ojuba.org/',
       license='Waqf',
       packages=['Thawab'],
-      scripts=['thawab-gtk'],
+      scripts=['thawab-gtk','thawab-server'],
       classifiers=[
           'Development Status :: 4 - Beta',
           'Intended Audience :: End Users/Desktop',
