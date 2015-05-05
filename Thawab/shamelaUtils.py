@@ -85,7 +85,7 @@ sh_digits_to_spaces_tb = {
 
 sh_normalize_tb = {
 65: 97, 66: 98, 67: 99, 68: 100, 69: 101, 70: 102, 71: 103, 72: 104, 73: 105, 74: 106, 75: 107, 76: 108, 77: 109, 78: 110, 79: 111, 80: 112, 81: 113, 82: 114, 83: 115, 84: 116, 85: 117, 86: 118, 87: 119, 88: 120, 89: 121, 90: 122,
-1569: 1575, 1570: 1575, 1571: 1575, 1572: 1575, 1573: 1575, 1574: 1575, 1577: 1607,    1609: 1575, 
+1569: 1575, 1570: 1575, 1571: 1575, 1572: 1575, 1573: 1575, 1574: 1575, 1577: 1607,    1609: 1575,
 8: 32, 1600:32, 1632: 48, 1633: 49, 1634: 50, 1635: 51, 1636: 52, 1637: 53, 1638: 54, 1639: 55, 1640: 56, 1641: 57, 1642:37, 1643:46
 }
 # TODO: remove unused variables and methods
@@ -96,7 +96,7 @@ std_shorts={
     u'B': u'رضي الله عن',
     u'C': u'رحمه الله',
     u'D': u'عز وجل',
-    u'E': u'عليه الصلاة و السلام', 
+    u'E': u'عليه الصلاة و السلام',
 }
 
 footnotes_cnd = [] # candidate, in the form of (footnote_mark, footnote_text) tuples
@@ -200,14 +200,14 @@ class ShamelaSqlite(object):
             raise TypeError
         tables = filter(lambda t: not t.isdigit(), tables)
         return tables
-    
+
     def _getTablesInBok(self):
         if self.tables:
             return self.tables
         self.tables = self._getTablesInFile(self.bok_fn)
         self.tablesFn = dict(((t,self.bok_fn) for t in self.tables))
         return self.tables
-    
+
     def _getTablesInDir(self):
         if self.tables:
             return self.tables
@@ -261,9 +261,9 @@ class ShamelaSqlite(object):
             r,e = pipe.communicate()
             print e
             r=r.replace('\r', '')
-            if pipe.returncode != 0:
-                raise TypeError
-        if self.mode=='0.7' or (e.startswith("mdb-schema: invalid option") and opts[1]=='-S'):
+            #if pipe.returncode != 0:
+                #raise TypeError
+        if self.mode=='0.7' or ((e.startswith("mdb-schema: invalid option") or e.startswith("option parsing failed: Unknown option")) and opts[1]=='-S'):
             print "MODE 0.7"
             del opts[1]
             self.mode='0.7'
@@ -520,7 +520,7 @@ class _foundShHeadingMatchItem():
         self.depth = depth
         self.fuzzy = fuzzy
         self.suffix = ''
-    
+
     def __repr__(self):
         return (u"<start = {0}, end = {1}, txt = {2}>".format(self.start,
                                                               self.end,
@@ -539,7 +539,7 @@ def _fixHeadBounds(pg_txt, found):
             f.end = f.start
             f.suffix = u'\u2026'
             if f.fuzzy >= 7:
-                #then move f.start to the last \n 
+                #then move f.start to the last \n
                 f.end = max(pg_txt[:f.end].rfind('\n'), 0)
             if i > 0:
                 f.end = max(f.end,found[i-1].end)
@@ -641,9 +641,9 @@ def shamelaImport(cursor,
                              fuzzy):
         # fuzzy is saved because it could be used later to figure whither to add newline
         # or to move start point
-        for m in headings_re.finditer(page_txt): # 
+        for m in headings_re.finditer(page_txt): #
             # NOTE: since this is not exact, make it ends at start. FIXME: it was m.end()
-            candidate = _foundShHeadingMatchItem(m.start(), m.start(), h, d, fuzzy) 
+            candidate = _foundShHeadingMatchItem(m.start(), m.start(), h, d, fuzzy)
             ii = bisect.bisect_left(found, candidate) # only check for overlaps in found[ii:]
             # skip matches that overlaps with previous headings
             if any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])):
@@ -666,11 +666,11 @@ def shamelaImport(cursor,
                 # print "found"
                 candidate = _foundShHeadingMatchItem(i+shift, i+shift+l, h, d, fuzzy)
                 # only check for overlaps in found[ii:]
-                ii = bisect.bisect_left(found, candidate) 
+                ii = bisect.bisect_left(found, candidate)
                 # skip matches that overlaps with previous headings
                 if not any(imap(lambda mi: mi.overlaps_with(candidate),found[ii:])):
                     # add the candidate to the found list
-                    bisect.insort(found, candidate) 
+                    bisect.insort(found, candidate)
                     toc_hash[page_id][j] = None
                     return True
                 # skip to i+l
@@ -689,7 +689,7 @@ def shamelaImport(cursor,
         # for each heading
         for j, ix in enumerate(l):
             h, d = toc_ls[ix][1:3]
-            # search for entire line matches 
+            # search for entire line matches
             # (exact, then only letters and digits then only letters: 1,2,3)
             # search for leading matches
             # (exact, then only letters and digits then only letters: 4,5,6)
@@ -785,9 +785,9 @@ def shamelaImport(cursor,
         del ft[:]
         return s
 
-    # step 3: walk through pages, accumulating contents    
+    # step 3: walk through pages, accumulating contents
     # NOTE: in some books id need not be unique
-    # 
+    #
     blnk_base = sh.getBLink(bkid)
     blnk = ""
     blnk_old = ""
@@ -980,7 +980,7 @@ def shamelaImport(cursor,
             last += "\n==========[\n" + \
                     pop_footers(footnotes_cnd) + \
                     "\n]==========\n"
-        
+
 
     if not started:
         raise TypeError
@@ -1017,4 +1017,3 @@ if __name__  ==  '__main__':
         n = meta['kitab']
         del ki
         shutil.move(o, os.path.join(dst, n))
-
