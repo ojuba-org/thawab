@@ -5,7 +5,7 @@ Name:		thawab
 Summary:	Thawab Arabic/Islamic encyclopedia system
 URL:		http://ojuba.org/
 Version:	3.2.0
-Release:	1%{?dist}
+Release:	2%{?dist}
 Source0:	https://github.com/%{owner}/%{name}/archive/%{commit}/%{name}-%{commit}.tar.gz
 License:	WAQFv2
 Group:		System Environment/Base
@@ -21,6 +21,8 @@ Requires:	python-othman
 BuildRequires:	gettext
 BuildRequires:	python2-devel
 BuildRequires:	perl
+BuildRequires:	ImageMagick
+BuildRequires:	intltool
 
 %description
 Thawab Arabic/Islamic encyclopedia system
@@ -65,6 +67,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/locale/*/*/*.mo
 
 %changelog
+* Tue Jul 14 2015 Mosaab Alzoubi <moceap@hotmail.com> - 3.2.0-2
+- Add some BRs
+
 * Sat Feb 14 2015  Mosaab Alzoubi <moceap@hotmail.com> - 3.2.0-1
 - Add Thawab Server.
 
