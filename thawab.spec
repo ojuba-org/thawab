@@ -1,28 +1,28 @@
 %global owner ojuba-org
 %global commit #Write commit number here
 
-Name:		thawab
-Summary:	Thawab Arabic/Islamic encyclopedia system
-URL:		http://ojuba.org/
-Version:	3.2.0
-Release:	2%{?dist}
-Source0:	https://github.com/%{owner}/%{name}/archive/%{commit}/%{name}-%{commit}.tar.gz
-License:	WAQFv2
-Group:		System Environment/Base
-BuildArch:	noarch
-Requires:	python-whoosh >= 1.7.2
-Requires:	python-okasha >= 0.2.3
-Requires:	pygobject3 >= 3.0.2
-Requires:	python
-Requires:	mdbtools
-Requires:	python-paste
-Requires:	islamic-menus
-Requires:	python-othman
-BuildRequires:	gettext
-BuildRequires:	python2-devel
-BuildRequires:	perl
-BuildRequires:	ImageMagick
-BuildRequires:	intltool
+Name: thawab
+Summary: Arabic/Islamic encyclopedia system
+Summary(ar): نظام موسوعي عربي/إسلامي
+URL: http://ojuba.org/
+Version: 3.2.0
+Release: 3%{?dist}
+Source0: https://github.com/%{owner}/%{name}/archive/%{commit}/%{name}-%{commit}.tar.gz
+License: WAQFv2
+BuildArch: noarch
+Requires: python-whoosh >= 1.7.2
+Requires: python-okasha >= 0.2.3
+Requires: pygobject3 >= 3.0.2
+Requires: python
+Requires: mdbtools
+Requires: python-paste
+Requires: islamic-menus
+Requires: python-othman
+BuildRequires: gettext
+BuildRequires: python2-devel
+BuildRequires: perl
+BuildRequires: ImageMagick
+BuildRequires: intltool
 
 %description
 Thawab Arabic/Islamic encyclopedia system
@@ -35,8 +35,7 @@ bash update-manual-from-site.sh
 make %{?_smp_mflags}
 
 %install
-rm -rf $RPM_BUILD_ROOT
-%makeinstall DESTDIR=$RPM_BUILD_ROOT
+%make_install
 
 %post
 touch --no-create %{_datadir}/icons/hicolor || :
@@ -50,11 +49,8 @@ if [ -x %{_bindir}/gtk-update-icon-cache ] ; then
 %{_bindir}/gtk-update-icon-cache --quiet %{_datadir}/icons/hicolor || :
 fi
 
-%clean
-rm -rf $RPM_BUILD_ROOT
-
 %files
-%defattr(-,root,root,-)
+%license waqf2-ar.pdf
 %doc waqf2-ar.pdf readme
 %{_bindir}/thawab-gtk
 %{_bindir}/thawab-server
@@ -67,6 +63,15 @@ rm -rf $RPM_BUILD_ROOT
 %{_datadir}/locale/*/*/*.mo
 
 %changelog
+* Tue Jul 14 2015 Mosaab Alzoubi <moceap@hotmail.com> - 3.2.0-3
+- Enhance summary
+- Remove Group tag
+- Add Arabic summary and description
+- Improve %%install section
+- Remove %%clean section
+- Remove old attr way
+- Use %%license
+
 * Tue Jul 14 2015 Mosaab Alzoubi <moceap@hotmail.com> - 3.2.0-2
 - Add some BRs
 
