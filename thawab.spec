@@ -27,6 +27,9 @@ BuildRequires: intltool
 %description
 Thawab Arabic/Islamic encyclopedia system
 
+%description -l ar
+نظام موسوعي عربي/إسلامي
+
 %prep
 %setup -q -n %{name}-%{commit}
 
