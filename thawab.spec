@@ -5,8 +5,8 @@ Name: thawab
 Summary: Arabic/Islamic encyclopedia system
 Summary(ar): نظام موسوعي عربي/إسلامي
 URL: http://ojuba.org/
-Version: 3.2.0
-Release: 3%{?dist}
+Version: 3.2.1
+Release: 1%{?dist}
 Source0: https://github.com/%{owner}/%{name}/archive/%{commit}/%{name}-%{commit}.tar.gz
 License: WAQFv2
 BuildArch: noarch
@@ -18,6 +18,7 @@ Requires: mdbtools
 Requires: python-paste
 Requires: islamic-menus
 Requires: python-othman
+Requires: webkitgtk3
 BuildRequires: gettext
 BuildRequires: python2-devel
 BuildRequires: perl
@@ -66,6 +67,9 @@ fi
 %{_datadir}/locale/*/*/*.mo
 
 %changelog
+* Sun Nov 13 2016Ehab El-Gedawy <ehabsas@hotmail.com> - 3.2.1-1
+- add webkitgtk3 dependancy
+
 * Tue Jul 14 2015 Mosaab Alzoubi <moceap@hotmail.com> - 3.2.0-3
 - Enhance summary
 - Remove Group tag
