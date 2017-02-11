@@ -1,6 +1,252 @@
-#!/usr/bin/python2
+#! /usr/bin/python
 # -*- coding: UTF-8 -*-
+import sys, os, time, atexit, signal, shutil, tempfile, sqlite3
+from Thawab.gtkUi import launchServer
+from Thawab.shamelaUtils import ShamelaSqlite, shamelaImport
+class ThawabServer:
+	def __init__(self, pidfile):
+		self.pidfile = pidfile
+	def tprint(self, message, noend=False):
+		if not noend:
+			sys.stderr.write(message+"\n")
+		else:
+			sys.stderr.write(message+"\r")
+		
+	def daemonize(self):
+		try: 
+			pid = os.fork() 
+			if pid > 0:
+				# exit first parent
+				sys.exit(0) 
+		except OSError as err: 
+			self.tprint('fork #1 failed: {0}'.format(err))
+			sys.exit(1)
+	
+		# decouple from parent environment
+		os.chdir('/') 
+		os.setsid() 
+		os.umask(0) 
+	
+		# do second fork
+		try: 
+			pid = os.fork() 
+			if pid > 0:
 
-from Thawab.gtkUi import onlyterminal
-onlyterminal()
+				# exit from second parent
+				sys.exit(0) 
+		except OSError as err: 
+			self.tprint('fork #2 failed: {0}'.format(err))
+			sys.exit(1) 
+	
+		# redirect standard file descriptors
+		sys.stdout.flush()
+		sys.stderr.flush()
+		si = open(os.devnull, 'r')
+		so = open(os.devnull, 'a+')
+		se = open(os.devnull, 'a+')
 
+		os.dup2(si.fileno(), sys.stdin.fileno())
+		os.dup2(so.fileno(), sys.stdout.fileno())
+		os.dup2(se.fileno(), sys.stderr.fileno())
+	
+		# write pidfile
+		atexit.register(self.delpid)
+
+		pid = str(os.getpid())
+		with open(self.pidfile,'w+') as f:
+			f.write(pid + '\n')
+	
+	def delpid(self):
+		os.remove(self.pidfile)
+
+	def check_running(self):
+		# Check for a pidfile to see if the daemon already runs
+		try:
+			with open(self.pidfile,'r') as pf:
+
+				return int(pf.read().strip())
+		except IOError:
+			return None
+	
+
+			
+	def start(self):
+		"""Start the daemon."""
+		
+		if self.check_running():
+			message = "pidfile {0} already exist. " + \
+					"Server is already running?\n"
+			self.tprint(message.format(self.pidfile))
+			sys.exit(1)
+		# Start the daemon
+		self.daemonize()
+		self.run()
+
+	def stop(self):
+		"""Stop the daemon."""
+
+		# Get the pid from the pidfile
+		pid = self.check_running()
+	
+		if not pid:
+			message = "pidfile {0} does not exist. " + \
+					"Server is not running?\n"
+			self.tprint(message.format(self.pidfile))
+			return # not an error in a restart
+
+		# Try killing the daemon process	
+		try:
+			while 1:
+				os.kill(pid, signal.SIGTERM)
+				time.sleep(0.1)
+		except OSError as err:
+			e = str(err.args)
+			if e.find("No such process") > 0:
+				if os.path.exists(self.pidfile):
+					os.remove(self.pidfile)
+			else:
+				print (str(err.args))
+				sys.exit(1)
+
+	def restart(self):
+		"""Restart the daemon."""
+		self.stop()
+		self.start()
+
+	def run(self, silent=False):
+		self.th, self.port, self.server = launchServer()
+		if not silent: self.server.serve_forever()
+
+	def clean_run(self):
+		if self.check_running():
+			self.tprint("Stopping the running server")
+			self.stop()
+		self.run(True)
+		
+	def test(self):
+		self.tprint("server started successfully")
+		
+	def reindex(self):
+		self.clean_run()		
+		self.th.asyncIndexer.queueIndexNew()
+		if not self.th.asyncIndexer.started:
+			self.th.asyncIndexer.start()
+		jj = j = self.th.asyncIndexer.jobs()
+		while (j > 0 ):
+			self.tprint("Indexing ... (%d left)" % j,True)
+			j = self.th.asyncIndexer.jobs()
+		self.tprint("No indexing jobs left")
+		if j <= 0 and jj > 0:
+			self.tprint("Indexing %d jobs, Done" % jj)
+		self.server.server_close()
+		
+	def remove_index(self):
+		self.clean_run()
+		self.tprint("You will need to recreate search index in-order to search again.")
+		p = os.path.join(self.th.prefixes[0], 'index')
+		try:
+			shutil.rmtree(p)
+		except OSError:
+			self.tprint("unable to remove folder [%s]" % p)
+		else:
+			self.tprint("Done")
+		self.server.server_close()
+	
+	def remove_meta(self):
+		self.clean_run()
+		p = os.path.join(self.th.prefixes[0], 'cache', 'meta.db')
+		try:
+			os.unlink(p)
+		except OSError:
+			self.tprint("unable to remove file [%s]" % p)
+		else:
+			self.th.reconstructMetaIndexedFlags()
+			self.tprint("Done")
+	
+	def progress_cb(self, msg, p, *d, **kw):
+		self.tprint(" ** progress: [%g%% completed] %s" % (p, msg))
+        
+	def importbok(self, bok):
+		self.clean_run()
+		fh, db_fn = tempfile.mkstemp(suffix = '.sqlite', prefix = 'th_shamela_tmp')
+		f = open(db_fn, "w")
+		f.truncate(0)
+		f.close()
+		cn = sqlite3.connect(db_fn, isolation_level = None)
+		try:
+			sh = ShamelaSqlite(bok,cn,0,0, self.progress_cb)
+		except TypeError:
+			self.tprint("not a shamela file")
+			self.server.server_close()
+			return
+		except OSError:
+			self.tprint("mdbtools is not installed")
+			self.server.server_close()
+			return
+		self.tprint("haha")
+		if not sh.toSqlite():
+			self.server.server_close()
+			return
+		
+		ids = sh.getBookIds()
+		
+		for j, bkid in enumerate(ids):
+			ki = self.th.mktemp()
+			c = ki.seek(-1,-1)
+			
+			m = shamelaImport(c,
+				sh,
+				bkid)
+			c.flush()
+			t_fn = os.path.join(self.th.prefixes[0],
+				'db',
+				u"".join((m['kitab'] + \
+				u"-" + \
+				m['version'] + \
+				u'.ki',)))
+			try:
+				shutil.move(ki.uri, t_fn)
+			except OSError:
+				self.tprint("unable to move converted file.") # windows can't move an opened file
+		if db_fn and os.path.exists(db_fn):
+			try:
+				os.unlink(db_fn)
+			except OSError:
+				pass
+		self.th.loadMeta()
+		self.tprint("Done")
+		self.server.server_close()
+if __name__ == "__main__":
+
+		daemon = ThawabServer('/tmp/thawab-server.pid')
+		if len(sys.argv) >= 2:
+			if 'start' == sys.argv[1]:
+					daemon.start()
+			elif 'stop' == sys.argv[1]:
+					daemon.stop()
+			elif 'restart' == sys.argv[1]:
+					daemon.restart()
+			elif 'reindex' == sys.argv[1]:
+					daemon.reindex()		
+			elif 'fix' == sys.argv[1]:
+					if sys.argv[2] == 'index':
+						daemon.remove_index()
+					elif sys.argv[2] == 'meta':
+						daemon.remove_meta()
+			elif 'importbok' == sys.argv[1] and len(sys.argv) >= 3:
+					daemon.importbok(sys.argv[2])
+			else:
+					print "Unknown command"
+					sys.exit(2)
+					sys.exit(0)
+		else:
+				print '''Thawab Server\nusage:	thawab-server [command] [file(s)] \nCommands:
+	start		starts the server 
+	stop		stops the server 
+	restart		restarts the server 
+	reindex		queues new books
+	fix index	removes search index
+	fix meta	removes meta data cache to generate a fresh one
+	importbok [file path]	imports Shamela .bok file'''
+				
+				sys.exit(2)
