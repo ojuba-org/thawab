@@ -1,0 +1,81 @@
+%_r.add_js_link('th-main.js')
+%def x_js_script_f():
+<script type="text/javascript">
+var script='';
+</script>
+%end
+
+
+%def topnav_f():
+  <a class="blurOnFocus" style="float:right;" href="http://www.ojuba.org/wiki/thawab/" title="حول هذا البرنامج"><img src="/_theme/img/about.gif" alt="about" /></a>
+  <a class="blurOnFocus" style="float:right;" href="http://www.ojuba.org/wiki/thawab/get" title="الحصول على ثواب"><img src="/_theme/img/rpm.gif"  alt="get package" /></a>
+  <a class="blurOnFocus" style="float:right;" href="http://www.ojuba.org/wiki/اتصل_بنا" title="راسلنا"><img src="/_theme/img/mail.gif" alt="contact us" /></a>
+  <a class="blurOnFocus" style="float:right;" href="http://www.linuxac.org/forum/forumdisplay.php?68" title="المنتدى"><img src="/_theme/img/forum.gif" alt="forum" /></a>
+  <a class="blurOnFocus" style="float:right;" href="http://git.ojuba.org/cgit/thawab/tree/" title="كود ثواب"><img src="/_theme/img/code.gif" alt="code" /></a>
+%end
+
+<div id="contentheaderHome">
+
+<img class="logo" src="/_theme/img/logo.png" alt="ثواب" />
+<p>مكتبة ثواب - بحث ذكي وسريع في أمهات الكتب</p>
+<form action="" name="SearchForm" onsubmit="doSearch(document.getElementById('q').value, true); return false;" style="display: inline-block;">
+<input id="q" class="search_input" name=q type="text" placeholder="نص البحث" onkeyup="text_keyup(this, event, doSearch, true);"/>
+<input class="submit_button" type="submit" onclick="text_keyup(this, event, doSearch, true);" value="بحث"/> 
+<br/>
+<br/>
+<a href="/_theme/manual/manual.html" target='help'>دليل الاستخدام ( البحث المتقدم )</a>
+</form>
+</div>
+
+<div id="contentbodyHome">
+
+<div id="searchHelpDiv">
+<div id="searchHelpArrow"></div>
+<div id="searchHelp">
+
+في صندوق البحث أعلاه اكتب الكلمات التي تريد البحث عنها.
+يمكنك وضع الكلمات بين علامتي اقتباس " " للبحث عن عبارة (كلمات متتالية). عملية البحث ذكية تستوي فيها الحركات وغالبا ما تستوي التغييرات التي تطرأ على الكلمة كالإفراد والتثنية والجمع والإسناد للضمائر وغير ذلك. يمكنك استخدام استعلامات متقدمة عبر الأقواس والرموز
+<b>"&"</b> ، <b>"|"</b> ، <b>"!"</b>
+من أجل عمليات "و" ، "أو"، "النفي" على الترتيب. كما يمكنك تحديد مجال البحث عبر ذكر اسم الكتاب بعد <b>"كتاب:"</b>. يمكنك البحث في عناوين الأبواب أيضا وذلك بكتابة <b>"عنوان:"</b>.
+للمزيد انظر
+<a href="/_theme/manual/manual.html">دليل الاستخدام</a>
+</div>
+</div>
+<a name="searchResults"></a>
+  <div id="SearchContainer" class="Box" style="display:none;">
+<h2>نتائج البحث</h2>
+<div class="info">
+تم البحث خلال   <span id="SearchTime">-</span> من الثواني وعُثر على <span id="SearchRCount">-</span> من النتائج موزعة على <span id="SearchPagesCount">-</span> من الصفحات.
+</div>
+<div id="SearchContainer_tab" style="display:none;">
+  
+
+
+  <div id="SearchResults"></div>
+
+  <div id="SearchPages">-</div>
+  </div>
+  </div>
+
+<a name="books"></a>
+
+<div id="kutubListing"  class="Box" >
+<h2>الكتب المتوفرة</h2>
+<form action="" name="KutubFilterForm" onsubmit="kutubFilter(document.getElementById('kutub_q').value); return false;" style="margin:0;border:0;padding:0;">
+<!--تصفية الكتب:-->
+<input id="kutub_q" class="entry" type="text" placeholder="تصفية الكتب" onkeyup="text_keyup(this, event, kutubFilter);" />
+</form>
+<div id="kutubList">
+<ul>
+{{!kutublinks}}
+</ul>
+</div>
+<div class="clear"></div>
+</div>
+<br/><br/>
+
+</div>
+
+%rebase layout typ="main", topnav=topnav_f, x_js_script=x_js_script_f
+
+

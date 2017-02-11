@@ -1,0 +1,17 @@
+/* fx-ie */
+#overlay {
+	filter:alpha(opacity=70);
+}
+.showOnFocus {
+	filter:alpha(opacity=50);
+}
+.showOnFocus:hover {
+	filter:alpha(opacity=100);
+}
+.blurOnFocus{
+	filter:alpha(opacity=100);
+}
+.showOnFocus:hover {
+	filter:alpha(opacity=40);
+}
+#absnav3{ display:none; }
