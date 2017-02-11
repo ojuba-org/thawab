@@ -183,7 +183,7 @@ class ThawabServer:
 			self.tprint("mdbtools is not installed")
 			self.server.server_close()
 			return
-		self.tprint("haha")
+		
 		if not sh.toSqlite():
 			self.server.server_close()
 			return
