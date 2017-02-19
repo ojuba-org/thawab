@@ -22,6 +22,9 @@ import sys, os, os.path, time, re, sqlite3
 import shutil, tempfile
 import threading, socket
 import gettext
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_version("WebKit", "3.0")
 from gi.repository import Gtk, Gdk, GObject, WebKit, Pango, GLib
 from subprocess import Popen, PIPE
 from urllib import unquote
