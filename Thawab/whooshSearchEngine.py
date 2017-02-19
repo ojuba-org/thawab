@@ -147,20 +147,24 @@ class SearchEngine(BaseSearchEngine):
         num = int(results[i]['nodeIdNum'])
         node = ki.getNodeByIdNum(num)
         n = ki.toc.next(node)
+        
         if n:
             ub = n.globalOrder
         else:
             ub = -1
         txt = node.toText(ub)
+        
         s = set()
         #results.query.all_terms(s) # return (field,term) pairs
         # return (field,term) pairs    # self.self.__ix_searcher.reader() 
-        results.q.existing_terms(self.indexer.reader(), s, phrases = True)
+        s = results.q.existing_terms(self.indexer.reader(), phrases = True)
+        #s = set([i.decode('utf_8') for i in s])
         terms = dict(
                 map(lambda i: (i[1],i[0]),
                 filter(lambda j: j[0] == 'content' or j[0] == 'title', s))).keys()
         #print "txt = [%s]" % len(txt)
-        snippet = txt[:min(len(txt),512)] # dummy summary
+        terms = [i.decode('utf_8') for i in terms]
+        snippet_dummy = txt[:min(len(txt),512)] # dummy summary
         snippet = highlight(txt,
                             terms,
                             analyzer,
@@ -174,7 +178,9 @@ class SearchEngine(BaseSearchEngine):
         #     SentenceFragmenter(sentencechars = ".!?"), ExcerptFormatter(between = u"\u2026\n"), top = 3,
         #     scorer = BasicFragmentScorer, minscore = 1,
         #     order = FIRST)
-        return snippet
+        print snippet
+        if len(snippet) > 1: return snippet
+        else: return snippet_dummy
 
     def indexingStart(self):
         """
