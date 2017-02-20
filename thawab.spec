@@ -4,7 +4,7 @@ Name: thawab
 Summary: Arabic/Islamic encyclopedia system
 Summary(ar): نظام موسوعي عربي/إسلامي
 URL: http://ojuba.org/
-Version: 4.0
+Version: 4.1
 Release: 1%{?dist}
 Source0: https://github.com/%{owner}/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
 License: WAQFv2
@@ -110,6 +110,10 @@ fi
 %{_datadir}/appdata/%{name}.appdata.xml
 
 %changelog
+* Mon Feb 20 2017 Mosaab Alzoubi <moceap@hotmail.com> - 4.1-1
+- Update to 4.1
+- Fixes for warnings
+
 * Sun Feb 19 2017 Mosaab Alzoubi <moceap@hotmail.com> - 4.0-1
 - Update to 4.0
 - New generation of Thqwab Server
