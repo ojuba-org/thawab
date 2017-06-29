@@ -25,7 +25,7 @@ import gettext
 import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("WebKit", "3.0")
-from gi.repository import Gtk, Gdk, GObject, WebKit, Pango, GLib
+from gi.repository import Gtk, Gdk, GObject, WebKit, Pango, GLib, Gio
 from subprocess import Popen, PIPE
 from urllib import unquote
 
@@ -830,7 +830,7 @@ for example to recover power failure.</span>"""))
             self.main.th.reconstructMetaIndexedFlags()
             info(_("Done"), self.main)
 
-class ThMainWindow(Gtk.Window):
+class ThMainWindow(Gtk.ApplicationWindow):
     def __init__(self, th, port, server):
         self.th = th
         self.port = port
@@ -845,23 +845,90 @@ class ThMainWindow(Gtk.Window):
         self.ix_w = ThIndexerWindow(self)
         
         vb = Gtk.VBox(False,0); self.add(vb)
-
+        ghead = Gtk.HeaderBar()
+        ghead.set_show_close_button(True)
+        ghead.props.title = _('Thawab')
+        self.set_titlebar(ghead)
         tools = Gtk.Toolbar()
-        vb.pack_start(tools, False, False, 2)
+        #vb.pack_start(tools, False, False, 2)
 
-        self._content =  ContentPane("http://127.0.0.1:%d/" % port, _("Thawab"))
-        vb.pack_start(self._content,True, True, 2)
+
+
+
+        m_button = Gtk.MenuButton()
+        ghead.pack_end(m_button)
+        
+        m_model = Gio.Menu()
+        mi = Gio.MenuItem().new(_("Create search index"),"win.index")
+        icon = Gio.ThemedIcon().new("system-run")
+        mi.set_icon(icon)
+        m_model.append_item(mi)
+        
+        mi = Gio.MenuItem().new(_("Misc Fixes"),"win.fixes")
+        icon = Gio.ThemedIcon().new("edit-clear")
+        mi.set_icon(icon)
+        m_model.append_item(mi)
+        
+        mi = Gio.MenuItem().new(_("Help"),"win.help")
+        icon = Gio.ThemedIcon().new("help-about")
+        mi.set_icon(icon)
+        m_model.append_item(mi)
+        m_button.set_menu_model(m_model)
+        
+        m_action = Gio.SimpleAction.new("index", None)
+        m_action.connect("activate",  lambda *a: self.ix_w.show_all())
+        self.add_action(m_action)
+        m_action = Gio.SimpleAction.new("fixes", None)
+        m_action.connect("activate",  self.fixes_cb)
+        self.add_action(m_action)
+        m_action = Gio.SimpleAction.new("help", None)
+        m_action.connect("activate",  lambda *a: self._content.new_tab ("http://127.0.0.1:%d/_theme/manual/manual.html" % port))
+        self.add_action(m_action)
         
         self.axl = Gtk.AccelGroup()
         self.add_accel_group(self.axl)
         ACCEL_CTRL_KEY, ACCEL_CTRL_MOD = Gtk.accelerator_parse("<Ctrl>")
         ACCEL_SHFT_KEY, ACCEL_SHFT_MOD = Gtk.accelerator_parse("<Shift>")
+        img = Gtk.Image()
+        img.set_from_stock(Gtk.STOCK_ZOOM_IN, Gtk.IconSize.BUTTON)
+        b = Gtk.ToolButton(icon_widget = img, label = _("Zoom in"))
+        b.add_accelerator("clicked", self.axl, Gdk.KEY_equal, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
+        b.add_accelerator("clicked", self.axl, Gdk.KEY_plus, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
+        b.add_accelerator("clicked", self.axl, Gdk.KEY_KP_Add, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
+        b.set_is_important(True)
+        b.set_tooltip_text("{}\t‪{}‬".format(_("Makes things appear bigger"), "(Ctrl++)"))
+        b.connect('clicked', lambda a: self._do_in_current_view("zoom_in"))
+        ghead.pack_end(b)
+        
+        img = Gtk.Image()
+        img.set_from_stock(Gtk.STOCK_ZOOM_100, Gtk.IconSize.BUTTON)
+        b = Gtk.ToolButton(icon_widget = img, label = _("1:1 Zoom"))
+        b.add_accelerator("clicked", self.axl, ord('0'), ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
+        b.add_accelerator("clicked", self.axl, Gdk.KEY_KP_0, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
+        b.set_tooltip_text("{}\t{}".format(_("Restore original zoom factor"), "(Ctrl+0)"))
+        b.connect('clicked', lambda a: self._do_in_current_view("set_zoom_level",1.0))
+        ghead.pack_end(b)
+        
+        img = Gtk.Image()
+        img.set_from_stock(Gtk.STOCK_ZOOM_OUT, Gtk.IconSize.BUTTON)
+        b = Gtk.ToolButton(icon_widget = img, label = _("Zoom out"))
+        b.add_accelerator("clicked", self.axl, Gdk.KEY_minus, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
+        b.add_accelerator("clicked", self.axl, Gdk.KEY_KP_Subtract, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
+        b.set_tooltip_text("{}\t‪{}‬".format(_("Makes things appear smaller"), "(Ctrl+-)"))
+        b.connect('clicked', lambda a: self._do_in_current_view("zoom_out"))
+        ghead.pack_end(b)
+        
+        self._content =  ContentPane("http://127.0.0.1:%d/" % port, _("Thawab"))
+        vb.pack_start(self._content,True, True, 0)
+        
+
         
         b = Gtk.ToolButton.new_from_stock(Gtk.STOCK_NEW)
         b.connect('clicked', lambda bb: self._content.new_tab())
         b.add_accelerator("clicked", self.axl, ord('n'), ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
         b.set_tooltip_text("{}\t‪{}‬".format(_("Open a new tab"), "(Ctrl+N)" ))
-        tools.insert(b, -1)
+        #tools.insert(b, -1)
+        ghead.pack_start(b)
 
         # TODO: add navigation buttons (back, forward ..etc.) and zoom buttons
         tools.insert(Gtk.SeparatorToolItem(), -1)
@@ -871,7 +938,8 @@ class ThMainWindow(Gtk.Window):
         b = Gtk.ToolButton.new(icon_widget = img, label = _("Import"))
         b.set_tooltip_text(_("Import .bok files"))
         b.connect('clicked', self.import_cb)
-        tools.insert(b, -1)
+        #tools.insert(b, -1)
+        ghead.pack_start(b)
 
         img = Gtk.Image()
         img.set_from_stock(Gtk.STOCK_FIND_AND_REPLACE, Gtk.IconSize.BUTTON)
@@ -883,34 +951,6 @@ class ThMainWindow(Gtk.Window):
 
         tools.insert(Gtk.SeparatorToolItem(), -1)
 
-        img = Gtk.Image()
-        img.set_from_stock(Gtk.STOCK_ZOOM_IN, Gtk.IconSize.BUTTON)
-        b = Gtk.ToolButton(icon_widget = img, label = _("Zoom in"))
-        b.add_accelerator("clicked", self.axl, Gdk.KEY_equal, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
-        b.add_accelerator("clicked", self.axl, Gdk.KEY_plus, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
-        b.add_accelerator("clicked", self.axl, Gdk.KEY_KP_Add, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
-        b.set_is_important(True)
-        b.set_tooltip_text("{}\t‪{}‬".format(_("Makes things appear bigger"), "(Ctrl++)"))
-        b.connect('clicked', lambda a: self._do_in_current_view("zoom_in"))
-        tools.insert(b, -1)
-
-        img = Gtk.Image()
-        img.set_from_stock(Gtk.STOCK_ZOOM_OUT, Gtk.IconSize.BUTTON)
-        b = Gtk.ToolButton(icon_widget = img, label = _("Zoom out"))
-        b.add_accelerator("clicked", self.axl, Gdk.KEY_minus, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
-        b.add_accelerator("clicked", self.axl, Gdk.KEY_KP_Subtract, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
-        b.set_tooltip_text("{}\t‪{}‬".format(_("Makes things appear smaller"), "(Ctrl+-)"))
-        b.connect('clicked', lambda a: self._do_in_current_view("zoom_out"))
-        tools.insert(b, -1)
-
-        img = Gtk.Image()
-        img.set_from_stock(Gtk.STOCK_ZOOM_100, Gtk.IconSize.BUTTON)
-        b = Gtk.ToolButton(icon_widget = img, label = _("1:1 Zoom"))
-        b.add_accelerator("clicked", self.axl, ord('0'), ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
-        b.add_accelerator("clicked", self.axl, Gdk.KEY_KP_0, ACCEL_CTRL_MOD, Gtk.AccelFlags.VISIBLE)
-        b.set_tooltip_text("{}\t{}".format(_("Restore original zoom factor"), "(Ctrl+0)"))
-        b.connect('clicked', lambda a: self._do_in_current_view("set_zoom_level",1.0))
-        tools.insert(b, -1)
 
         tools.insert(Gtk.SeparatorToolItem(), -1)
 
@@ -930,7 +970,7 @@ class ThMainWindow(Gtk.Window):
         b.set_tooltip_text(_("Show user manual"))
         b.connect('clicked', lambda a: self._content.new_tab ("http://127.0.0.1:%d/_theme/manual/manual.html" % port))
         tools.insert(b, -1)
-
+        
         self._content.new_tab()
 
         self.connect("delete_event", self.quit)
@@ -955,7 +995,7 @@ class ThMainWindow(Gtk.Window):
              getattr(view, action)(*a,**kw)
 
 
-    def fixes_cb(self, b):
+    def fixes_cb(self, *b):
         if not self.fixes_w:
             self.fixes_w = ThFixesWindow(self)
         self.fixes_w.show_all()
