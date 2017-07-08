@@ -178,7 +178,7 @@ class SearchEngine(BaseSearchEngine):
         #     SentenceFragmenter(sentencechars = ".!?"), ExcerptFormatter(between = u"\u2026\n"), top = 3,
         #     scorer = BasicFragmentScorer, minscore = 1,
         #     order = FIRST)
-        print snippet
+        #print snippet
         if len(snippet) > 1: return snippet
         else: return snippet_dummy
 
@@ -257,6 +257,7 @@ class SearchEngine(BaseSearchEngine):
         """
         this method must be overridden in implementation specific way
         """
+        if not tags: tags = [' ']
         if content:
             self.__ix_writer.add_document(kitab = name,
                                           vrr = vrr,
