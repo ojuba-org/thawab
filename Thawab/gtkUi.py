@@ -845,7 +845,7 @@ class ContentPane (Gtk.Notebook):
         if type_ == 5:
             view = self.new_tab()
             view.connect("ready-to-show", self._new_web_view_ready_cb)
-        return view
+            return view
 
     def _new_web_view_ready_cb (self, web_view):
         self.emit("new-window-requested", web_view)
