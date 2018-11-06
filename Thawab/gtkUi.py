@@ -841,11 +841,11 @@ class ContentPane (Gtk.Notebook):
         return view"""
 
     def _new_web_view_request_cb (self, web_view, navigation_action):
-        type_ =  navigation_action.get_navigation_type()
-        if type_ == 5:
-            view = self.new_tab()
-            view.connect("ready-to-show", self._new_web_view_ready_cb)
-            return view
+        #type_ =  navigation_action.get_navigation_type()
+        #if type_ == 5:
+        view = self.new_tab()
+        view.connect("ready-to-show", self._new_web_view_ready_cb)
+        return view
 
     def _new_web_view_ready_cb (self, web_view):
         self.emit("new-window-requested", web_view)
