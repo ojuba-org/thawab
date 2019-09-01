@@ -23,8 +23,8 @@ import time
 import bisect
 
 from cgi import escape # for html escaping
-from meta import prettyId, makeId, metaVrr
-from stemming import normalize_tb
+from .meta import prettyId, makeId, metaVrr
+from .stemming import normalize_tb
 from okasha.utils import ObjectsCache
 from okasha.baseWebApp import *
 from okasha.bottleTemplate import bottleTemplate
@@ -58,7 +58,7 @@ class webApp(baseWebApp):
         self.stringSeed = "S3(uR!r7y"
         self._typ = typ
         self._allowByUri = (typ == 'app')
-        self._emptyViewResp[u"apptype"]=self._typ
+        self._emptyViewResp["apptype"]=self._typ
         # FIXME: move ObjectsCache of kitab to routines to core.ThawabMan
         if not self.isMonolithic:
             import threading
@@ -72,7 +72,7 @@ class webApp(baseWebApp):
         """
             a URL safe hash, it results a 22 byte long string hash based on md5sum
         """
-        if isinstance(o,unicode):
+        if isinstance(o,str):
             o = o.encode('utf8')
         return hashlib.md5(self.stringSeed+o).digest().encode('base64').replace('+','-').replace('/','_')[:22]
 
@@ -125,20 +125,20 @@ Allow: /
             # FIXME: it currenly offers only one version for each kitab (the first one)
             htmlLinks.append('\t<li><a href="/view/%s/">%s</a></li>' % (k,
             prettyId(self.th.getMeta().getByKitab(k)[0]['kitab'])))
-        htmlLinks = (u"\n".join(htmlLinks))
+        htmlLinks = ("\n".join(htmlLinks))
         return {
-            u"lang":u"ar", u"dir":u"rtl",
-            u"kutublinks": htmlLinks,
+            "lang":"ar", "dir":"rtl",
+            "kutublinks": htmlLinks,
             "args":'/'.join(args)}
 
     @expose(percentTemplate,["stem.html"])
     def stem(self, rq, *args):
-        from stemming import stemArabic
+        from .stemming import stemArabic
         w = rq.q.getfirst('word','').decode('utf-8')
         s = ''
         if w:
             s = " ".join([stemArabic(i) for i in w.split()])
-        return {u"script":rq.script, u"word":w, u"stem":s}
+        return {"script":rq.script, "word":w, "stem":s}
 
     def _getKitabObject(self, rq, *args):
         # FIXME: cache KitabObjects and update last access
@@ -172,10 +172,9 @@ Allow: /
         else:
             r['content'] = node.toHtml(ub).replace('\n\n','\n</p><p>\n')
         if c:
-            cLinks = ''.join(map(lambda cc: '<li><a href = "%s">%s</a></li>\n' % \
+            cLinks = ''.join(['<li><a href = "%s">%s</a></li>\n' % \
                                              (d + "_i" + str(cc.idNum) + s,
-                                              escape(cc.getContent())),
-                                              c))
+                                              escape(cc.getContent())) for cc in c])
             cLinks = "<ul>\n" + cLinks + "</ul>"
         else:
             cLinks = ''
@@ -190,12 +189,12 @@ Allow: /
             r['upUrl'] = d + '_i' + str(u.idNum) + s
             r['upTitle'] = escape(u.getContent())
         if b:
-            r['breadcrumbs'] = " &gt; ".join(map(lambda (i,t): ("<a href = '" + \
+            r['breadcrumbs'] = " &gt; ".join([("<a href = '" + \
                                                                  d + \
                                                                  "_i%i" + \
                                                                  s + \
                                                                  "'>%s</a>") % \
-                                                                 (i, escape(t)), b))
+                                                                 (i_t[0], escape(i_t[1])) for i_t in b])
         vrr = metaVrr(ki.meta)
         #self.th.searchEngine.related(m['kitab'], vrr, node.idNum)
         return r
@@ -213,14 +212,14 @@ Allow: /
         t = escape(prettyId(m['kitab']))
         r = self._emptyViewResp.copy()
         r.update({
-            u"script": rq.script,
-            u"kitabTitle": t,
-            u"kitabId": kitabId,
-            u"headingId": u"_i0",
-            u"app": u"Thawab", u"version": u"3.0.1",
-            u"lang": lang, u"dir": d,
-            u"title": t,
-            u"content": t,
+            "script": rq.script,
+            "kitabTitle": t,
+            "kitabId": kitabId,
+            "headingId": "_i0",
+            "app": "Thawab", "version": "3.0.1",
+            "lang": lang, "dir": d,
+            "title": t,
+            "content": t,
             "args": '/'.join(args)})
         return ki, m, r
 
@@ -285,8 +284,8 @@ Allow: /
                 return 'انتهت صلاحية هذا البحث'
             try :
                 r = self.th.searchEngine.resultExcerpt(R, i)
-            except OSError, e:
-                print '** webapp.ajax: %s' , e
+            except OSError as e:
+                print('** webapp.ajax: %s' , e)
                 return ''
             #r = escape(self.th.searchEngine.resultExcerpt(R,i)).replace('\0','<em>').replace('\010','</em>').replace(u"\u2026",u"\u2026<br/>").encode('utf8')
             return r

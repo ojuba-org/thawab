@@ -16,9 +16,9 @@ Copyright © 2009, Muayyad Alsadi <alsadi@ojuba.org>
         "http://waqf.ojuba.org/license"
 
 """
-from meta import metaVrr
+from .meta import metaVrr
 from okasha.utils import strverscmp
-from tags import *
+from .tags import *
 
 # TODO: use flags in meta cache object to indicate if indexing was started for some kitab so that if something wrong happend while indexing we can drop index of that kitab
 
@@ -178,8 +178,7 @@ class BaseSearchEngine:
         # append ix contents
         iix.contents.append(node.getContent()) # TODO: append extra padding space if TAG_FLAGS_PAD_CONTENT
         # append ix tags
-        iix.tags.extend(map(lambda t: tags[t] == None and t or u'.'.join((t,tags[t])),
-                                          node.getTagsByFlagsMask(TAG_FLAGS_IX_TAG)))
+        iix.tags.extend([tags[t] == None and t or '.'.join((t,tags[t])) for t in node.getTagsByFlagsMask(TAG_FLAGS_IX_TAG)])
     
     def __ix_nodeEnd(self, node, name, vrr, iix):
         # index extra sub fields if any
@@ -187,25 +186,25 @@ class BaseSearchEngine:
             n = iix.sub_f_node_idnums.pop()
             i = iix.sub_f_content_index.pop()
             j = iix.sub_f_tags_index.pop()
-            c = u"".join(iix.contents[i:])
-            T = u" ".join(iix.tags[j:])
+            c = "".join(iix.contents[i:])
+            T = " ".join(iix.tags[j:])
             del iix.tags[j:]
             k = iix.main_f_content_index[-1] # the nearest header title index
             N = iix.main_f_node_idnums[-1] # the nearest header node.idNum
             # NOTE: the above two lines means that a sub ix fields should be children of some main field (header)
             t = iix.contents[k]
-            self.addDocumentToIndex(unicode(name), vrr, N, t, c, T)
+            self.addDocumentToIndex(str(name), vrr, N, t, c, T)
         # index consuming main indexing fields if any
         if iix.main_f_node_idnums and iix.main_f_node_idnums[-1] == node.idNum: 
             n = iix.main_f_node_idnums.pop()
             i = iix.main_f_content_index.pop()
             j = iix.main_f_tags_index.pop()
             t = iix.contents[i]
-            c = (u"".join(iix.contents[i:])).strip()
+            c = ("".join(iix.contents[i:])).strip()
             del iix.contents[i:]
-            T = u" ".join(iix.tags[j:])
+            T = " ".join(iix.tags[j:])
             del iix.tags[j:]
-            self.addDocumentToIndex(unicode(name), vrr, n, t.strip(), c, T)
+            self.addDocumentToIndex(str(name), vrr, n, t.strip(), c, T)
 
     class __IIX(object):
         "internal indexing object"

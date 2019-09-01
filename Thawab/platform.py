@@ -26,7 +26,7 @@ if sys.platform  ==  'win32':
         return u[1:].replace('/','\\')
 
     def get_drives():
-        return filter(lambda j: os.path.exists(j), [chr(i)+':\\' for i in range(67,91)])
+        return [j for j in [chr(i)+':\\' for i in range(67,91)] if os.path.exists(j)]
 
     try:
         from winpaths import get_appdata as application_data
@@ -42,13 +42,13 @@ if sys.platform  ==  'win32':
                 application_data = None
     if application_data:
         app_data = application_data()
-        th_conf = os.path.join(app_data, u"thawab", "conf", "main.conf")
+        th_conf = os.path.join(app_data, "thawab", "conf", "main.conf")
     else:
-        app_data = u"C:\\"
-        th_conf = u"C:\\thawab.conf"
+        app_data = "C:\\"
+        th_conf = "C:\\thawab.conf"
 
 else:
-    app_data = u"/usr/share/"
+    app_data = "/usr/share/"
     application_data = None
     def uri_to_filename(u):
         return u
@@ -59,7 +59,7 @@ else:
 
 def guess_prefixes():
     l = []
-    ed = os.path.join(os.path.dirname(sys.argv[0]), u'thawab-data')
+    ed = os.path.join(os.path.dirname(sys.argv[0]), 'thawab-data')
     ed_1st = False
     if os.path.isdir(ed) and os.access(ed, os.W_OK):
         l.append(ed)
@@ -73,8 +73,8 @@ def guess_prefixes():
         l.append(os.path.expanduser('~/.thawab'))
         if not ed_1st:
             l.append(ed)
-        l.append(u'/usr/local/share/thawab')
-        l.append(u'/usr/share/thawab')
+        l.append('/usr/local/share/thawab')
+        l.append('/usr/share/thawab')
     return l
 
 

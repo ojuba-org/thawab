@@ -27,7 +27,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("WebKit2", "4.0")
 from gi.repository import Gtk, Gdk, GObject, WebKit2, Pango, GLib, Gio
 from subprocess import Popen, PIPE
-from urllib import unquote
+from urllib.parse import unquote
 
 import Thawab.core
 
@@ -44,13 +44,11 @@ def run_in_bg(cmd):
     global _ps
     setsid = getattr(os, 'setsid', None)
     if not setsid: setsid = getattr(os, 'setpgrp', None)
-    _ps = filter(lambda x: x.poll() != None,_ps) # remove terminated processes from _ps list
+    _ps = [x for x in _ps if x.poll() != None] # remove terminated processes from _ps list
     _ps.append(Popen(cmd,0,'/bin/sh',shell = True, preexec_fn = setsid))
 
 def get_exec_full_path(fn):
-    a = filter(lambda p: os.access(p, os.X_OK),
-               map(lambda p: os.path.join(p, fn),
-                    os.environ['PATH'].split(os.pathsep)))
+    a = [p for p in [os.path.join(p, fn) for p in os.environ['PATH'].split(os.pathsep)] if os.access(p, os.X_OK)]
     if a:
         return a[0]
     return None
@@ -361,11 +359,11 @@ class ThImportWindow(Gtk.Window):
         # TODO: add options for handling existing files (overwrite?)
 
         ft_at_line_start = False
-        ft_prefix = u'('
-        ft_suffix = u')'
-        ft_sp = u'' # can be ur'\s?' or ur'\s*'
-        body_footnote_re = re.escape(ft_prefix)+ft_sp+ur'(\d+)'+ft_sp+re.escape(ft_suffix)
-        footnote_re = (ft_at_line_start and u'^\s*' or u'') + body_footnote_re
+        ft_prefix = '('
+        ft_suffix = ')'
+        ft_sp = '' # can be ur'\s?' or ur'\s*'
+        body_footnote_re = re.escape(ft_prefix)+ft_sp+r'(\d+)'+ft_sp+re.escape(ft_suffix)
+        footnote_re = (ft_at_line_start and '^\s*' or '') + body_footnote_re
         ft_prefix_len = len(ft_prefix)
         ft_suffix_len = len(ft_suffix)
         #shamelaImport(cursor, sh, bkid, footnote_re = ur'\((\d+)\)', body_footnote_re = ur'\((\d+)\)', ft_prefix_len = 1, ft_suffix_len = 1):
@@ -402,7 +400,7 @@ class ThImportWindow(Gtk.Window):
         else:
             percent = (75.0/n)*j + p*0.75/n + 25.0
         
-        if not kw.has_key('show_msg'):
+        if 'show_msg' not in kw:
             msg = _("working ...")
         self.element_progress_cb(i, percent, msg)
         self.progress.set_fraction( float(i)/N + percent/100.0/N )
@@ -424,19 +422,19 @@ class ThImportWindow(Gtk.Window):
         ft_suffix=self.ft_suffix.get_text()
         ft_suffix_len = len(ft_suffix)
         
-        ft_sp = [u'', ur'\s?' , ur'\s*'][ [i.get_active() for i in self.ft_sp].index(True) ]
-        footnote_re = (ft_at_line_start and u'^\s*' or u'') + \
+        ft_sp = ['', r'\s?' , r'\s*'][ [i.get_active() for i in self.ft_sp].index(True) ]
+        footnote_re = (ft_at_line_start and '^\s*' or '') + \
                       re.escape(ft_prefix) + \
-                      ft_sp+ur'(\d+)' + \
+                      ft_sp+r'(\d+)' + \
                       ft_sp + \
                       re.escape(ft_suffix)
 
         bft_prefix=self.bft_prefix.get_text()
         bft_suffix=self.bft_suffix.get_text()
-        bft_sp = [u'', ur'\s?' , ur'\s*'][ [i.get_active() for i in self.bft_sp].index(True) ]
+        bft_sp = ['', r'\s?' , r'\s*'][ [i.get_active() for i in self.bft_sp].index(True) ]
         body_footnote_re = re.escape(bft_prefix) + \
                            bft_sp + \
-                           ur'(\d+)' + \
+                           r'(\d+)' + \
                            bft_sp + \
                            re.escape(bft_suffix)
 
@@ -465,10 +463,10 @@ class ThImportWindow(Gtk.Window):
                                self.progress_cb,
                                progress_dict = self.progress_dict)
             except TypeError:
-                print "not a shamela file"
+                print("not a shamela file")
                 continue
             except OSError:
-                print "mdbtools is not installed"
+                print("mdbtools is not installed")
                 break
             if not sh.toSqlite():
                 # canceled
@@ -497,15 +495,15 @@ class ThImportWindow(Gtk.Window):
                 c.flush()
                 t_fn = os.path.join(self.main.th.prefixes[0],
                                     'db',
-                                    u"".join((m['kitab'] + \
-                                              u"-" + \
+                                    "".join((m['kitab'] + \
+                                              "-" + \
                                               m['version'] + \
                                               Thawab.core.th_ext,)))
                 #print "moving %s to %s" % (ki.uri, t_fn)
                 try:
                     shutil.move(ki.uri, t_fn)
                 except OSError:
-                    print "unable to move converted file." # windows can't move an opened file
+                    print("unable to move converted file.") # windows can't move an opened file
                 # FIXME: close ki in a clean way so the above code works in windows
             self.progress_cb(_("Done"), 100.0, show_msg = True)
 
@@ -562,7 +560,7 @@ class ThImportWindow(Gtk.Window):
 
     def rm(self, b):
         l, ls_p = self.lsv.get_selection().get_selected_rows()
-        r = map(lambda p: Gtk.TreeRowReference.new(self.ls, p), ls_p)
+        r = [Gtk.TreeRowReference.new(self.ls, p) for p in ls_p]
         for i in r:
             self.ls.remove(self.ls.get_iter(i.get_path()))
 
@@ -574,7 +572,7 @@ class ThImportWindow(Gtk.Window):
             f = uri_to_filename(unquote(i[7:]))
             self.add_fn(f)
         else:
-            print "Protocol not supported in [%s]" % i
+            print("Protocol not supported in [%s]" % i)
         
     def drop_data_cb(self, widget, dc, x, y, selection_data, info, t):
         for i in selection_data.get_uris():
@@ -1175,7 +1173,7 @@ def launchServer():
         os.path.join(exedir,'thawab-themes'),
         os.path.join(exedir,'..','share','thawab','thawab-themes'),
     ]
-    lookup.extend(map(lambda i: os.path.join(i, 'themes'), th.prefixes))
+    lookup.extend([os.path.join(i, 'themes') for i in th.prefixes])
     app = webApp(th,
                  'app',
                  lookup,
@@ -1200,7 +1198,7 @@ def onlyterminal(): #To run thawab by terminal only by thawab-server
     ld = os.path.join(exedir,'..','share','locale')
     if not os.path.isdir(ld):
         ld = os.path.join(exedir, 'locale')
-    gettext.install('thawab', ld, unicode = 0)
+    gettext.install('thawab', ld, str = 0)
     th, port, server = launchServer()
 
     try:
@@ -1209,7 +1207,7 @@ def onlyterminal(): #To run thawab by terminal only by thawab-server
         thread.start()
         while True: time.sleep(100)
     except (KeyboardInterrupt, SystemExit):
-        print '\nHope to made a nice time, Ojuba team <ojuba.org>.\n'
+        print('\nHope to made a nice time, Ojuba team <ojuba.org>.\n')
         os._exit(0)
         
 def main():
@@ -1217,7 +1215,7 @@ def main():
     ld = os.path.join(exedir,'..','share','locale')
     if not os.path.isdir(ld):
         ld = os.path.join(exedir, 'locale')
-    gettext.install('thawab', ld, unicode = 0)
+    gettext.install('thawab', ld, str = 0)
     th, port, server = launchServer()
 
     GObject.threads_init()

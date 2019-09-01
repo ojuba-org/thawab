@@ -105,7 +105,7 @@ class ThawabServer:
 				if os.path.exists(self.pidfile):
 					os.remove(self.pidfile)
 			else:
-				print (str(err.args))
+				print((str(err.args)))
 				sys.exit(1)
 
 	def restart(self):
@@ -200,10 +200,10 @@ class ThawabServer:
 			c.flush()
 			t_fn = os.path.join(self.th.prefixes[0],
 				'db',
-				u"".join((m['kitab'] + \
-				u"-" + \
+				"".join((m['kitab'] + \
+				"-" + \
 				m['version'] + \
-				u'.ki',)))
+				'.ki',)))
 			try:
 				shutil.move(ki.uri, t_fn)
 			except OSError:
@@ -236,17 +236,17 @@ if __name__ == "__main__":
 			elif 'importbok' == sys.argv[1] and len(sys.argv) >= 3:
 					daemon.importbok(sys.argv[2])
 			else:
-					print "Unknown command"
+					print("Unknown command")
 					sys.exit(2)
 					sys.exit(0)
 		else:
-				print '''Thawab Server\nusage:	thawab-server [command] [file(s)] \nCommands:
+				print('''Thawab Server\nusage:	thawab-server [command] [file(s)] \nCommands:
 	start		starts the server 
 	stop		stops the server 
 	restart		restarts the server 
 	reindex		queues new books
 	fix index	removes search index
 	fix meta	removes meta data cache to generate a fresh one
-	importbok [file path]	imports Shamela .bok file'''
+	importbok [file path]	imports Shamela .bok file''')
 				
 				sys.exit(2)

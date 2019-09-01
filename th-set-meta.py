@@ -23,7 +23,7 @@ import Thawab.core
 from getopt import getopt, GetoptError
 
 def usage():
-  print '''\
+  print('''\
 Usage: %s [plbvRrtayAYBVck] VALUE ... FILES ...
 Where:
 \t-p VALUE\t set repo name to VALUE
@@ -41,7 +41,7 @@ Where:
 \t-V VALUE\t set original kitab version to VALUE
 \t-c VALUE\t set classification to VALUE
 \t-k VALUE\t set keywords to VALUE
-''' % os.path.basename(sys.argv[0])
+''' % os.path.basename(sys.argv[0]))
 
 meta_keys={
   '-p':'repo', '-l':'lang', '-b':'kitab',
@@ -53,12 +53,12 @@ meta_keys={
 metas=set(meta_keys.values())
 try:
   opts, args = getopt(sys.argv[1:], "hp:l:b:v:r:R:t:a:y:A:Y:B:V:c:k:", ["help"])
-except GetoptError, err:
-  print str(err) # will print something like "option -a not recognized"
+except GetoptError as err:
+  print(str(err)) # will print something like "option -a not recognized"
   usage()
   sys.exit(1)
 opts=dict([(meta_keys.get(i,i),j) for i,j in opts])
-if opts.has_key("-h") or opts.has_key("--help") or len(opts)==0 or not args:
+if "-h" in opts or "--help" in opts or len(opts)==0 or not args:
   usage()
   sys.exit(1)
 

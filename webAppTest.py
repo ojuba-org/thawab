@@ -16,7 +16,7 @@ myLogger.setLevel(logging.INFO)
 from paste import httpserver
 
 lookup=[os.path.join(prefix,'thawab-themes')]
-lookup.extend(map(lambda i: os.path.join(i, 'themes'), th.prefixes))
+lookup.extend([os.path.join(i, 'themes') for i in th.prefixes])
 app=webApp(
   th,'web', 
   lookup, th.conf.get('theme','default'), '/_theme/',

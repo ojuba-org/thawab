@@ -22,8 +22,8 @@ import sqlite3
 import threading
 import time
 import hashlib
-from itertools import imap,groupby
-from dataModel import *
+from itertools import groupby
+from .dataModel import *
 from okasha.utils import fromFs, toFs, strverscmp
 import re
 
@@ -38,23 +38,23 @@ def makeId(i):
     return i.strip().replace(' ','_').replace('/','_')
 
 def metaVr(m):
-    return m[u"version"] + u"-" + unicode(m[u"releaseMajor"])
+    return m["version"] + "-" + str(m["releaseMajor"])
 
 def metaVrr(m):
-    return u"-".join((m[u"version"],
-                      unicode(m[u"releaseMajor"]),
-                      unicode(m[u"releaseMinor"])))
+    return "-".join((m["version"],
+                      str(m["releaseMajor"]),
+                      str(m["releaseMinor"])))
 
 def metaDict2Hash(meta, suffix = None):
-    k = filter(lambda i: i != 'cache_hash', meta.keys())
+    k = [i for i in list(meta.keys()) if i != 'cache_hash']
     k.sort()
     l = []
     for i in k:
-        l.append(u"%s:%s" % (i,meta[i]))
-    l.append(u"timestamp:%d" % int(time.time()))
+        l.append("%s:%s" % (i,meta[i]))
+    l.append("timestamp:%d" % int(time.time()))
     if suffix:
         l.append(suffix)
-    return hashlib.sha256((u"-".join(l)).encode('utf-8')).digest().encode('base64').strip()[:-1]
+    return hashlib.sha256(("-".join(l)).encode('utf-8')).digest().encode('base64').strip()[:-1]
 
 class MCache(object):
     """a class holding metadata cache"""
@@ -75,7 +75,7 @@ class MCache(object):
 
     def _getConnection(self):
         n = threading.current_thread().name
-        if self._cn.has_key(n):
+        if n in self._cn:
             r = self._cn[n]
         else:
             r = sqlite3.connect(self.db_fn)
@@ -85,13 +85,13 @@ class MCache(object):
 
 
     def __reload(self):
-        self.__meta = map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_BY_KITAB))
-        self.__meta_by_uri = (dict(map(lambda a: (a[1]['uri'], a[0]), enumerate(self.__meta))))
-        self.__meta_uri_list = self.__meta_by_uri.keys()
+        self.__meta = [dict(i) for i in self._getConnection().execute(SQL_MCACHE_GET_BY_KITAB)]
+        self.__meta_by_uri = (dict([(a[1]['uri'], a[0]) for a in enumerate(self.__meta)]))
+        self.__meta_uri_list = list(self.__meta_by_uri.keys())
         self.__meta_by_kitab = {}
         for k,G in groupby(enumerate(self.__meta), lambda a: a[1]['kitab']):
             g = list(G)
-            self.__meta_by_kitab[k] = map(lambda i: i[0], g)
+            self.__meta_by_kitab[k] = [i[0] for i in g]
 
     def load_from_uri(self, uri):
         """extract meta object from kitab's uri and return it"""
@@ -134,7 +134,7 @@ class MCache(object):
         uri_set = set(uri_list)
         #c.execute('BEGIN TRANSACTION')
         # remove meta for kitab that no longer exists
-        deleted = filter(lambda i: i not in uri_set, self.__meta_uri_list)
+        deleted = [i for i in self.__meta_uri_list if i not in uri_set]
         for uri in deleted:
             c.execute(SQL_MCACHE_DROP, (uri,))
             r += 1
@@ -169,10 +169,10 @@ class MCache(object):
         return r
 
     def getKitabList(self):
-        return self.__meta_by_kitab.keys()
+        return list(self.__meta_by_kitab.keys())
 
     def getUriList(self):
-        return self.__meta_by_uri.keys()
+        return list(self.__meta_by_uri.keys())
 
     def getByUri(self, uri):
         """return meta object for uri"""
@@ -185,7 +185,7 @@ class MCache(object):
         a = self.__meta_by_kitab.get(kitab,None)
         if not a:
             return None
-        return map(lambda i: self.__meta[i], a)
+        return [self.__meta[i] for i in a]
 
     def _latest(self, a):
         lm = a[0]
@@ -212,7 +212,7 @@ class MCache(object):
         a = self.__meta_by_kitab.get(kitab, None)
         if not a:
             return None
-        ma = filter(lambda m: m[u'version'] == v,[self.__meta[i] for i in a])
+        ma = [m for m in [self.__meta[i] for i in a] if m['version'] == v]
         if not ma:
             return None
         return self._latest(ma)
@@ -225,8 +225,7 @@ class MCache(object):
         if type(r) != int:
             r = int(r)
         a = self.__meta_by_kitab.get(kitab, None)
-        ma = filter(lambda m: m[u'version'] == v and m[u'releaseMajor'] == r,
-                    [self.__meta[i] for i in a])
+        ma = [m for m in [self.__meta[i] for i in a] if m['version'] == v and m['releaseMajor'] == r]
         if not ma:
             return None
         return self._latest(ma)
@@ -246,18 +245,18 @@ class MCache(object):
         return a list of meta dicts for Kutub that are likely to be unindexed
         """
         
-        return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_UNINDEXED))
+        return [dict(i) for i in self._getConnection().execute(SQL_MCACHE_GET_UNINDEXED)]
 
     def getDirtyIndexList(self):
         """
         return a list of meta dicts for Kutub that are likely to have broken index
         """
-        return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_DIRTY_INDEX))
+        return [dict(i) for i in self._getConnection().execute(SQL_MCACHE_GET_DIRTY_INDEX)]
 
     def getIndexedList(self):
         """
         return a list of meta dicts for Kutub that are already in index.
         """
-        return map(lambda i: dict(i), self._getConnection().execute(SQL_MCACHE_GET_INDEXED))
+        return [dict(i) for i in self._getConnection().execute(SQL_MCACHE_GET_INDEXED)]
 
 

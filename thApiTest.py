@@ -5,7 +5,7 @@ th=Thawab.core.ThawabMan()
 th.searchEngine.reindexAll()
 # th.loadMeta() # to detect new files and add them ..etc.
 meta=th.getMeta()
-print meta.getUriList()
+print(meta.getUriList())
 th.searchEngine.reindexKitab('/home/alsadi/.thawab/db/uthaymine.ki')
 
 ## export to xml

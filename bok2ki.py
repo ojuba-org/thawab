@@ -30,7 +30,7 @@ from getopt import getopt, GetoptError
 # 
 
 def usage():
-    print '''\
+    print('''\
 Usage: %s [-i] [-m DIR] FILES ...
 Where:
 \t-i\t\t- in-memory
@@ -44,43 +44,43 @@ Where:
 \t--bft-sp=[0|1|2]	no, single or many whitespaces, default is 0 
 
 the generated files will be moved into db in thawab prefix (usually ~/.thawab/db/)
-''' % os.path.basename(sys.argv[0])
+''' % os.path.basename(sys.argv[0]))
 
 try:
   opts, args = getopt(sys.argv[1:], "im:", ["help", 'ft-prefix=', 'ft-suffix=', 'bft-prefix=', 'bft-suffix=', 'ft-leading=', 'ft-sp=', 'bft-sp='])
-except GetoptError, err:
-  print str(err) # will print something like "option -a not recognized"
+except GetoptError as err:
+  print(str(err)) # will print something like "option -a not recognized"
   usage()
   sys.exit(1)
 
 if not args:
-  print "please provide at least one .bok files"
+  print("please provide at least one .bok files")
   usage()
   sys.exit(1)
 
 opts=dict(opts)
 
-def progress(msg, p, *a, **kw): print " ** [%g%% completed] %s" % (p,msg)
+def progress(msg, p, *a, **kw): print(" ** [%g%% completed] %s" % (p,msg))
 
 from Thawab.core import ThawabMan
 from Thawab.shamelaUtils import ShamelaSqlite,shamelaImport
 th=ThawabMan()
 thprefix=th.prefixes[0]
 
-if not opts.has_key('-i'): db_fn=os.path.expanduser('~/bok2sql.db')
+if '-i' not in opts: db_fn=os.path.expanduser('~/bok2sql.db')
 else: db_fn=None
 
 #    ¬ U+00AC NOT SIGN
 ft_prefix=opts.get('--ft-prefix','(¬').decode('utf-8'); ft_prefix_len=len(ft_prefix)
 ft_suffix=opts.get('--ft-suffix',')').decode('utf-8'); ft_suffix_len=len(ft_suffix)
-ft_sp=[u'', ur'\s?' , ur'\s*'][int(opts.get('--ft-sp','0'))]
+ft_sp=['', r'\s?' , r'\s*'][int(opts.get('--ft-sp','0'))]
 ft_at_line_start=int(opts.get('--ft-leading','0'))
-footnote_re=(ft_at_line_start and u'^\s*' or u'') + re.escape(ft_prefix)+ft_sp+ur'(\d+)'+ft_sp+re.escape(ft_suffix)
+footnote_re=(ft_at_line_start and '^\s*' or '') + re.escape(ft_prefix)+ft_sp+r'(\d+)'+ft_sp+re.escape(ft_suffix)
 
 bft_prefix=opts.get('--bft-prefix','(¬').decode('utf-8');
 bft_suffix=opts.get('--bft-suffix',')').decode('utf-8');
-bft_sp=[u'', ur'\s?' , ur'\s*'][int(opts.get('--bft-sp','0'))]
-body_footnote_re=re.escape(bft_prefix)+bft_sp+ur'(\d+)'+bft_sp+re.escape(bft_suffix)
+bft_sp=['', r'\s?' , r'\s*'][int(opts.get('--bft-sp','0'))]
+body_footnote_re=re.escape(bft_prefix)+bft_sp+r'(\d+)'+bft_sp+re.escape(bft_suffix)
 
 
 
@@ -97,16 +97,16 @@ for fn in args:
     
     m=shamelaImport(c, sh, bkid, footnote_re, body_footnote_re, ft_prefix_len, ft_suffix_len)
     c.flush()
-    print "moving %s to %s" % (ki.uri, os.path.join(thprefix,'db', m['kitab']+u"-"+m['version']+u".ki"))
-    shutil.move(ki.uri, os.path.join(thprefix,'db', m['kitab']+u"-"+m['version']+u".ki"))
-  if opts.has_key('-m'):
+    print("moving %s to %s" % (ki.uri, os.path.join(thprefix,'db', m['kitab']+"-"+m['version']+".ki")))
+    shutil.move(ki.uri, os.path.join(thprefix,'db', m['kitab']+"-"+m['version']+".ki"))
+  if '-m' in opts:
     dd=opts['-m']
     if not os.path.isdir(dd):
       try: os.makedirs(dd)
       except OSError: pass
     if os.path.isdir(dd):
       dst=os.path.join(dd,os.path.basename(fn))
-      print "moving %s to %s" % (fn,dst)
+      print("moving %s to %s" % (fn,dst))
       shutil.move(fn, dst)
-    else: print "could not move .bok files, target directory does not exists"
+    else: print("could not move .bok files, target directory does not exists")
 

@@ -28,19 +28,19 @@ def importFromWiki(c, wiki):
     wiki_started = 0
     meta = {
             'cache_hash': time.time(),
-            'repo': u'_local',
+            'repo': '_local',
             'lang': None,
             'kitab': None,
-            'version': u'1',
-            'releaseMajor': u'0',
-            'releaseMinor': u'0',
+            'version': '1',
+            'releaseMajor': '0',
+            'releaseMinor': '0',
             'author': None,
             'year': 0,
             'originalAuthor': None,
             'originalYear': 0,
             'originalKitab': None,
             'originalVersion': None,
-            'classification': u'_misc'}
+            'classification': '_misc'}
     for l in wiki:
         #l = l.decode('utf-8')
         if wiki_started == 0:

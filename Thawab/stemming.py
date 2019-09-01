@@ -34,9 +34,9 @@ normalize_tb = {
     1611: None, 1612: None, 1613: None, 1614: None, 1615: None,
     1616: None, 1617: None, 1618: None, 1609: 1575}
 
-rm_prefix = re.compile(u"^(?:ا?[وف]?((?:[بك]?ال|لل?)|[اينت])?)")
+rm_prefix = re.compile("^(?:ا?[وف]?((?:[بك]?ال|لل?)|[اينت])?)")
 # TODO: reconsider the suffex re
-rm_suffix = re.compile(u"(?:ا[نت]|[يهة]|ها|ي[هنة]|ون)$")
+rm_suffix = re.compile("(?:ا[نت]|[يهة]|ها|ي[هنة]|ون)$")
 
 #rm_prefix = u"^(?:ا?[وف]?((?:[بك]?ال|لل?)|[اينت])?)"
 #rm_suffix = u"(?:ا[نت]|[يهة]|ها|ي[هنة]|ون)$"
@@ -44,32 +44,32 @@ rm_suffix = re.compile(u"(?:ا[نت]|[يهة]|ها|ي[هنة]|ون)$")
 # أواستقدمتموني
 # استفهام عطف جر وتعريف    (مثال: "أفككتابي تؤلف ؟" "وللآخرة فلنعد العدة"    "فالاستغفار")    أو مضارعة
 # الجر والتعريف لا تجتمع مع المضارعة
-prefix_re = u''.join( ( 
-    u"^\u0627?" ,                      # optional hamza
-    u"[\u0648\u0641]?",                # optional Atf (with Waw or Faa)
-    u"(?:" ,                           # nouns specific prefixes (Jar and definite article)
-    u"[\u0628\u0643]?\u0627\u0644?|" , # optional Jar (with ba or kaf) with optional AL
-    u"\u0644\u0644|" ,                 # optional LL (Jar with Lam and article )
-    u"\u0644" ,                        # optional LL (Jar with Lam and article)
-    u")?" ,                            # end nouns specific prefixes
-    u"(\\w{2,})$" ) )                  # the stem is grouped
+prefix_re = ''.join( ( 
+    "^\u0627?" ,                      # optional hamza
+    "[\u0648\u0641]?",                # optional Atf (with Waw or Faa)
+    "(?:" ,                           # nouns specific prefixes (Jar and definite article)
+    "[\u0628\u0643]?\u0627\u0644?|" , # optional Jar (with ba or kaf) with optional AL
+    "\u0644\u0644|" ,                 # optional LL (Jar with Lam and article )
+    "\u0644" ,                        # optional LL (Jar with Lam and article)
+    ")?" ,                            # end nouns specific prefixes
+    "(\\w{2,})$" ) )                  # the stem is grouped
 
 # [اتني]|نا|ان|تا|ون|ين|تما
-verb_some_subject_re = u"[\u0627\u062a\u0646\u064a]|\u0646\u0627|\u0627\u0646|\u062a\u0627|\u0648\u0646|\u064a\u0646|\u062a\u0645\u0627"
+verb_some_subject_re = "[\u0627\u062a\u0646\u064a]|\u0646\u0627|\u0627\u0646|\u062a\u0627|\u0648\u0646|\u064a\u0646|\u062a\u0645\u0627"
 # [هن]|ني|نا|ها|هما|هم|هن|كما|كم|كن
-verb_object_re = u"(?[\u0647\u0646]|\u0646\u064a|\u0646\u0627|\u0647\u0627|\u0647\u0645\u0627|\u0647\u0645|\u0647\u0646|\u0643\u0645\u0627|\u0643\u0645|\u0643\u0646)"
+verb_object_re = "(?[\u0647\u0646]|\u0646\u064a|\u0646\u0627|\u0647\u0627|\u0647\u0645\u0627|\u0647\u0645|\u0647\u0646|\u0643\u0645\u0627|\u0643\u0645|\u0643\u0646)"
 
-verb_suffix_re = u''.join( [ 
-    u"(?:(?:\u0648\u0627|\u062a\u0645)|" ,                     # وا|تم
-    u"(?:",
-    u"(?:",
+verb_suffix_re = ''.join( [ 
+    "(?:(?:\u0648\u0627|\u062a\u0645)|" ,                     # وا|تم
+    "(?:",
+    "(?:",
     verb_some_subject_re,
-    u'|\u0648|\u062a\u0645\u0648',                            # و|تمو
-    u")",
-    verb_object_re,u'{1,2}'
-    u")|(?:",
+    '|\u0648|\u062a\u0645\u0648',                            # و|تمو
+    ")",
+    verb_object_re,'{1,2}'
+    ")|(?:",
     verb_some_subject_re,
-    u"))?$"])
+    "))?$"])
 
 
 def removeArabicSuffix(word):
@@ -87,5 +87,5 @@ def removeArabicPrefix(word):
     return word
 
 def stemArabic(word):
-    return removeArabicPrefix(removeArabicSuffix(unicode(word).translate(normalize_tb)))
+    return removeArabicPrefix(removeArabicSuffix(str(word).translate(normalize_tb)))
 
