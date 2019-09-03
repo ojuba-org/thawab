@@ -24,8 +24,8 @@ import threading, socket
 import gettext
 import gi
 gi.require_version("Gtk", "3.0")
-gi.require_version("WebKit", "3.0")
-from gi.repository import Gtk, Gdk, GObject, WebKit, Pango, GLib, Gio
+gi.require_version("WebKit2", "4.0")
+from gi.repository import Gtk, Gdk, GObject, WebKit2, Pango, GLib, Gio
 from subprocess import Popen, PIPE
 from urllib import unquote
 
@@ -96,35 +96,61 @@ def error(msg, parent = None):
     r = dlg.run()
     dlg.destroy()
 
-class ThWV(WebKit.WebView):
+class ThWV(WebKit2.WebView):
     def __init__(self):
-        WebKit.WebView.__init__(self)
-        self.set_full_content_zoom(True)
-        self.connect_after("populate-popup", self.populate_popup)
-        self.connect("navigation-requested", self._navigation_requested_cb)
+        WebKit2.WebView.__init__(self)
+        #self.set_full_content_zoom(True)
+        #self.connect_after("populate-popup", self.populate_popup)
+        #self.connect("navigation-requested", self._navigation_requested_cb)
+        
+        #self.connect_after("context-menu", self.populate_popup)
+        self.connect("create", self._navigation_requested_cb)
 
-    def _navigation_requested_cb(self, view, frame, networkRequest):
+    """def _navigation_requested_cb(self, view, frame, networkRequest):
+        uri = networkRequest.get_uri()
+        if not uri.startswith('http://127.0.0.1') and not uri.startswith('http://localhost'):
+            run_in_bg("%s '%s'" % (broswer ,uri))
+            return 1
+        return 0"""
+        
+    def _navigation_requested_cb(self, web_view, navigation_action):
+        networkRequest = navigation_action.get_request()
         uri = networkRequest.get_uri()
         if not uri.startswith('http://127.0.0.1') and not uri.startswith('http://localhost'):
             run_in_bg("%s '%s'" % (broswer ,uri))
             return 1
         return 0
 
-    def reload_if_index(self, *a, **kw):
+    """def reload_if_index(self, *a, **kw):
         if self.get_property('uri').endswith('/index/'):
+            self.reload()"""
+            
+    def reload_if_index(self, *a, **kw):
+        uri = self.props.uri
+        if uri.endswith('/index/'):
             self.reload()
 
+    """def _eval_js(self, e):
+         \"""
+         can be used to eval a javascript expression
+         eg. to obtain value of a javascript variable given its name
+         \"""
+         self.execute_script('thawab_eval_js_oldtitle=document.title;document.title=%s;' % e)
+         r = self.get_main_frame().get_title()
+         self.execute_script('document.title=thawab_eval_js_oldtitle;')
+         return r"""
+         
     def _eval_js(self, e):
          """
          can be used to eval a javascript expression
          eg. to obtain value of a javascript variable given its name
          """
-         self.execute_script('thawab_eval_js_oldtitle=document.title;document.title=%s;' % e)
-         r = self.get_main_frame().get_title()
-         self.execute_script('document.title=thawab_eval_js_oldtitle;')
+         self.run_javascript('thawab_eval_js_oldtitle=document.title;document.title=%s;' % e,None,None,None)
+         r = self.props.title
+         self.run_javascript('document.title=thawab_eval_js_oldtitle;',None,None,None)
          return r
 
-    def populate_popup(self, view, menu):
+    """def populate_popup(self, view, menu):
         menu.append(Gtk.SeparatorMenuItem.new())
         i = Gtk.ImageMenuItem.new_from_stock(Gtk.STOCK_ZOOM_IN, None)
         i.connect('activate', lambda m,v,*a,**k: v.zoom_in(), view)
@@ -137,7 +163,40 @@ class ThWV(WebKit.WebView):
         menu.append(i)
 
         menu.show_all()
-        return False
+        return False"""
+        
+    """def populate_popup(self, view, menu, event, hit_test_result):
+        m = Gtk.SeparatorMenuItem()
+        m = WebKit2.ContextMenuItem.new_separator()
+        print(menu)
+        print(m)
+        menu.append(m)
+        
+        
+        i = WebKit2.ContextMenuItem.new_from_stock_action(WebKit2.ContextMenuAction.GO_FORWARD)
+        print(i)
+        i.connect('activate', lambda m,v,*a,**k: v.zoom_in(), view)
+        menu.append(i)
+        i = WebKit2.ContextMenuItem.new_from_stock_action(WebKit2.ContextMenuAction.GO_BACK)
+        i.connect('activate', lambda m,v,**k: v.zoom_out(), view)
+        menu.append(i)
+        i = WebKit2.ContextMenuItem.new_from_stock_action(WebKit2.ContextMenuAction.RELOAD)
+        i.connect('activate', lambda m,v,*a,**k: v.get_zoom_level() == 1.0 or v.set_zoom_level(1.0), view)
+        menu.append(i)
+
+        self.show_all()
+        return False"""
+        
+        
+    def zoom_in(self,*a,**kw):##########new
+        if self.get_zoom_level()==3:
+            return
+        self.set_zoom_level(self.get_zoom_level()+0.1)
+        
+    def zoom_out(self,*a,**kw):##########new
+        if self.get_zoom_level()==1:
+            return
+        self.set_zoom_level(self.get_zoom_level()-0.1)
 
 targets = Gtk.TargetList.new([])
 targets.add_uri_targets((1 << 5) -1)
@@ -610,12 +669,13 @@ class ContentPane (Gtk.Notebook):
         self.show_all()
         self._hovered_uri = None
 
-    def load (self, uri):
-        """load the given uri in the current web view"""
+    """def load (self, uri):
+        \"""load the given uri in the current web view\"""
         child = self.get_nth_page(self.get_current_page())
         wv = child.get_child()
-        wv.open(uri)
-
+        #wv.open(uri)
+        wv.load_uri(uri)"""
+        
     def new_tab_with_webview (self, webview):
         """creates a new tab with the given webview as its child"""
         self._construct_tab_view(webview)
@@ -627,7 +687,7 @@ class ContentPane (Gtk.Notebook):
         self._construct_tab_view(wv, url)
         return wv
 
-    def _construct_tab_view (self, wv, url = None, title = None):
+    """def _construct_tab_view (self, wv, url = None, title = None):
         wv.connect("hovering-over-link", self._hovering_over_link_cb)
         wv.connect("populate-popup", self._populate_page_popup_cb)
         wv.connect("load-committed", self._view_load_committed_cb)
@@ -662,15 +722,63 @@ class ContentPane (Gtk.Notebook):
         # hide the tab if there's only one
         self.set_show_tabs(self.get_n_pages() > 1)
         self.show_all()
-        self.set_current_page(new_tab_number)
+        self.set_current_page(new_tab_number)"""
+        
+    def _construct_tab_view (self, wv, url = None, title = None):
+        wv.connect("mouse-target-changed", self._hovering_over_link_cb)
+        #wv.connect("context-menu", self._populate_page_popup_cb)
+        wv.connect("load_changed", self._view_load_committed_cb)
+        wv.connect("load_changed", self._view_load_finished_cb)
+        wv.connect("create", self._new_web_view_request_cb)
 
-    def _populate_page_popup_cb(self, view, menu):
+        # load the content
+        if not self._hovered_uri :
+            if not url:
+                url=self.default_url
+            if url:
+                wv.load_uri(url)
+        else:
+            wv.load_uri(self._hovered_uri)
+            self._hovered_uri= None
+        
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.props.hscrollbar_policy = self.hp
+        scrolled_window.props.vscrollbar_policy = self.vp
+        scrolled_window.add(wv)
+        scrolled_window.show_all()
+        
+        # create the tab
+        if not title: title=self.default_title
+        if not title: title = url
+        label = TabLabel(title, scrolled_window)
+        label.connect("close", self._close_tab)
+        label.show_all()
+
+        new_tab_number = self.append_page(scrolled_window, label)
+        self.set_tab_reorderable(scrolled_window, True)
+        #self.set_tab_label_packing(scrolled_window, False, False, Gtk.PACK_START)
+        self.set_tab_label(scrolled_window, label)
+
+        # hide the tab if there's only one
+        self.set_show_tabs(self.get_n_pages() > 1)
+        self.show_all()
+        self.set_current_page(new_tab_number)
+        
+    """def _populate_page_popup_cb(self, view, menu):
         # misc
         if self._hovered_uri:
             open_in_new_tab = Gtk.MenuItem(_("Open Link in New Tab"))
             open_in_new_tab.connect("activate", self._open_in_new_tab, view)
             menu.insert(open_in_new_tab, 0)
-            menu.show_all()
+            menu.show_all()"""
+            
+    """def _populate_page_popup_cb(self, view, menu, event, hit_test_result):
+        # misc
+        if self._hovered_uri:
+            open_in_new_tab = WebKit2.ContextMenuItem.new_from_stock_action_with_label(WebKit2.ContextMenuAction.OPEN_LINK_IN_NEW_WINDOW ,_("Open Link in New Tab"))
+            #open_in_new_tab.connect("activate", self._open_in_new_tab, view)
+            menu.insert(open_in_new_tab, 0)
+            #menu.show_all()"""
 
     def _open_in_new_tab (self, menuitem, view):
         self.new_tab(self._hovered_uri)
@@ -683,29 +791,60 @@ class ContentPane (Gtk.Notebook):
             self.remove_page(page_num)
         self.set_show_tabs(self.get_n_pages() > 1)
 
-    def _switch_page (self, notebook, page, page_num):
+    """def _switch_page (self, notebook, page, page_num):
         child = self.get_nth_page(page_num)
         view = child.get_child()
         frame = view.get_main_frame()
-        self.emit("focus-view-load-committed", view, frame)
+        self.emit("focus-view-load-committed", view, frame)"""
+    
+    def _switch_page (self, notebook, page, page_num):
+        child = self.get_nth_page(page_num)
+        viewport = child.get_child()
+        web_view = viewport.get_child()
+        self.emit("focus-view-load-committed", viewport, web_view)
 
-    def _hovering_over_link_cb (self, view, title, uri):
-        self._hovered_uri = uri
+    """def _hovering_over_link_cb (self, view, title, uri):
+        self._hovered_uri = uri"""
 
-    def _view_load_committed_cb (self, view, frame):
-        self.emit("focus-view-load-committed", view, frame)
+    def _hovering_over_link_cb (self,web_view, hit_test_result, modifiers):
+        if hit_test_result.context_is_link():
+            self._hovered_uri = hit_test_result.get_link_uri()
 
-    def _view_load_finished_cb(self, view, frame):
+    """def _view_load_committed_cb (self, view, frame):
+        self.emit("focus-view-load-committed", view, frame)"""
+
+    def _view_load_committed_cb (self, web_view, load_event):
+        if load_event==2: #WebKit2.LoadEvent.COMMITTED
+            viewport = web_view.get_parent()
+            self.emit("focus-view-load-committed", viewport, web_view)
+            
+    """def _view_load_finished_cb(self, view, frame):
         child = self.get_nth_page(self.get_current_page())
         label = self.get_tab_label(child)
         title = frame.get_title()
         if not title:
              title = frame.get_uri()
-        label.set_label_text(title)
-
-    def _new_web_view_request_cb (self, web_view, web_frame):
+        label.set_label_text(title)"""
+        
+    def _view_load_finished_cb(self, web_view, load_event):
+        if load_event==3: #WebKit2.LoadEvent.FINISHED 
+            child = self.get_nth_page(self.get_current_page())
+            label = self.get_tab_label(child)
+            title = web_view.props.title
+            if not title:
+                title = web_view.props.uri
+            label.set_label_text(title)
+        
+    """def _new_web_view_request_cb (self, web_view, web_frame):
         view = self.new_tab()
         view.connect("web-view-ready", self._new_web_view_ready_cb)
+        return view"""
+
+    def _new_web_view_request_cb (self, web_view, navigation_action):
+        #type_ =  navigation_action.get_navigation_type()
+        #if type_ == 5:
+        view = self.new_tab()
+        view.connect("ready-to-show", self._new_web_view_ready_cb)
         return view
 
     def _new_web_view_ready_cb (self, web_view):
@@ -986,12 +1125,14 @@ class ThMainWindow(Gtk.ApplicationWindow):
          n = self._content.get_current_page()
          if n < 0:
             return
-         view = self._content.get_nth_page(n).get_child()
+         #view = self._content.get_nth_page(n).get_child()
+         view = self._content.get_nth_page(n).get_child().get_child()
          getattr(view, action)(*a,**kw)
 
     def _do_in_all_views (self, action, *a, **kw):
          for n in range(self._content.get_n_pages()):
-             view = self._content.get_nth_page(n).get_child()
+             #view = self._content.get_nth_page(n).get_child()
+             view = self._content.get_nth_page(n).get_child().get_child()
              getattr(view, action)(*a,**kw)
 
 

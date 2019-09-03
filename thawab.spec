@@ -5,7 +5,7 @@ Summary: Arabic/Islamic encyclopedia system
 Summary(ar): نظام موسوعي عربي/إسلامي
 URL: http://ojuba.org/
 Version: 4.1
-Release: 1%{?dist}
+Release: 2%{?dist}
 Source0: https://github.com/%{owner}/%{name}/archive/%{version}/%{name}-%{version}.tar.gz
 License: WAQFv2
 BuildArch: noarch
@@ -17,7 +17,7 @@ Requires: mdbtools
 Requires: python-paste
 Requires: islamic-menus
 Requires: python-othman
-Requires: webkitgtk3
+Requires: webkit2gtk3
 BuildRequires: gettext
 BuildRequires: python2-devel
 BuildRequires: perl
@@ -110,6 +110,11 @@ fi
 %{_datadir}/appdata/%{name}.appdata.xml
 
 %changelog
+* Mon Feb 20 2017 Yucuf Sourani <youssef.m.sourani@gmail.com> - 4.1-2
+- Release 2
+- remove webkitgtk3 dependancy
+- add webkit2gtk3 dependancy 
+
 * Mon Feb 20 2017 Mosaab Alzoubi <moceap@hotmail.com> - 4.1-1
 - Update to 4.1
 - Fixes for warnings
