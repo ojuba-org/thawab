@@ -1,4 +1,5 @@
 #! /bin/bash
+exit 0
 pushd thawab-data/themes/default/static/manual || {
   echo "can't change dir"
   exit 1
