@@ -16,7 +16,7 @@ Copyright © 2010, Muayyad Alsadi <alsadi@ojuba.org>
         "http://waqf.ojuba.org/license"
 
 """
-from Queue import Queue
+from queue import Queue
 from threading import Thread, Lock
 from time import sleep
 

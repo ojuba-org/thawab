@@ -99,7 +99,7 @@ class UserDb(object):
 
     def _getConnection(self):
         n = threading.current_thread().name
-        if self._cn.has_key(n):
+        if n in self._cn:
             r = self._cn[n]
         else:
             r = sqlite3.connect(self.db_fn)
@@ -118,7 +118,7 @@ class UserDb(object):
 
     def getStarredList(self):
         r = self._getConnection().execute(SQL_GET_ALL_STARRED).fetchall()
-        return map(lambda i: i['kitab'], r)
+        return [i['kitab'] for i in r]
 
     def starKitab(self, kitab):
         self._getConnection().execute(SQL_SET_STARRED , (kitab, float(time.time())))
@@ -131,15 +131,15 @@ class UserDb(object):
 
     def getAllBookmarks(self):
         r = self._getConnection().execute(SQL_GET_ALL_BOOKMARKS).fetchall()
-        return map(lambda i: dict(i), r)
+        return [dict(i) for i in r]
 
     def getBookmarkedKutub(self):
         r = self._getConnection().execute(SQL_GET_BOOKMARKED_KUTUB).fetchall()
-        return map(lambda i: i['kitab'], r)
+        return [i['kitab'] for i in r]
 
     def getKitabBookmarks(self, kitab):
         r = self._getConnection().execute(SQL_GET_KITAB_BOOKMARKS, (kitab, )).fetchall()
-        return map(lambda i: dict(i), r)
+        return [dict(i) for i in r]
 
     def addBookmark(self, kitab, version, globalOrder, nodeIdNum, nodeId, title):
         self._getConnection().execute(SQL_ADD_BOOKMARKS,
@@ -153,15 +153,15 @@ class UserDb(object):
 
     def getAllComments(self):
         r = self._getConnection().execute(SQL_GET_ALL_COMMENTS).fetchall()
-        return map(lambda i: dict(i), r)
+        return [dict(i) for i in r]
 
     def getCommentedKutub(self):
         r = self._getConnection().execute(SQL_GET_COMMENTED_KUTUB).fetchall()
-        return map(lambda i: i['kitab'], r)
+        return [i['kitab'] for i in r]
 
     def getKitabComments(self, kitab):
         r = self._getConnection().execute(SQL_GET_KITAB_COMMENTS, (kitab, )).fetchall()
-        return map(lambda i: dict(i), r)
+        return [dict(i) for i in r]
 
     def addComment(self, kitab, version, globalOrder, nodeIdNum, nodeId, title, comment):
         self._getConnection().execute(SQL_ADD_COMMENT,

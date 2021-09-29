@@ -16,7 +16,7 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
     "http://waqf.ojuba.org/license"
 
 """
-from tags import *
+from .tags import *
 MCACHE_BASE_FIELDS = [
   'cache_hash','repo','lang','kitab','version', 'releaseMajor', 'releaseMinor', 'type',
   'author', 'year', 'originalAuthor', 'originalYear', 'originalKitab', 'originalVersion',
@@ -26,10 +26,10 @@ MCACHE_FIELDS = MCACHE_BASE_FIELDS + ['uri', 'mtime', 'flags']
 
 SQL_MCACHE_SET = 'INSERT OR REPLACE INTO meta (rowid, %s) VALUES (1, %s)' % \
                  (', '.join(MCACHE_BASE_FIELDS),
-                 ', '.join(map(lambda i: ":"+i,MCACHE_BASE_FIELDS)))
+                 ', '.join([":"+i for i in MCACHE_BASE_FIELDS]))
 SQL_MCACHE_ADD = 'INSERT OR REPLACE INTO meta (%s) VALUES (%s)' % \
                  (', '.join(MCACHE_FIELDS),
-                 ', '.join(map(lambda i: ":"+i,MCACHE_FIELDS)))
+                 ', '.join([":"+i for i in MCACHE_FIELDS]))
 SQL_MCACHE_DROP = 'DELETE FROM meta WHERE uri=?'
 
 MCACHE_BASE = """\
@@ -143,7 +143,7 @@ STD_TAGS_ARGS = ( \
   ("hadith.ruwah.authenticity", "marks the authenticity of the rawi, param values are thiqah, ...,kathoob", TAG_FLAGS_IX_TAG),
   ("hadith.ruwah.tabaqa", "marks the tabaqa of the rawi, param values are sahabi,tabii,...", TAG_FLAGS_IX_TAG)
 )
-STD_TAGS_HASH = dict(map(lambda i: (i[0],i),STD_TAGS_ARGS))
+STD_TAGS_HASH = dict([(i[0],i) for i in STD_TAGS_ARGS])
 # ENUMs
 WITH_NONE = 0
 WITH_CONTENT = 1

@@ -1,7 +1,7 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: UTF-8 -*-
 import sys, os, time, atexit, signal, shutil, tempfile, sqlite3
-from Thawab.gtkUi import launchServer
+from Thawab.gtkUi import launchServer, onlyterminal
 from Thawab.shamelaUtils import ShamelaSqlite, shamelaImport
 class ThawabServer:
 	def __init__(self, pidfile):
@@ -23,7 +23,7 @@ class ThawabServer:
 			sys.exit(1)
 	
 		# decouple from parent environment
-		os.chdir('/') 
+		#os.chdir('/') 
 		os.setsid() 
 		os.umask(0) 
 	
@@ -39,22 +39,24 @@ class ThawabServer:
 			sys.exit(1) 
 	
 		# redirect standard file descriptors
-		sys.stdout.flush()
-		sys.stderr.flush()
-		si = open(os.devnull, 'r')
-		so = open(os.devnull, 'a+')
-		se = open(os.devnull, 'a+')
+		#sys.stdout.flush()
+		#sys.stderr.flush()
+		#si = open(os.devnull, 'r')
+		#so = open(os.devnull, 'a+')
+		#se = open(os.devnull, 'a+')
 
-		os.dup2(si.fileno(), sys.stdin.fileno())
-		os.dup2(so.fileno(), sys.stdout.fileno())
-		os.dup2(se.fileno(), sys.stderr.fileno())
+		#os.dup2(si.fileno(), sys.stdin.fileno())
+		#os.dup2(so.fileno(), sys.stdout.fileno())
+		#os.dup2(se.fileno(), sys.stderr.fileno())
 	
 		# write pidfile
 		atexit.register(self.delpid)
 
 		pid = str(os.getpid())
+		
 		with open(self.pidfile,'w+') as f:
 			f.write(pid + '\n')
+		
 	
 	def delpid(self):
 		os.remove(self.pidfile)
@@ -63,8 +65,12 @@ class ThawabServer:
 		# Check for a pidfile to see if the daemon already runs
 		try:
 			with open(self.pidfile,'r') as pf:
-
-				return int(pf.read().strip())
+			    r = int(pf.read().strip())
+			    c = os.system("ps o cmd= {} > /dev/null".format(r))
+			    #print ("ps o cmd= {}".format(r),c)
+			    if not c:
+				    return r
+			    return None
 		except IOError:
 			return None
 	
@@ -80,6 +86,7 @@ class ThawabServer:
 			sys.exit(1)
 		# Start the daemon
 		self.daemonize()
+		print("** Thawab server is running on: 127.0.0.1:18080")
 		self.run()
 
 	def stop(self):
@@ -107,15 +114,18 @@ class ThawabServer:
 			else:
 				print (str(err.args))
 				sys.exit(1)
+		print("** Thawab server stopped")
 
 	def restart(self):
 		"""Restart the daemon."""
-		self.stop()
+		if self.check_running():
+		    self.stop()
 		self.start()
-
+        
 	def run(self, silent=False):
-		self.th, self.port, self.server = launchServer()
-		if not silent: self.server.serve_forever()
+		self.th, self.port, self.server = onlyterminal()
+		if not silent: 
+		    self.server.serve_forever()
 
 	def clean_run(self):
 		if self.check_running():
@@ -228,6 +238,12 @@ if __name__ == "__main__":
 					daemon.restart()
 			elif 'reindex' == sys.argv[1]:
 					daemon.reindex()		
+			elif 'check' == sys.argv[1]:
+					r = daemon.check_running()
+					if r:
+					    print("** Thawab server is running on: 127.0.0.1:18080, pid: {}.".format(r))
+					else:
+					    print("** Thawab server is not running.")
 			elif 'fix' == sys.argv[1]:
 					if sys.argv[2] == 'index':
 						daemon.remove_index()
@@ -236,17 +252,18 @@ if __name__ == "__main__":
 			elif 'importbok' == sys.argv[1] and len(sys.argv) >= 3:
 					daemon.importbok(sys.argv[2])
 			else:
-					print "Unknown command"
+					print ("Unknown command")
 					sys.exit(2)
 					sys.exit(0)
 		else:
-				print '''Thawab Server\nusage:	thawab-server [command] [file(s)] \nCommands:
+				print ('''Thawab Server\nusage:	thawab-server [command] [file(s)] \nCommands:
 	start		starts the server 
 	stop		stops the server 
-	restart		restarts the server 
+	restart		restarts the server
+	check		check server status 
 	reindex		queues new books
 	fix index	removes search index
 	fix meta	removes meta data cache to generate a fresh one
-	importbok [file path]	imports Shamela .bok file'''
+	importbok [file path]	imports Shamela .bok file''')
 				
 				sys.exit(2)

@@ -18,8 +18,8 @@ Copyright © 2008, Muayyad Alsadi <alsadi@ojuba.org>
 """
 import sys, os, os.path, re
 import shutil
-from tags import *
-from meta import prettyId,makeId
+from .tags import *
+from .meta import prettyId,makeId
 
 from whoosh import query
 from whoosh.index import EmptyIndexError, create_in, open_dir, IndexVersionError
@@ -36,14 +36,14 @@ try:
 except ImportError:
     from whoosh.filedb.fileindex import _INDEX_VERSION as whoosh_ix_ver
 
-from stemming import stemArabic
+from .stemming import stemArabic
 
 def stemfn(word): return stemArabic(stem(word))
 # word_re = ur"[\w\u064e\u064b\u064f\u064c\u0650\u064d\u0652\u0651\u0640]"
-analyzer = StandardAnalyzer(expression = ur"[\w\u064e\u064b\u064f\u064c\u0650\u064d\u0652\u0651\u0640]+(?:\.?[\w\u064e\u064b\u064f\u064c\u0650\u064d\u0652\u0651\u0640]+)*") | StemFilter(stemfn)
+analyzer = StandardAnalyzer(expression = r"[\w\u064e\u064b\u064f\u064c\u0650\u064d\u0652\u0651\u0640]+(?:\.?[\w\u064e\u064b\u064f\u064c\u0650\u064d\u0652\u0651\u0640]+)*") | StemFilter(stemfn)
 
 from whoosh.qparser import FieldAliasPlugin
-from whooshSymbolicQParser import MultifieldSQParser
+from .whooshSymbolicQParser import MultifieldSQParser
 
 class ExcerptFormatter(object):
         def __init__(self, between = "..."):
@@ -71,7 +71,7 @@ class ExcerptFormatter(object):
                                           for fragment in fragments))
 
 
-from baseSearchEngine import BaseSearchEngine
+from .baseSearchEngine import BaseSearchEngine
 class SearchEngine(BaseSearchEngine):
     def __init__(self, th):
         BaseSearchEngine.__init__(self, th, False)
@@ -103,9 +103,9 @@ class SearchEngine(BaseSearchEngine):
         #self.__ix_qparser = ThMultifieldParser(self.th, ("title","content",), schema=self.indexer.schema)
         self.__ix_qparser = MultifieldSQParser(("title","content",), self.indexer.schema)
         self.__ix_qparser.add_plugin(FieldAliasPlugin({
-                u"kitab":(u"كتاب",),
-                u"title":(u"عنوان",),
-                u"tags":(u"وسوم",)})
+                "kitab":("كتاب",),
+                "title":("عنوان",),
+                "tags":("وسوم",)})
         )
         #self.__ix_pre = whoosh.query.Prefix
         self.__ix_searcher =  self.indexer.searcher()
@@ -118,7 +118,7 @@ class SearchEngine(BaseSearchEngine):
         return a Version-Release string if in index, otherwise return None
         """
         try:
-            d = self.__ix_searcher.document(kitab = unicode(makeId(name)))
+            d = self.__ix_searcher.document(kitab = str(makeId(name)))
         except TypeError:
             return None
         except KeyError:
@@ -159,9 +159,8 @@ class SearchEngine(BaseSearchEngine):
         # return (field,term) pairs    # self.self.__ix_searcher.reader() 
         s = results.q.existing_terms(self.indexer.reader(), phrases = True)
         #s = set([i.decode('utf_8') for i in s])
-        terms = dict(
-                map(lambda i: (i[1],i[0]),
-                filter(lambda j: j[0] == 'content' or j[0] == 'title', s))).keys()
+        terms = list(dict(
+                [(i[1],i[0]) for i in [j for j in s if j[0] == 'content' or j[0] == 'title']]).keys())
         #print "txt = [%s]" % len(txt)
         terms = [i.decode('utf_8') for i in terms]
         snippet_dummy = txt[:min(len(txt),512)] # dummy summary
@@ -169,7 +168,7 @@ class SearchEngine(BaseSearchEngine):
                             terms,
                             analyzer,
                             SentenceFragmenter(sentencechars = ".!?؟\n"),
-                            HtmlFormatter(between = u"\u2026\n"),
+                            HtmlFormatter(between = "\u2026\n"),
                             top = 3,
                             scorer = BasicFragmentScorer,
                             minscore = 1,
@@ -189,8 +188,8 @@ class SearchEngine(BaseSearchEngine):
         if not self.__ix_writer:
             try:
                 self.__ix_writer = self.indexer.writer()
-            except OSError, e:
-                print '*** whooshSearchEnfine.indexingStart: %s', e
+            except OSError as e:
+                print('*** whooshSearchEnfine.indexingStart: %s', e)
                 
 
     def indexingEnd(self):
@@ -218,14 +217,14 @@ class SearchEngine(BaseSearchEngine):
         ki = self.th.getKitab(name)
         if ki:
             self.th.getMeta().setIndexedFlags(ki.uri, 1)
-        print "dropping index for kitab name:", name,
+        print("dropping index for kitab name:", name, end=' ')
         w, c = self.__ix_writer, False
         if not w:
             w, c = self.indexer.writer(), True # creates a writer internally if one is not defined
         # NOTE: because the searcher could be limited do a loop that keeps deleting till the query is empty
         while(w.delete_by_term('kitab', name)):
-            print "*",
-        print
+            print("*", end=' ')
+        print()
         if c:
             w.commit()
         if ki:
@@ -261,17 +260,17 @@ class SearchEngine(BaseSearchEngine):
         if content:
             self.__ix_writer.add_document(kitab = name,
                                           vrr = vrr,
-                                          nodeIdNum = unicode(nodeIdNum),
+                                          nodeIdNum = str(nodeIdNum),
                                           title = title,
                                           content = content,
                                           tags = tags)
 
     def keyterms(self, kitab, vrr, nodeIdNum):
         s = self.indexer.searcher()
-        dn = s.document_number(kitab = kitab, vrr = vrr, nodeIdNum = unicode(nodeIdNum))
+        dn = s.document_number(kitab = kitab, vrr = vrr, nodeIdNum = str(nodeIdNum))
         if dn  ==  None:
             return None, []
-        print " ## ", dn
+        print(" ## ", dn)
         r = s.key_terms([dn], "content", numterms = 5)
         return dn, r
 
@@ -280,10 +279,10 @@ class SearchEngine(BaseSearchEngine):
         if not dn:
             return None
         for t, r in kt:
-            print "term = ", t, " @ rank = ",r
+            print("term = ", t, " @ rank = ",r)
         q = query.Or([query.Term("content", t) for (t, r) in kt])
         results = self.indexer.searcher().search(q, limit = 10)
         for i, fields in enumerate(results):
             if results.docnum(i)  !=  dn:
-                print fields['kitab'],"\t\t",str(fields['nodeIdNum']),"\t\t",fields['title']
+                print(fields['kitab'],"\t\t",str(fields['nodeIdNum']),"\t\t",fields['title'])
 

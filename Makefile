@@ -86,6 +86,8 @@ clean:
 	@$(RM) -f *.pyc
 	@$(ECHO) "- Removing: */*.pyc"
 	@$(RM) -f */*.pyc
+	@$(ECHO) "- Removing: */__pycache__/"
+	@$(RM) -rf */__pycache__/
 	@$(ECHO) "- Removing: $(APPNAME)-*.png"
 	@$(RM) -f $(APPNAME)-*.png
 	@$(ECHO) "- Removing Cache directories"
