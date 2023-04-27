@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: UTF-8 -*-
 """
 The is wiki importing tool for testing and demonestration of thawab

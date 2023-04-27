@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/python3
 # -*- coding: UTF-8 -*-
 import os, os.path, Thawab.core
 th=Thawab.core.ThawabMan()
