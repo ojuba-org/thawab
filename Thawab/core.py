@@ -32,7 +32,7 @@ from .platform import guess_prefixes
 from .whooshSearchEngine import SearchEngine
 from .asyncIndex import AsyncIndex
 from othman.core import othmanCore
-from .okasha.utils import ObjectsCache, fromFs, toFs
+from okasha.utils import ObjectsCache, fromFs, toFs
 from functools import reduce
 
 th_ext = '.ki'

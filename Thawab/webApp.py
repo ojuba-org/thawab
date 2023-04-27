@@ -25,9 +25,9 @@ import base64
 from html import escape # for html escaping
 from .meta import prettyId, makeId, metaVrr
 from .stemming import normalize_tb
-from .okasha.utils import ObjectsCache
-from .okasha.baseWebApp import *
-from .okasha.bottleTemplate import bottleTemplate
+from okasha.utils import ObjectsCache
+from okasha.baseWebApp import *
+from okasha.bottleTemplate import bottleTemplate
 
 # fixme move this to okasha.utils
 def tryInt(s, d = 0):
